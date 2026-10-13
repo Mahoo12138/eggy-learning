@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "chicken-rules-boss",
-  "version": 1,
+  "version": 2,
   "activityType": "rank-boss",
   "rankId": "chicken",
   "sequence": 4,
-  "title": "蛋仔公园道具挑战赛",
-  "estimatedMinutes": 24,
+  "title": "条件、循环与函数综合检查",
+  "estimatedMinutes": 30,
   "prerequisiteLevelIds": [
     "chicken-teleport-state",
     "chicken-bomb-boundary",
@@ -20,7 +20,7 @@
       "spring-board",
       "bouncy-ball"
     ],
-    "intro": "公园开放前要连续验证传送状态、炸弹边界和多轮计分。"
+    "intro": "连续检查多状态分支、循环边界和函数复用，任何一个环节出错都会改变最终统计。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -30,35 +30,36 @@
     {
       "id": "predict-paths",
       "kind": "prediction",
-      "title": "画出道具执行路径",
-      "prompt": "为传送球输入 0、1、2，分别选择将进入的分支。",
+      "title": "追踪四种执行路径",
+      "prompt": "规则为 0→pending、1→running、2→done、其余→invalid。填写四个输入的输出。",
       "evaluator": {
         "kind": "mapping-exact",
         "expected": {
-          "0": "放置",
-          "1": "传送",
-          "2": "错误"
+          "0": "pending",
+          "1": "running",
+          "2": "done",
+          "3": "invalid"
         }
       }
     },
     {
       "id": "repair-loop-boundary",
       "kind": "code-repair",
-      "title": "修复少算一轮的记分牌",
+      "title": "修复少读一次的循环",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int hit = 0;\n  for (int round = 0; round < 2; round++) {\n    int value; scanf(\"%d\", &value);\n    if (value >= 1) hit++;\n  }\n  printf(\"命中%d次\\n\", hit);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint is_valid(int value) { return value >= 10 && value <= 20; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 2; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_valid(value);\n  }\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "1\n0\n1\n",
-            "stdout": "命中2次\n"
+            "stdin": "10\n9\n20\n",
+            "stdout": "valid=2\n"
           },
           {
-            "stdin": "1\n1\n1\n",
-            "stdout": "命中3次\n"
+            "stdin": "11\n12\n13\n",
+            "stdout": "valid=3\n"
           }
         ]
       },
@@ -66,36 +67,40 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "程序只读了两个输入。"
+          "text": "程序只消费了前两个输入。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查循环终止条件。"
+          "text": "检查 for 的终止条件。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "三轮从 0 开始应允许 round 为 0、1、2。"
+          "text": "i 从 0 开始，i < 3 才会执行三次。"
         }
       ]
     },
     {
       "id": "transfer-item-judge",
       "kind": "independent-transfer",
-      "title": "独立设计弹簧绳判定",
-      "prompt": "编写 can_hook(distance)；距离 1–4 返回 1，其他返回 0。读取 4 个距离并输出可勾中次数。",
+      "title": "独立组合函数与四轮统计",
+      "prompt": "编写 in_range(value)：1–4（含端点）返回 1。读取 4 个整数并输出 count=N。",
       "runtimeId": "c17-console",
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
             "stdin": "0\n1\n4\n5\n",
-            "stdout": "可勾中2次\n"
+            "stdout": "count=2\n"
           },
           {
-            "stdin": "2\n3\n4\n1\n",
-            "stdout": "可勾中4次\n"
+            "stdin": "1\n2\n3\n4\n",
+            "stdout": "count=4\n"
+          },
+          {
+            "stdin": "-1\n8\n0\n5\n",
+            "stdout": "count=0\n"
           }
         ]
       },
@@ -103,17 +108,17 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先独立写出距离边界。"
+          "text": "先用 0、1、4、5 检查函数边界。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "函数处理一次判断，循环处理四次输入。"
+          "text": "函数只处理一个 value；main 循环四次。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "把 can_hook 的 0 或 1 累加到计数。"
+          "text": "把每次返回的 0 或 1 累加到 count。"
         }
       ],
       "fullSolutionPolicy": {
@@ -131,7 +136,7 @@
     "rankPromotion": true,
     "coreToken": {
       "id": "token-golden-referee-whistle",
-      "title": "金色裁判哨",
+      "title": "控制流罗盘",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true

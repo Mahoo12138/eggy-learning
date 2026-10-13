@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-data-boss",
-  "version": 1,
+  "version": 2,
   "activityType": "rank-boss",
   "rankId": "pigeon",
   "sequence": 4,
-  "title": "形象与盲盒数据校准",
-  "estimatedMinutes": 24,
+  "title": "数据与表达式综合检查",
+  "estimatedMinutes": 30,
   "prerequisiteLevelIds": [
     "pigeon-salty-fish-counter",
     "pigeon-shrink-milk-timer",
@@ -19,7 +19,7 @@
       "shrink-milk",
       "speed-shoes"
     ],
-    "intro": "换新店与盲盒商店的数据面板发生错位，需要一次完整校准。"
+    "intro": "综合追踪表达式、中间变量和格式化输出，定位数据从哪一步开始偏离。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -29,71 +29,84 @@
     {
       "id": "predict-values",
       "kind": "prediction",
-      "title": "追踪三项数据",
-      "prompt": "给定 caps=15、price=4、count=2，写出总价与剩余值。",
+      "title": "拆解使用量与剩余量",
+      "prompt": "limit=50、unit=7、count=4、fee=3。used=unit*count+fee，left=limit-used。写出 used 与 left。",
       "evaluator": {
         "kind": "object-exact",
         "expected": {
-          "total": 8,
-          "left": 7
+          "used": 31,
+          "left": 19
         }
       }
     },
     {
       "id": "repair-mixed-fields",
       "kind": "code-repair",
-      "title": "修复显示错位",
+      "title": "修复字段与计算错位",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int size = 50;\n  int seconds = 3;\n  printf(\"体型%d%%，剩余%d秒\\n\", seconds, size);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int limit = 50;\n  int used = 37;\n  printf(\"used=%d,left=%d\\n\", limit - used, used);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdout-exact",
-        "expected": "体型50%，剩余3秒\n"
+        "expected": "used=37,left=13\n"
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "两个数都存在，但显示位置反了。"
+          "text": "两个需要的数都能由现有变量得到，但现在放错了位置。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 printf 后面的参数顺序。"
+          "text": "第一个 %d 应对应 used；第二个应对应 limit - used。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "第一个 %d 对应 size，第二个对应 seconds。"
+          "text": "不要改 limit 和 used 的初值，只修正 printf 参数。"
         }
       ]
     },
     {
       "id": "transfer-stock-panel",
       "kind": "independent-transfer",
-      "title": "独立制作补货面板",
-      "prompt": "库存 6 个，补货 5 个，售出 3 个，输出“当前库存8”。",
+      "title": "独立计算三步库存",
+      "prompt": "读取 initial、received、sold，输出 final=initial+received-sold。",
       "runtimeId": "c17-console",
       "grader": {
-        "kind": "stdout-exact",
-        "expected": "当前库存8\n"
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "6 5 3\n",
+            "stdout": "final=8\n"
+          },
+          {
+            "stdin": "10 0 4\n",
+            "stdout": "final=6\n"
+          },
+          {
+            "stdin": "2 8 10\n",
+            "stdout": "final=0\n"
+          }
+        ]
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "按事件发生顺序写出库存变化。"
+          "text": "按事件顺序更新同一个结果。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "用一个 stock 变量连续更新。"
+          "text": "也可以先算 initial + received，再减 sold。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "补货做加法，售出做减法。"
+          "text": "输出格式必须是 final=N，并保留换行。"
         }
       ],
       "fullSolutionPolicy": {
@@ -111,7 +124,7 @@
     "rankPromotion": true,
     "coreToken": {
       "id": "token-data-calibration-chip",
-      "title": "数据校准芯片",
+      "title": "数据调试芯片",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true

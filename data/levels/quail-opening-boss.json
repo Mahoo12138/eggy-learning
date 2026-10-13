@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "id": "quail-opening-boss",
-  "version": 1,
+  "version": 2,
   "activityType": "rank-boss",
   "rankId": "quail",
   "sequence": 4,
-  "title": "中央广场开园检查",
+  "title": "程序执行与输入输出诊断",
   "estimatedMinutes": 24,
   "prerequisiteLevelIds": [
     "quail-fountain-sequence",
@@ -15,7 +15,7 @@
   "scene": {
     "locationId": "central-fountain",
     "propIds": [],
-    "intro": "喷泉、钢琴和欢迎广播将在同一次开园检查中依次启动。"
+    "intro": "综合追踪函数调用、修复输入检查，并独立完成一段带格式合同的程序。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -25,35 +25,43 @@
     {
       "id": "predict-show",
       "kind": "prediction",
-      "title": "先读懂启动顺序",
-      "prompt": "根据给出的三条输出，排列喷泉、钢琴、广播的启动顺序。",
+      "title": "追踪跨函数执行路径",
+      "prompt": "程序先在 main 输出“进入 main”，随后调用 read_value；read_value 输出“调用 read_value”并返回 8；main 最后输出“结果:8”。请排列输出顺序。",
       "evaluator": {
         "kind": "exact-order",
         "expected": [
-          "喷泉",
-          "钢琴",
-          "广播"
+          "进入 main",
+          "调用 read_value",
+          "结果:8"
         ]
       }
     },
     {
       "id": "repair-broadcast",
       "kind": "code-repair",
-      "title": "修复没有名字的广播",
+      "title": "修复双整数读取与求和",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"欢迎开园！\\n\");\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int left, right;\n  if (scanf(\"%d\", &left) != 1) {\n    printf(\"input-error\\n\");\n    return 0;\n  }\n  printf(\"sum:%d\\n\", left + right);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "圆圆\n",
-            "stdout": "圆圆，欢迎开园！\n"
+            "stdin": "7 5\n",
+            "stdout": "sum:12\n"
           },
           {
-            "stdin": "小蓝\n",
-            "stdout": "小蓝，欢迎开园！\n"
+            "stdin": "7 x\n",
+            "stdout": "input-error\n"
+          },
+          {
+            "stdin": "x 5\n",
+            "stdout": "input-error\n"
+          },
+          {
+            "stdin": "-4 9\n",
+            "stdout": "sum:5\n"
           }
         ]
       },
@@ -61,36 +69,44 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "输入已经成功，输出却没有使用 name。"
+          "text": "两个整数都必须成功赋值，才能计算总和。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查最后一条 printf。"
+          "text": "检查 scanf 的格式字符串、参数数量和返回值。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "在格式字符串里放入 %s，并把 name 作为参数。"
+          "text": "一次读取两个 %d，并要求返回值等于 2。"
         }
       ]
     },
     {
       "id": "transfer-new-show",
       "kind": "independent-transfer",
-      "title": "独立编排另一场开园秀",
-      "prompt": "读取来宾名字，依次输出“喷泉启动”“钢琴启动”“名字，欢迎入园！”。",
+      "title": "独立实现输入回显与最大值",
+      "prompt": "编写 C 程序读取两个整数。读取失败输出 input-error；成功时先输出 input:a,b，再输出 max:n。相等时 max 输出该值。",
       "runtimeId": "c17-console",
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "团团\n",
-            "stdout": "喷泉启动\n钢琴启动\n团团，欢迎入园！\n"
+            "stdin": "3 9\n",
+            "stdout": "input:3,9\nmax:9\n"
           },
           {
-            "stdin": "果果\n",
-            "stdout": "喷泉启动\n钢琴启动\n果果，欢迎入园！\n"
+            "stdin": "8 -2\n",
+            "stdout": "input:8,-2\nmax:8\n"
+          },
+          {
+            "stdin": "5 5\n",
+            "stdout": "input:5,5\nmax:5\n"
+          },
+          {
+            "stdin": "4 ?\n",
+            "stdout": "input-error\n"
           }
         ]
       },
@@ -98,21 +114,23 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先确认总共有三行输出。"
+          "text": "先把读取失败路径单独处理，再写成功路径。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "前两行固定，第三行使用输入变量。"
+          "text": "成功路径需要两条 printf，最大值可用 if 或条件表达式。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "把执行顺序、换行和 %s 三件事分别检查。"
+          "text": "要求 scanf 返回 2；用 left >= right 选择最大值。"
         }
       ],
       "fullSolutionPolicy": {
-        "revealRequiresNewEquivalentCheckpoint": true
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
       }
     }
   ],
@@ -126,7 +144,7 @@
     "rankPromotion": true,
     "coreToken": {
       "id": "token-square-start-key",
-      "title": "广场启动钥匙",
+      "title": "程序追踪徽章",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true
@@ -141,6 +159,6 @@
       "actualResult",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "用问题引导学习者解释现象；不要替学习者完成最后的迁移检查点。"
+    "tutorInstruction": "用问题引导学习者追踪调用、输入与输出；不要代替学习者完成最后的独立检查点。"
   }
 }

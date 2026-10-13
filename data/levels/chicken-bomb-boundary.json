@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "chicken-bomb-boundary",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-ii",
   "sequence": 2,
-  "title": "炸弹范围的边界判定",
-  "estimatedMinutes": 18,
+  "title": "判断数值是否落在闭区间",
+  "estimatedMinutes": 22,
   "prerequisiteLevelIds": [
     "chicken-teleport-state"
   ],
@@ -18,12 +18,12 @@
       "smoke-bomb",
       "ink-bomb"
     ],
-    "intro": "公园安全测试要判断距离 2 米以内的蛋仔是否会被炸弹波及。",
-    "success": "公园道具测试台正确处理了中心、边界和范围外目标。"
+    "intro": "用成组边界值验证闭区间条件，并单独处理不合法的负数输入。",
+    "success": "区间内、两个端点、区间外和非法值都得到正确结果。"
   },
   "objectives": [
-    "用布尔条件表达范围",
-    "理解边界值是否包含在规则内"
+    "写出同时包含上下界的布尔表达式",
+    "用端点内外的测试值区分 <、<=、> 与 >="
   ],
   "teachingLoop": [
     "predict",
@@ -36,13 +36,13 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "规则是 distance <= 2，距离正好为 2 时会不会被波及？",
+      "prompt": "哪一个条件准确表示 value 位于闭区间 [10, 20]？",
       "interaction": {
         "kind": "single-choice",
         "options": [
-          "会",
-          "不会",
-          "无法判断"
+          "value >= 10 && value <= 20",
+          "value >= 10 || value <= 20",
+          "value > 10 && value < 20"
         ]
       },
       "evaluator": {
@@ -50,82 +50,93 @@
         "expectedIndex": 0
       },
       "feedback": {
-        "correct": "<= 包含等于边界的情况。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "闭区间同时要求满足下界和上界，并且包含两个端点。",
+        "incorrect": "把 9、10、20、21 依次代入三个表达式，找出只接受 10 到 20 的那个。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "分别观察距离 1、2、3 的结果。",
+      "prompt": "用端点内外四个值运行，观察闭区间条件的结果。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  if (distance <= 2) {\n    printf(\"被波及\\n\");\n  } else {\n    printf(\"安全\\n\");\n  }\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int value;\n  scanf(\"%d\", &value);\n  if (value >= 10 && value <= 20) puts(\"in\");\n  else puts(\"out\");\n  return 0;\n}\n"
       },
-      "stdin": "2\n",
+      "stdin": "10\n",
       "evaluator": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "1\n",
-            "stdout": "被波及\n"
+            "stdin": "9\n",
+            "stdout": "out\n"
           },
           {
-            "stdin": "2\n",
-            "stdout": "被波及\n"
+            "stdin": "10\n",
+            "stdout": "in\n"
           },
           {
-            "stdin": "3\n",
-            "stdout": "安全\n"
+            "stdin": "20\n",
+            "stdout": "in\n"
+          },
+          {
+            "stdin": "21\n",
+            "stdout": "out\n"
           }
         ]
       },
       "visualizer": {
-        "kind": "radius-check",
-        "target": "bomb",
-        "radius": 2
+        "kind": "range-check",
+        "target": "value",
+        "minimum": 10,
+        "maximum": 20,
+        "inclusive": true
       },
-      "observationPrompt": "哪一个测试最能确认边界是否包含 2？"
+      "observationPrompt": "哪两个输入专门检查了等号是否正确？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么只测距离 1 和 3，仍不能确认 distance < 2 与 distance <= 2 的差别？",
+      "prompt": "为什么只测试 15 和 30，无法发现把 <= 20 错写成 < 20 的问题？",
       "referencePoints": [
-        "两种条件在 1 和 3 上结果相同",
-        "必须测试恰好等于 2 的边界值"
+        "15 在两种写法中都通过",
+        "30 在两种写法中都不通过",
+        "必须测试上界 20 才能区分是否包含端点"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 16,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "加入自身保护：distance 为 0 时输出“自己取消投掷”，1–2 输出“被波及”，其他输出“安全”。",
+      "prompt": "加入输入规则：负数输出 invalid；否则 10–20 输出 in，其余输出 out。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  if (distance <= 2) {\n    printf(\"被波及\\n\");\n  } else {\n    printf(\"安全\\n\");\n  }\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int value;\n  scanf(\"%d\", &value);\n  if (value >= 10 && value <= 20) puts(\"in\");\n  else puts(\"out\");\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "0\n",
-            "stdout": "自己取消投掷\n"
+            "stdin": "-1\n",
+            "stdout": "invalid\n"
           },
           {
-            "stdin": "1\n",
-            "stdout": "被波及\n"
+            "stdin": "9\n",
+            "stdout": "out\n"
           },
           {
-            "stdin": "2\n",
-            "stdout": "被波及\n"
+            "stdin": "10\n",
+            "stdout": "in\n"
           },
           {
-            "stdin": "3\n",
-            "stdout": "安全\n"
+            "stdin": "20\n",
+            "stdout": "in\n"
+          },
+          {
+            "stdin": "21\n",
+            "stdout": "out\n"
           }
         ]
       },
@@ -133,98 +144,106 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "distance=0 需要比范围判断更早处理。"
+          "text": "负数不能进入普通的区间内外判断。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "在原 if 前增加一个分支。"
+          "text": "把非法值判断放在闭区间判断之前。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "按特殊值 0、范围 1–2、其余距离的顺序判断。"
+          "text": "使用 if (value < 0)，再 else if 检查两个边界。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "先 if (distance == 0)，再 else if (distance <= 2)，最后 else。",
+        "text": "先处理 value < 0；其余值再用 value >= 10 && value <= 20 判断。",
         "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立实现另一种范围道具。",
+      "prompt": "独立实现另一组带非法值处理的闭区间规则。",
       "runtimeId": "c17-console",
       "variantSetId": "chicken-radius-rule-v1",
       "variants": [
         {
           "id": "smoke-radius-three",
-          "prompt": "云雾弹距离 0 输出“自己也看不清”，1–3 输出“进入云雾”，大于 3 输出“视野正常”。",
+          "prompt": "读取 sample：负数输出 invalid，5–12（含端点）输出 accepted，其余输出 rejected。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  /* 编写范围规则 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int sample;\n  scanf(\"%d\", &sample);\n  /* 完成规则 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "0\n",
-                "stdout": "自己也看不清\n"
+                "stdin": "-1\n",
+                "stdout": "invalid\n"
               },
               {
-                "stdin": "3\n",
-                "stdout": "进入云雾\n"
+                "stdin": "5\n",
+                "stdout": "accepted\n"
               },
               {
-                "stdin": "4\n",
-                "stdout": "视野正常\n"
+                "stdin": "12\n",
+                "stdout": "accepted\n"
+              },
+              {
+                "stdin": "13\n",
+                "stdout": "rejected\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  if (distance == 0) {\n    printf(\"自己也看不清\\n\");\n  } else if (distance <= 3) {\n    printf(\"进入云雾\\n\");\n  } else {\n    printf(\"视野正常\\n\");\n  }\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int sample;\n  scanf(\"%d\", &sample);\n  if (sample < 0) puts(\"invalid\");\n  else if (sample >= 5 && sample <= 12) puts(\"accepted\");\n  else puts(\"rejected\");\n  return 0;\n}\n"
         },
         {
           "id": "ink-radius-one",
-          "prompt": "墨汁炸弹距离 0 输出“自己被墨汁挡住”，距离 1 输出“屏幕变黑”，其他输出“没有命中”。",
+          "prompt": "读取 count：负数输出 invalid，1–100（含端点）输出 valid，其余输出 out-of-range。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  /* 编写范围规则 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int count;\n  scanf(\"%d\", &count);\n  /* 完成规则 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "0\n",
-                "stdout": "自己被墨汁挡住\n"
+                "stdin": "-2\n",
+                "stdout": "invalid\n"
               },
               {
                 "stdin": "1\n",
-                "stdout": "屏幕变黑\n"
+                "stdout": "valid\n"
               },
               {
-                "stdin": "2\n",
-                "stdout": "没有命中\n"
+                "stdin": "100\n",
+                "stdout": "valid\n"
+              },
+              {
+                "stdin": "101\n",
+                "stdout": "out-of-range\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int distance;\n  scanf(\"%d\", &distance);\n  if (distance == 0) {\n    printf(\"自己被墨汁挡住\\n\");\n  } else if (distance == 1) {\n    printf(\"屏幕变黑\\n\");\n  } else {\n    printf(\"没有命中\\n\");\n  }\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int count;\n  scanf(\"%d\", &count);\n  if (count < 0) puts(\"invalid\");\n  else if (count >= 1 && count <= 100) puts(\"valid\");\n  else puts(\"out-of-range\");\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先列出所有边界输入。"
+          "text": "至少检查非法值、下界、上界和界外值。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "从最特殊的 0 开始判断。"
+          "text": "先写非法分支，再写闭区间条件。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "每一条分支都要与题目的一段范围一一对应。"
+          "text": "闭区间上下界用 && 连接，并在两个比较中保留等号。"
         }
       ],
       "fullSolutionPolicy": {

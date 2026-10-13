@@ -1,8 +1,8 @@
 export const RANK_BLUEPRINTS = [
-  { id: 'quail', name: '鹌鹑蛋', short: '程序启动', domain: 'C 程序如何运行', building: '中央喷泉广场 · 钢琴地毯', summary: '从第一行输出开始，看懂顺序、输入与错误。', reward: '广场启动钥匙' },
-  { id: 'pigeon', name: '鸽子蛋', short: '数据变化', domain: 'C 变量、类型与表达式', building: '换新店 · 盲盒商店', summary: '追踪每个数据的来路、变化与边界。', reward: '数据校准芯片' },
-  { id: 'chicken', name: '鸡蛋', short: '规则与路径', domain: 'C 条件、循环与函数', building: '蛋仔公园 · 足球场', summary: '让分支、循环和函数真正驱动游戏规则。', reward: '金色裁判哨' },
-  { id: 'goose', name: '鹅蛋', short: '内存与数据组织', domain: 'C 数组、字符串、指针与文件', building: '苹果派雪雪烘焙店 · 淘气丸子奶茶店', summary: '把零散数据放进可靠的内存与文件结构。', reward: '美食街奖杯', project: '蛋仔美食街·今天吃什么' },
+  { id: 'quail', name: '鹌鹑蛋', short: '程序启动', domain: 'C 程序如何运行', building: '', summary: '追踪函数、语句、输入与输出，定位程序在哪一步偏离预期。', reward: '程序追踪徽章' },
+  { id: 'pigeon', name: '鸽子蛋', short: '数据变化', domain: 'C 变量、类型与表达式', building: '', summary: '追踪多次赋值、类型转换和组合表达式中的数据变化。', reward: '数据调试芯片' },
+  { id: 'chicken', name: '鸡蛋', short: '规则与路径', domain: 'C 条件、循环与函数', building: '', summary: '处理多状态分支、边界条件、循环次数和函数返回值。', reward: '控制流罗盘' },
+  { id: 'goose', name: '鹅蛋', short: '内存与数据组织', domain: 'C 数组、字符串、指针与文件', building: '苹果派雪雪烘焙店 · 淘气丸子奶茶店', summary: '把零散数据放进可靠的内存与文件结构。', reward: '美食街奖杯', project: '蛋仔食堂·今天吃什么' },
   { id: 'ostrich', name: '鸵鸟蛋', short: '嵌入式机关', domain: 'STM32 与外设', building: '巨型摩天轮', summary: '用按键、定时器、中断和传感器守住设备安全。', reward: '摩天轮控制钥匙', project: '蛋仔摩天轮安全中控站' },
   { id: 'dinosaur', name: '恐龙蛋', short: '进程调度', domain: 'Linux 进程与系统接口', building: '中央喷泉夜间总控台', summary: '让多个进程协作，也能在故障时安全退出。', reward: '夜班巡检徽章', project: '蛋仔岛夜班巡检台' },
   { id: 'peak-phoenix', name: '巅峰凤凰蛋', short: '并发协作', domain: 'C++ 线程、同步与资源管理', building: '商城建筑 · 道具仓库', summary: '让多个工作线程安全处理订单与共享库存。', reward: '配送中心印章', project: '蛋仔商城道具配送中心' },
@@ -186,11 +186,14 @@ export function mondayFor(date = new Date()) {
 }
 
 export function buildAIContext({ level, step, answer, feedback, hintLevel = 0 }) {
+  const learningGoal = Array.isArray(level?.objectives) && level.objectives.length
+    ? level.objectives.join('；')
+    : level?.goal || level?.summary || level?.technologyTheme || '观察程序行为并解释原因';
   const lines = [
     '你是我的编程学习导师。请先用问题引导我观察和定位，不要直接给完整答案。',
     '',
     `当前关卡：${level?.title || level?.name || level?.id || '未命名关卡'}`,
-    `学习目标：${level?.goal || level?.summary || '观察程序行为并解释原因'}`,
+    `学习目标：${learningGoal}`,
     `当前步骤：${step?.title || step?.prompt || step?.id || '未命名步骤'}`,
     `我已查看的提示层级：${hintLevel}`,
     '',

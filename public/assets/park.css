@@ -387,6 +387,20 @@ button, .park-button { touch-action: manipulation; }
   background: url('/assets/park/island-axis-hero.png') 52% 48% / 380% auto;
   box-shadow: 0 11px 25px rgba(29, 105, 151, .21), 0 0 0 1px var(--line);
 }
+.current-place[data-mode="level"] .building-window {
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #13334c, #215978);
+}
+.current-place[data-mode="level"] .building-window::before {
+  content: "</>";
+  position: relative;
+  z-index: 1;
+  color: #baf2da;
+  font: 900 28px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: -.12em;
+}
 .window-shine { position: absolute; inset: 0; background: linear-gradient(130deg, rgba(255,255,255,.45), transparent 35%); }
 .week-preview { background: linear-gradient(155deg, #fff 0 60%, var(--soft-yellow) 100%); }
 .week-dots { display: flex; gap: 7px; padding-top: 3px; }
@@ -548,6 +562,12 @@ button, .park-button { touch-action: manipulation; }
   margin: 0 auto;
   padding: 28px 0 42px;
 }
+.play-view[data-mode="level"] {
+  grid-template-columns: minmax(0, 880px);
+  justify-content: center;
+}
+.play-view[data-mode="level"] .scene-column { display: none; }
+.play-view[data-mode="level"] .step-card { width: 100%; max-height: none; }
 .scene-column { min-width: 0; }
 .scene-panel {
   position: relative;

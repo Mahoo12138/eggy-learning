@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-blind-box-balance",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "pigeon",
   "subrankId": "pigeon-i",
   "sequence": 3,
-  "title": "校准盲盒商店瓶盖余额",
-  "estimatedMinutes": 18,
+  "title": "拆解多步表达式与预算",
+  "estimatedMinutes": 24,
   "prerequisiteLevelIds": [
     "pigeon-shrink-milk-timer"
   ],
@@ -16,12 +16,13 @@
     "propIds": [
       "teleport-ball"
     ],
-    "intro": "盲盒商店结算台要同时显示购买前余额、价格和购买后余额。",
-    "success": "盲盒商店的结算屏在不同购买数量下都显示正确。"
+    "intro": "把乘法、附加费用、折扣和余额拆成可检查的中间结果。",
+    "success": "复杂表达式被拆解后，使用量与剩余量都能独立核对。"
   },
   "objectives": [
-    "使用整数表示余额和价格",
-    "根据多项数据计算结算结果"
+    "用中间变量表达多步计算",
+    "检查运算优先级和正负方向",
+    "用守恒关系复核结果"
   ],
   "teachingLoop": [
     "predict",
@@ -34,140 +35,169 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "有 12 个瓶盖，购买价格为 5 的盲盒后还剩多少？",
+      "prompt": "balance=50、unit=7、count=4、fee=3。used=unit*count+fee，left=balance-used。写出 used 与 left。",
       "interaction": {
-        "kind": "number",
-        "min": 0,
-        "max": 99
+        "kind": "structured"
       },
       "evaluator": {
-        "kind": "number-exact",
-        "expected": 7
+        "kind": "object-exact",
+        "expected": {
+          "used": 31,
+          "left": 19
+        }
       },
       "feedback": {
-        "correct": "余额 12 减去价格 5，得到 7。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "unit*count=28，加 fee 得到 used=31，最终 left=19。",
+        "incorrect": "先只算 unit*count，再加 fee，最后从 balance 中扣除 used。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行并观察三个变量怎样组成结算结果。",
+      "prompt": "运行分步计算，观察 subtotal、used 与 left 如何逐层形成。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 12;\n  int price = 5;\n  int left = caps - price;\n  printf(\"购买前%d，价格%d，剩余%d\\n\", caps, price, left);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 50, unit = 7, count = 4, fee = 3;\n  int subtotal = unit * count;\n  int used = subtotal + fee;\n  int left = balance - used;\n  printf(\"subtotal=%d\\nused=%d\\nleft=%d\\n\", subtotal, used, left);\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "购买前12，价格5，剩余7\n"
+        "expected": "subtotal=28\nused=31\nleft=19\n"
       },
       "visualizer": {
-        "kind": "checkout-panel",
-        "target": "blind-box-store",
-        "fields": [
-          "before",
-          "price",
-          "after"
+        "kind": "expression-trace",
+        "target": "budget",
+        "stages": [
+          "subtotal",
+          "used",
+          "left"
         ]
       },
-      "observationPrompt": "left 是原始数据还是由其他数据计算出的结果？"
+      "observationPrompt": "如果 left 错了，哪两个中间值能帮助判断错误发生在哪一步？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "如果只保存 left 而不保留 caps 和 price，会丢失哪些信息？",
+      "prompt": "为什么保留 subtotal 和 used 两个中间变量，比把所有运算塞进一条 printf 更容易调试？",
       "referencePoints": [
-        "无法解释结算过程",
-        "不能分别显示购买前余额和价格"
+        "每一步都能单独输出和验证",
+        "变量名表达计算含义",
+        "错误能定位到乘法、费用或扣减中的某一步"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 16,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "改为连续购买两个价格为 4 的盲盒，输出剩余 4 个瓶盖。",
+      "prompt": "加入 discount：used=unit*count+fee-discount，left=balance-used。读取五个整数并输出 used 与 left。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 12;\n  int price = 4;\n  int left = caps - price;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance, unit, count, fee, discount;\n  scanf(\"%d%d%d%d%d\", &balance, &unit, &count, &fee, &discount);\n  int used = unit * count + fee;\n  int left = balance - used;\n  printf(\"used=%d,left=%d\\n\", used, left);\n  return 0;\n}\n"
       },
       "grader": {
-        "kind": "stdout-exact",
-        "expected": "剩余4\n"
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "50 7 4 3 5\n",
+            "stdout": "used=26,left=24\n"
+          },
+          {
+            "stdin": "80 9 6 4 10\n",
+            "stdout": "used=48,left=32\n"
+          }
+        ]
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "当前只减去了一次价格。"
+          "text": "discount 已读入，却没有参与 used。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "修改 left 的表达式。"
+          "text": "检查 used 的表达式。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "两个同价盲盒的总价是 price * 2。"
+          "text": "费用做加法，折扣做减法，再用 balance 减去 used。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "令 left = caps - price * 2;。",
+        "text": "把 used 改为 unit * count + fee - discount，left 继续等于 balance - used。",
         "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成另一笔瓶盖结算。",
+      "prompt": "独立实现另一组包含单价、数量、费用与优惠的预算计算。",
       "runtimeId": "c17-console",
       "variantSetId": "pigeon-checkout-v1",
       "variants": [
         {
           "id": "twenty-three-items",
-          "prompt": "20 个瓶盖，买 3 个单价 4 的盲盒，输出“剩余8”。",
+          "prompt": "读取 budget、unit、count、fee、coupon，输出 spent=N,left=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 20;\n  int price = 4;\n  int count = 3;\n  int left = 0;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int budget, unit, count, fee, coupon;\n  scanf(\"%d%d%d%d%d\", &budget, &unit, &count, &fee, &coupon);\n  /* 分步计算 */\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "剩余8\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "60 9 4 2 5\n",
+                "stdout": "spent=33,left=27\n"
+              },
+              {
+                "stdin": "40 5 3 1 0\n",
+                "stdout": "spent=16,left=24\n"
+              }
+            ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int caps = 20;\n  int price = 4;\n  int count = 3;\n  int left = caps - price * count;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int budget, unit, count, fee, coupon;\n  scanf(\"%d%d%d%d%d\", &budget, &unit, &count, &fee, &coupon);\n  int spent = unit * count + fee - coupon;\n  int left = budget - spent;\n  printf(\"spent=%d,left=%d\\n\", spent, left);\n  return 0;\n}\n"
         },
         {
           "id": "eighteen-two-items",
-          "prompt": "18 个瓶盖，买 2 个单价 6 的盲盒，输出“剩余6”。",
+          "prompt": "读取 limit、price、amount、extra、rebate，输出 used=N,remain=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 18;\n  int price = 6;\n  int count = 2;\n  int left = caps;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int limit, price, amount, extra, rebate;\n  scanf(\"%d%d%d%d%d\", &limit, &price, &amount, &extra, &rebate);\n  /* 分步计算 */\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "剩余6\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "45 6 5 4 3\n",
+                "stdout": "used=31,remain=14\n"
+              },
+              {
+                "stdin": "100 12 7 5 9\n",
+                "stdout": "used=80,remain=20\n"
+              }
+            ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int caps = 18;\n  int price = 6;\n  int count = 2;\n  int left = caps - price * count;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int limit, price, amount, extra, rebate;\n  scanf(\"%d%d%d%d%d\", &limit, &price, &amount, &extra, &rebate);\n  int used = price * amount + extra - rebate;\n  int remain = limit - used;\n  printf(\"used=%d,remain=%d\\n\", used, remain);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先算总价，再算剩余。"
+          "text": "先写乘法得到小计，再处理费用和优惠。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "left 的表达式需要使用 caps、price 和 count。"
+          "text": "为总使用量和剩余量各保留一个变量。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "剩余 = caps - price * count。"
+          "text": "最后核对“剩余量 + 使用量 = 初始上限”。"
         }
       ],
       "fullSolutionPolicy": {

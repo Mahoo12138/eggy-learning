@@ -228,6 +228,8 @@ export function sanitizeCourse(value, levelDocs) {
   course.ranks = list(course.ranks, '段位', 9).map(raw => {
     fields(raw, ['id', 'order', 'title', 'technologyTheme', 'languageIds', 'locationIds', 'activityIds', 'projectId', 'subdivisions', 'promotion'], '段位');
     const rank = { id: id(raw.id, '段位编号'), order: integer(raw.order, '段位顺序', 1, 9), title: text(raw.title, '段位名称', true), technologyTheme: text(raw.technologyTheme, '技术主题', true), languageIds: strings(raw.languageIds, '语言编号'), locationIds: ids(raw.locationIds, '段位建筑'), activityIds: ids(raw.activityIds, '段位活动'), projectId: raw.projectId === null ? null : id(raw.projectId, '段位作品编号'), subdivisions: clone(list(raw.subdivisions, '小段位', 20)), promotion: clone(raw.promotion) };
+    if (rank.projectId === null && rank.locationIds.length) fail(`${rank.title}是在线互动段位，不能绑定作品场景`);
+    if (rank.projectId !== null && !rank.locationIds.length) fail(`${rank.title}的段位作品缺少场景`);
     for (const subdivision of rank.subdivisions) { object(subdivision, '小段位'); if (!['id', 'title', 'requiredStars'].filter(key => own(subdivision, key)).every(key => own(subdivision, key)) || Object.keys(subdivision).some(key => !['id', 'title', 'requiredStars'].includes(key))) fail('小段位字段无效'); id(subdivision.id, '小段位编号'); text(subdivision.title, '小段位名称', true); if (own(subdivision, 'requiredStars')) integer(subdivision.requiredStars, '小段位星星', 0, 100); }
     object(rank.promotion, '晋段规则'); oneOf(rank.promotion.metric, ['stars', 'performance-points', 'capstone'], '晋段指标'); text(rank.promotion.bossActivityId, 'Boss 活动编号', true); if (!(rank.promotion.promotesTo === null || ID.test(rank.promotion.promotesTo))) fail('下一段位编号无效');
     if (rank.promotion.metric === 'stars') { fields(rank.promotion, ['metric', 'requiredStars', 'bossActivityId', 'promotesTo'], '星星晋段规则'); integer(rank.promotion.requiredStars, '晋段星星', 0, 100); }
@@ -480,7 +482,10 @@ function completedLevelIds(progress, pendingLevelId = '') {
   if (pendingLevelId) completed.add(pendingLevelId);
   return completed;
 }
-function completedBossSteps(progress, levelId) { return new Set(progress.attempts.filter(item => item.kind === 'level' && item.payload.levelId === levelId && item.result.checkpointCompleted).map(item => item.payload.stepId)); }
+function completedBossSteps(progress, levelId, contentVersion) { return new Set(progress.attempts.filter(item => item.kind === 'level'
+  && item.payload.levelId === levelId
+  && item.payload.contentVersion === contentVersion
+  && item.result.checkpointCompleted).map(item => item.payload.stepId)); }
 function rankState(progress, rankId) { return progress.rankStates.find(item => item.rankId === rankId); }
 function addAward(progress, entry) { if (progress.awardLedger.some(item => item.key === entry.key)) return false; progress.awardLedger.push(entry); return true; }
 function recomputeXp(progress) { const total = progress.awardLedger.filter(item => item.kind === 'xp').reduce((sum, item) => sum + item.amount, 0); progress.xp = { total, level: Math.floor(total / 100) + 1, currentLevelXp: total % 100, nextLevelXp: 100 - (total % 100) }; }
@@ -595,7 +600,11 @@ export function submitAttempt(rawCourse, rawProgress, rawInput, rawMeta) {
   if (!boss) {
     result.xpAwarded += awardXp(next, rank.id, level.id, step.id, level.content.rewards.xp.firstMeaningfulAttempt, meta.id, meta.submittedAt, `xp:${level.id}:attempt`);
     const completionStepId = level.content.rewards.star.sourceStepId;
-    const priorViews = next.attempts.filter(item => item.kind === 'level' && item.payload.levelId === level.id && item.payload.stepId === completionStepId && item.payload.viewedFullAnswer).map(item => item.payload.variantId);
+    const priorViews = next.attempts.filter(item => item.kind === 'level'
+      && item.payload.levelId === level.id
+      && item.payload.contentVersion === level.version
+      && item.payload.stepId === completionStepId
+      && item.payload.viewedFullAnswer).map(item => item.payload.variantId);
     const unusedEquivalent = variation && !priorViews.includes(variation.id) && priorViews.some(previous => previous !== variation.id);
     const recoveredAfterSolution = !priorViews.length || (input.independent && unusedEquivalent);
     const completionPassed = input.stepId === completionStepId && input.passed && !input.viewedFullAnswer && recoveredAfterSolution;
@@ -613,7 +622,7 @@ export function submitAttempt(rawCourse, rawProgress, rawInput, rawMeta) {
       next.current.stepId = firstIncomplete?.id || step.id;
     }
   } else {
-    const checkpointIds = level.content.checkpoints.map(item => item.id), prior = completedBossSteps(next, level.id), index = checkpointIds.indexOf(step.id);
+    const checkpointIds = level.content.checkpoints.map(item => item.id), prior = completedBossSteps(next, level.id, level.version), index = checkpointIds.indexOf(step.id);
     if (index > 0 && checkpointIds.slice(0, index).some(checkpointId => !prior.has(checkpointId))) fail('Boss 前一检查点尚未完成', 409, 'checkpoint_locked');
     const final = index === checkpointIds.length - 1, qualifying = input.passed && (!final || (input.independent && !input.viewedFullAnswer));
     if (qualifying && !prior.has(step.id)) result.checkpointCompleted = true;

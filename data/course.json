@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "courseId": "eggy-programming-park",
-  "publishedRevision": 1,
+  "publishedRevision": 2,
   "title": "蛋仔编程乐园",
   "subtitle": "从第一行代码，玩到自己的作品",
   "terminology": {
@@ -25,7 +25,7 @@
       "maximum": 25
     },
     "loop": [
-      "直接体验",
+      "观察示例",
       "预测",
       "运行观察",
       "简明解释",
@@ -96,7 +96,7 @@
     {
       "id": "blind-box-store",
       "title": "盲盒商店",
-      "role": "变量、库存、瓶盖余额与数据校准场景"
+      "role": "可发展为库存、余额与数据校准类作品"
     },
     {
       "id": "snow-bakery",
@@ -116,22 +116,22 @@
     {
       "id": "makeover-shop",
       "title": "换新店（形象店）",
-      "role": "类型、状态和表达式变化场景"
+      "role": "可发展为配置、状态与类型变化类作品"
     },
     {
       "id": "central-fountain",
       "title": "中央喷泉广场",
-      "role": "程序启动、执行顺序、输入输出及夜间总控场景"
+      "role": "可发展为系统启动、状态展示与夜间总控类作品"
     },
     {
       "id": "eggy-park",
       "title": "蛋仔公园",
-      "role": "条件、循环、函数与道具规则场景"
+      "role": "可发展为规则引擎、事件处理与设施控制类作品"
     },
     {
       "id": "football-field",
       "title": "足球场",
-      "role": "回合循环、边界判定和联网比赛终端场景"
+      "role": "可发展为比赛终端、统计与联网事件类作品"
     },
     {
       "id": "mall",
@@ -141,7 +141,7 @@
     {
       "id": "piano-carpet",
       "title": "钢琴地毯",
-      "role": "逐行执行、输出观察和联网事件终端场景"
+      "role": "可发展为输入设备、事件序列与联网终端类作品"
     }
   ],
   "props": [
@@ -215,10 +215,7 @@
       "languageIds": [
         "c"
       ],
-      "locationIds": [
-        "central-fountain",
-        "piano-carpet"
-      ],
+      "locationIds": [],
       "activityIds": [
         "quail-fountain-sequence",
         "quail-piano-output",
@@ -229,17 +226,17 @@
       "subdivisions": [
         {
           "id": "quail-iii",
-          "title": "开园准备",
+          "title": "执行追踪",
           "requiredStars": 1
         },
         {
           "id": "quail-ii",
-          "title": "输出节奏",
+          "title": "格式输出",
           "requiredStars": 1
         },
         {
           "id": "quail-i",
-          "title": "输入广播",
+          "title": "输入校验",
           "requiredStars": 1
         }
       ],
@@ -258,10 +255,7 @@
       "languageIds": [
         "c"
       ],
-      "locationIds": [
-        "blind-box-store",
-        "makeover-shop"
-      ],
+      "locationIds": [],
       "activityIds": [
         "pigeon-salty-fish-counter",
         "pigeon-shrink-milk-timer",
@@ -272,17 +266,17 @@
       "subdivisions": [
         {
           "id": "pigeon-iii",
-          "title": "变量标牌",
+          "title": "变量状态",
           "requiredStars": 1
         },
         {
           "id": "pigeon-ii",
-          "title": "状态预览",
+          "title": "类型与精度",
           "requiredStars": 1
         },
         {
           "id": "pigeon-i",
-          "title": "结算校准",
+          "title": "表达式拆解",
           "requiredStars": 1
         }
       ],
@@ -301,10 +295,7 @@
       "languageIds": [
         "c"
       ],
-      "locationIds": [
-        "eggy-park",
-        "football-field"
-      ],
+      "locationIds": [],
       "activityIds": [
         "chicken-teleport-state",
         "chicken-bomb-boundary",
@@ -315,17 +306,17 @@
       "subdivisions": [
         {
           "id": "chicken-iii",
-          "title": "状态分支",
+          "title": "多状态分支",
           "requiredStars": 1
         },
         {
           "id": "chicken-ii",
-          "title": "规则边界",
+          "title": "边界条件",
           "requiredStars": 1
         },
         {
           "id": "chicken-i",
-          "title": "多轮裁判",
+          "title": "循环与函数",
           "requiredStars": 1
         }
       ],
@@ -562,9 +553,9 @@
       "rankId": "quail",
       "subrankId": "quail-iii",
       "sequence": 1,
-      "title": "让中央喷泉按顺序亮起",
+      "title": "追踪函数与语句的执行顺序",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/quail-fountain-sequence.json",
       "estimatedMinutes": 18,
       "locationId": "central-fountain",
@@ -576,9 +567,9 @@
       "rankId": "quail",
       "subrankId": "quail-ii",
       "sequence": 2,
-      "title": "钢琴地毯的三声音阶",
+      "title": "精确控制格式化输出",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/quail-piano-output.json",
       "estimatedMinutes": 18,
       "locationId": "piano-carpet",
@@ -592,9 +583,9 @@
       "rankId": "quail",
       "subrankId": "quail-i",
       "sequence": 3,
-      "title": "接通开园欢迎广播",
+      "title": "检查输入是否真正读取成功",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/quail-opening-broadcast.json",
       "estimatedMinutes": 18,
       "locationId": "central-fountain",
@@ -608,9 +599,9 @@
       "rankId": "quail",
       "subrankId": null,
       "sequence": 4,
-      "title": "中央广场开园检查",
+      "title": "程序执行与输入输出诊断",
       "kind": "rank-boss",
-      "version": 1,
+      "version": 2,
       "file": "levels/quail-opening-boss.json",
       "estimatedMinutes": 24,
       "locationId": "central-fountain",
@@ -626,11 +617,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-iii",
       "sequence": 1,
-      "title": "咸鱼还剩几次",
+      "title": "追踪多次赋值后的变量",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/pigeon-salty-fish-counter.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 22,
       "locationId": "blind-box-store",
       "propIds": [
         "salty-fish"
@@ -644,11 +635,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-ii",
       "sequence": 2,
-      "title": "缩小牛奶的状态计时",
+      "title": "辨认整数除法与类型转换",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/pigeon-shrink-milk-timer.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 22,
       "locationId": "makeover-shop",
       "propIds": [
         "shrink-milk",
@@ -663,11 +654,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-i",
       "sequence": 3,
-      "title": "校准盲盒商店瓶盖余额",
+      "title": "拆解多步表达式与预算",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/pigeon-blind-box-balance.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 24,
       "locationId": "blind-box-store",
       "propIds": [
         "teleport-ball"
@@ -681,11 +672,11 @@
       "rankId": "pigeon",
       "subrankId": null,
       "sequence": 4,
-      "title": "形象与盲盒数据校准",
+      "title": "数据与表达式综合检查",
       "kind": "rank-boss",
-      "version": 1,
+      "version": 2,
       "file": "levels/pigeon-data-boss.json",
-      "estimatedMinutes": 24,
+      "estimatedMinutes": 30,
       "locationId": "blind-box-store",
       "propIds": [
         "salty-fish",
@@ -703,11 +694,11 @@
       "rankId": "chicken",
       "subrankId": "chicken-iii",
       "sequence": 1,
-      "title": "传送球的两阶段规则",
+      "title": "用分支处理多状态输入",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/chicken-teleport-state.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 22,
       "locationId": "eggy-park",
       "propIds": [
         "teleport-ball"
@@ -721,11 +712,11 @@
       "rankId": "chicken",
       "subrankId": "chicken-ii",
       "sequence": 2,
-      "title": "炸弹范围的边界判定",
+      "title": "判断数值是否落在闭区间",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/chicken-bomb-boundary.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 22,
       "locationId": "eggy-park",
       "propIds": [
         "bomb",
@@ -741,11 +732,11 @@
       "rankId": "chicken",
       "subrankId": "chicken-i",
       "sequence": 3,
-      "title": "足球场三轮点球",
+      "title": "用函数统计多次输入",
       "kind": "interactive-lesson",
-      "version": 1,
+      "version": 2,
       "file": "levels/chicken-football-rounds.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 24,
       "locationId": "football-field",
       "propIds": [
         "bouncy-ball"
@@ -759,11 +750,11 @@
       "rankId": "chicken",
       "subrankId": null,
       "sequence": 4,
-      "title": "蛋仔公园道具挑战赛",
+      "title": "条件、循环与函数综合检查",
       "kind": "rank-boss",
-      "version": 1,
+      "version": 2,
       "file": "levels/chicken-rules-boss.json",
-      "estimatedMinutes": 24,
+      "estimatedMinutes": 30,
       "locationId": "eggy-park",
       "propIds": [
         "teleport-ball",
@@ -785,7 +776,7 @@
       "version": 1,
       "activityType": "rank-project",
       "rankId": "goose",
-      "title": "蛋仔美食街·今天吃什么",
+      "title": "蛋仔食堂·今天吃什么",
       "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
       "languages": [
         "c"
@@ -802,7 +793,7 @@
       "prerequisiteActivityIds": [
         "chicken-rules-boss"
       ],
-      "story": "苹果派雪雪烘焙店和淘气丸子奶茶店共同维护一份美食清单，为来宾推荐餐点并保存最近选择。",
+      "story": "蛋仔食堂每天从苹果派雪雪烘焙店和淘气丸子奶茶店收集菜单。学习者要把菜名、分类、库存与选择记录组织起来，让“今天吃什么”可以查询、筛选、随机推荐并在重启后保留数据。",
       "oneProjectRule": {
         "allChaptersModifySameArtifact": true,
         "chapterExercisesAreNotSeparateProjects": true
@@ -3233,19 +3224,19 @@
   "rewardCatalog": [
     {
       "id": "token-square-start-key",
-      "title": "广场启动钥匙",
+      "title": "程序追踪徽章",
       "kind": "ability-token",
       "sourceRankId": "quail"
     },
     {
       "id": "token-data-calibration-chip",
-      "title": "数据校准芯片",
+      "title": "数据调试芯片",
       "kind": "ability-token",
       "sourceRankId": "pigeon"
     },
     {
       "id": "token-golden-referee-whistle",
-      "title": "金色裁判哨",
+      "title": "控制流罗盘",
       "kind": "ability-token",
       "sourceRankId": "chicken"
     },

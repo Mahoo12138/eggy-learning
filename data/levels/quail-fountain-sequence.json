@@ -1,23 +1,23 @@
 {
   "schemaVersion": 2,
   "id": "quail-fountain-sequence",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "quail",
   "subrankId": "quail-iii",
   "sequence": 1,
-  "title": "让中央喷泉按顺序亮起",
+  "title": "追踪函数与语句的执行顺序",
   "estimatedMinutes": 18,
   "prerequisiteLevelIds": [],
   "scene": {
     "locationId": "central-fountain",
     "propIds": [],
-    "intro": "开园前，三组喷泉必须依次点亮。每一行输出都会触发一组喷泉。",
-    "success": "喷泉按新编排完成开园灯光测试。"
+    "intro": "先预测函数调用前、调用中和返回后的输出，再用实际运行校验执行轨迹。",
+    "success": "已经能根据调用、返回值与语句位置解释完整执行轨迹。"
   },
   "objectives": [
-    "理解 main 函数中的语句按顺序执行",
-    "把终端输出与场景动作对应起来"
+    "追踪 main 与被调函数之间的控制转移",
+    "区分实参、形参和返回值在输出中的作用"
   ],
   "teachingLoop": [
     "predict",
@@ -30,147 +30,174 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "不运行代码，先把喷泉预计亮起的顺序排出来。",
+      "prompt": "不运行代码。main 先输出 before:3，再调用 twice(3)；twice 会先输出 inside:3，再返回 6。请排列完整输出顺序。",
       "interaction": {
         "kind": "reorder",
         "items": [
-          "蓝色喷泉",
-          "黄色喷泉",
-          "粉色喷泉"
+          "before:3",
+          "inside:3",
+          "after:6"
         ]
       },
       "evaluator": {
         "kind": "exact-order",
         "expected": [
-          "蓝色喷泉",
-          "黄色喷泉",
-          "粉色喷泉"
+          "before:3",
+          "inside:3",
+          "after:6"
         ]
       },
       "feedback": {
-        "correct": "预测与语句顺序一致。接下来用真实运行确认。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "顺序正确：调用发生在 before 与 after 之间，返回值先算出，after 才能输出。",
+        "incorrect": "把函数调用看成一次跳转：先执行调用前语句，再进入函数体，返回后才继续下一条语句。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行程序，观察终端每输出一行时喷泉如何响应。",
+      "prompt": "运行程序，核对调用前、函数内部和返回后三个时刻的输出与数值。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n\nint twice(int value) {\n  printf(\"inside:%d\\n\", value);\n  return value * 2;\n}\n\nint main(void) {\n  int value = 3;\n  printf(\"before:%d\\n\", value);\n  int result = twice(value);\n  printf(\"after:%d\\n\", result);\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "蓝\n黄\n粉\n"
+        "expected": "before:3\ninside:3\nafter:6\n"
       },
       "visualizer": {
         "kind": "stdout-sequence",
-        "target": "central-fountain",
+        "target": "execution-trace",
         "tokenMap": {
-          "蓝": "blue-jet",
-          "黄": "yellow-jet",
-          "粉": "pink-jet"
+          "before:3": "caller-before",
+          "inside:3": "callee-body",
+          "after:6": "caller-after"
         }
       },
-      "observationPrompt": "实际顺序和预测哪里相同或不同？"
+      "observationPrompt": "value 与 result 分别在哪一条语句之后确定？函数返回前，after 能否执行？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么三组喷泉不会同时亮起？",
+      "prompt": "为什么 inside:3 一定出现在 before:3 与 after:6 之间？同时说明 result 何时得到值。",
       "referencePoints": [
-        "每条 printf 是一条独立语句",
-        "程序按从上到下的顺序执行"
+        "调用 twice 时控制流进入函数体",
+        "twice 返回后赋值完成，main 才继续执行下一条 printf"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 20,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "只调整三条输出语句，让粉色喷泉最先亮起。",
+      "prompt": "transform 的合同是返回 value * 2 + 1。修复函数，使输入 3 输出 result:7，输入 -2 输出 result:-3。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n\nint transform(int value) {\n  return value * 2;\n}\n\nint main(void) {\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  printf(\"result:%d\\n\", transform(value));\n  return 0;\n}\n"
       },
       "grader": {
-        "kind": "stdout-exact",
-        "expected": "粉\n蓝\n黄\n"
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "3\n",
+            "stdout": "result:7\n"
+          },
+          {
+            "stdin": "-2\n",
+            "stdout": "result:-3\n"
+          }
+        ]
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先看第一行实际输出了哪个颜色。"
+          "text": "先手算两个测试值，确认当前结果各差多少。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "只需要调整 main 中三条 printf 的次序。"
+          "text": "只检查 transform 的 return 表达式。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "场景顺序完全由输出语句的先后决定。"
+          "text": "在乘以 2 的结果上再加 1，并保留负数用例。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "将三条输出依次写成“粉”“蓝”“黄”。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "把返回语句改为 return value * 2 + 1;。",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成新的灯光顺序。",
+      "prompt": "独立完成一个新的函数合同，并用至少两个输入确认返回值。",
       "runtimeId": "c17-console",
       "variantSetId": "quail-fountain-order-v1",
       "variants": [
         {
           "id": "greenless-yellow-pink-blue",
-          "prompt": "输出黄、粉、蓝。",
+          "prompt": "实现 adjust：返回 value * 3 - 2。程序必须让输入 4 输出 result:10，输入 -1 输出 result:-5。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n\nint adjust(int value) {\n  /* 返回 value * 3 - 2 */\n  return 0;\n}\n\nint main(void) {\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  printf(\"result:%d\\n\", adjust(value));\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "黄\n粉\n蓝\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "4\n",
+                "stdout": "result:10\n"
+              },
+              {
+                "stdin": "-1\n",
+                "stdout": "result:-5\n"
+              }
+            ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  printf(\"蓝\\n\");\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n\nint adjust(int value) {\n  return value * 3 - 2;\n}\n\nint main(void) {\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  printf(\"result:%d\\n\", adjust(value));\n  return 0;\n}\n"
         },
         {
           "id": "blue-pink-yellow",
-          "prompt": "输出蓝、粉、黄。",
+          "prompt": "实现 square_plus_one：返回 value * value + 1。程序必须让输入 5 输出 result:26，输入 -3 输出 result:10。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"粉\\n\");\n  printf(\"黄\\n\");\n  printf(\"蓝\\n\");\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n\nint square_plus_one(int value) {\n  /* 返回平方再加 1 */\n  return 0;\n}\n\nint main(void) {\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  printf(\"result:%d\\n\", square_plus_one(value));\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "蓝\n粉\n黄\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "5\n",
+                "stdout": "result:26\n"
+              },
+              {
+                "stdin": "-3\n",
+                "stdout": "result:10\n"
+              }
+            ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"粉\\n\");\n  printf(\"黄\\n\");\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n\nint square_plus_one(int value) {\n  return value * value + 1;\n}\n\nint main(void) {\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  printf(\"result:%d\\n\", square_plus_one(value));\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "逐行读出当前颜色。"
+          "text": "先把函数合同代入一个正数和一个负数手算。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "圈出三条 printf。"
+          "text": "只需补全被调用函数的 return 表达式。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "先写目标顺序，再让代码与它一一对应。"
+          "text": "先完成乘法，再按合同加上或减去常量。"
         }
       ],
       "fullSolutionPolicy": {
@@ -210,6 +237,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先通过追问帮助学习者定位执行过程和错误原因，不直接给出完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
   }
 }

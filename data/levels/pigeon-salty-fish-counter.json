@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-salty-fish-counter",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "pigeon",
   "subrankId": "pigeon-iii",
   "sequence": 1,
-  "title": "咸鱼还剩几次",
-  "estimatedMinutes": 18,
+  "title": "追踪多次赋值后的变量",
+  "estimatedMinutes": 22,
   "prerequisiteLevelIds": [
     "quail-opening-boss"
   ],
@@ -16,12 +16,13 @@
     "propIds": [
       "salty-fish"
     ],
-    "intro": "盲盒商店体验台上的咸鱼最多能挥三次，屏幕必须实时显示剩余次数。",
-    "success": "体验台的咸鱼次数标牌与实际使用完全一致。"
+    "intro": "同一变量连续经过扣减和更新，必须按时间顺序追踪每一次写入。",
+    "success": "每次赋值后的状态都与手工追踪表一致。"
   },
   "objectives": [
-    "理解变量保存可变化的数据",
-    "使用减法表达状态变化"
+    "追踪复合赋值前后的变量状态",
+    "区分旧值与更新后的当前值",
+    "用中间输出定位第一次偏差"
   ],
   "teachingLoop": [
     "predict",
@@ -34,136 +35,141 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "uses 从 3 开始，执行一次 uses = uses - 1 后是多少？",
+      "prompt": "balance=20，cost=6。依次执行 balance -= cost；cost += 2；balance -= cost。写出最终 balance 与 cost。",
       "interaction": {
-        "kind": "number",
-        "min": 0,
-        "max": 9
+        "kind": "structured"
       },
       "evaluator": {
-        "kind": "number-exact",
-        "expected": 2
+        "kind": "object-exact",
+        "expected": {
+          "balance": 6,
+          "cost": 8
+        }
       },
       "feedback": {
-        "correct": "变量 uses 保存了更新后的 2。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "第一次扣减后 balance=14，cost 更新为 8，第二次扣减得到 6。",
+        "incorrect": "每执行一条赋值就重写一次变量表，第二次扣减使用的是更新后的 cost。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行并观察变量值如何改变体验台上的次数标牌。",
+      "prompt": "运行程序，比较三个时刻的 balance 和 cost，找出每次写入发生在哪里。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int uses = 3;\n  uses = uses - 1;\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 20;\n  int cost = 6;\n  printf(\"start=%d,cost=%d\\n\", balance, cost);\n  balance -= cost;\n  printf(\"after-first=%d,cost=%d\\n\", balance, cost);\n  cost += 2;\n  balance -= cost;\n  printf(\"after-second=%d,cost=%d\\n\", balance, cost);\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "剩余2次\n"
+        "expected": "start=20,cost=6\nafter-first=14,cost=6\nafter-second=6,cost=8\n"
       },
       "visualizer": {
-        "kind": "counter",
-        "target": "salty-fish",
-        "valuePattern": "剩余(\\d+)次"
+        "kind": "variable-trace",
+        "target": "balance",
+        "variables": [
+          "balance",
+          "cost"
+        ]
       },
-      "observationPrompt": "赋值前后的 uses 分别是多少？"
+      "observationPrompt": "哪条语句使第二次扣减使用 8 而不是 6？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么等号右边使用旧值 3，而执行后 uses 保存的是 2？",
+      "prompt": "为什么不能把两次 balance -= cost 简单理解为都减去最初的 6？",
       "referencePoints": [
-        "先计算右侧表达式",
-        "再把结果写回左侧变量"
+        "cost 在两次扣减之间被重新赋值",
+        "后续表达式读取变量的当前值",
+        "执行顺序决定每次读取到的状态"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 16,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "再挥一次咸鱼，让屏幕显示剩余 1 次。",
+      "prompt": "修复状态更新，使程序按“扣 6、把 cost 增加到 8、再扣 8”输出 final=6,cost=8。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int uses = 3;\n  uses = uses - 1;\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 20;\n  int cost = 6;\n  balance -= cost;\n  /* 这里缺少一次状态更新 */\n  balance -= cost;\n  printf(\"final=%d,cost=%d\\n\", balance, cost);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdout-exact",
-        "expected": "剩余1次\n"
+        "expected": "final=6,cost=8\n"
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "当前程序只做了一次递减。"
+          "text": "当前程序两次都减去了 6。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "在输出前再更新一次 uses。"
+          "text": "缺失语句位于两次 balance 更新之间。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "两次挥动对应两次减 1。"
+          "text": "在第二次扣减前执行 cost += 2。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "在 printf 前增加第二条 uses = uses - 1;。",
+        "text": "在注释位置加入 cost += 2;，其余语句保持原顺序。",
         "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立处理不同初始次数和使用次数。",
+      "prompt": "独立追踪另一组连续赋值，并输出最终两个变量。",
       "runtimeId": "c17-console",
       "variantSetId": "pigeon-salty-fish-count-v1",
       "variants": [
         {
           "id": "five-use-three",
-          "prompt": "初始 5 次，连续使用 3 次，输出“剩余2次”。",
+          "prompt": "start=30、delta=7：先减 delta，再令 delta += 3，再减新的 delta；输出 value=N,delta=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int uses = 5;\n  /* 在这里记录三次使用 */\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int value = 30;\n  int delta = 7;\n  /* 按顺序更新 */\n  printf(\"value=%d,delta=%d\\n\", value, delta);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdout-exact",
-            "expected": "剩余2次\n"
+            "expected": "value=13,delta=10\n"
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int uses = 5;\n  uses -= 3;\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int value = 30;\n  int delta = 7;\n  value -= delta;\n  delta += 3;\n  value -= delta;\n  printf(\"value=%d,delta=%d\\n\", value, delta);\n  return 0;\n}\n"
         },
         {
           "id": "four-use-one",
-          "prompt": "初始 4 次，使用 1 次，输出“剩余3次”。",
+          "prompt": "score=50、penalty=8：先减 penalty，再令 penalty *= 2，再减新的 penalty；输出 score=N,penalty=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int uses = 4;\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int score = 50;\n  int penalty = 8;\n  /* 按顺序更新 */\n  printf(\"score=%d,penalty=%d\\n\", score, penalty);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdout-exact",
-            "expected": "剩余3次\n"
+            "expected": "score=26,penalty=16\n"
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int uses = 4;\n  uses -= 1;\n  printf(\"剩余%d次\\n\", uses);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int score = 50;\n  int penalty = 8;\n  score -= penalty;\n  penalty *= 2;\n  score -= penalty;\n  printf(\"score=%d,penalty=%d\\n\", score, penalty);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先写出初始值和目标值。"
+          "text": "为每条赋值写一行变量表。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "只修改 uses 的更新语句。"
+          "text": "先更新左侧变量，再进入下一条语句。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "剩余次数 = 初始次数 - 使用次数。"
+          "text": "第二次减法必须读取已经变化的 delta 或 penalty。"
         }
       ],
       "fullSolutionPolicy": {

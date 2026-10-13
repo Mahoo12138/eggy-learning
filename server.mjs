@@ -80,9 +80,20 @@ function mondayInShanghai(now = new Date()) {
   return local.toISOString().slice(0, 10);
 }
 
+function learnerRank(rank) {
+  const value = clone(rank);
+  if (value.projectId) return value;
+  delete value.locationIds;
+  return value;
+}
+
 function publicCourse(course) {
   const value = clone(course);
-  value.levels = value.levels.map(level => { const { content, ...index } = level; return index; });
+  value.ranks = value.ranks.map(learnerRank);
+  value.levels = value.levels.map(level => {
+    const { content, locationId, propIds, ...index } = level;
+    return index;
+  });
   return value;
 }
 
@@ -103,6 +114,7 @@ function learnerVariant(step, variant) {
 
 function learnerLevelContent(content) {
   const value = clone(content);
+  delete value.scene;
   const steps = value.steps || value.checkpoints || [];
   for (const step of steps) {
     if (step.type !== 'independent-variation' || !Array.isArray(step.variants)) continue;
@@ -129,8 +141,11 @@ function currentWeekView(course, progress, card) {
   };
 }
 
-function completedStepIds(progress, activityId) {
-  return [...new Set(progress.attempts.filter(attempt => attempt.kind === 'level' && attempt.payload.levelId === activityId && attempt.payload.passed).map(attempt => attempt.payload.stepId))];
+function completedStepIds(progress, activityId, contentVersion) {
+  return [...new Set(progress.attempts.filter(attempt => attempt.kind === 'level'
+    && attempt.payload.levelId === activityId
+    && attempt.payload.contentVersion === contentVersion
+    && attempt.payload.passed).map(attempt => attempt.payload.stepId))];
 }
 
 function replacementVariant(progress, input, step) {
@@ -138,6 +153,7 @@ function replacementVariant(progress, input, step) {
   const exposed = new Set(progress.attempts
     .filter(attempt => attempt.kind === 'level'
       && attempt.payload.levelId === input.levelId
+      && attempt.payload.contentVersion === input.contentVersion
       && attempt.payload.stepId === input.stepId
       && attempt.payload.viewedFullAnswer)
     .map(attempt => attempt.payload.variantId)
@@ -152,10 +168,9 @@ function activityPayload(course, progress, id) {
   if (level) {
     const rank = course.ranks.find(item => item.id === level.rankId);
     return {
-      level: { ...learnerLevelContent(level.content), locationId: level.locationId, propIds: clone(level.propIds), kind: level.kind },
-      rank: clone(rank), location: clone(course.locations.find(item => item.id === level.locationId)),
-      props: clone(course.props.filter(item => level.propIds.includes(item.id))), progress: clone(progress),
-      completedStepIds: completedStepIds(progress, level.id)
+      level: { ...learnerLevelContent(level.content), kind: level.kind },
+      rank: learnerRank(rank), progress: clone(progress),
+      completedStepIds: completedStepIds(progress, level.id, level.version)
     };
   }
   const project = course.projects.find(item => item.id === id);
@@ -384,7 +399,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
         const derived = progressSummary(state.course, state.progress);
         const currentActivity = state.course.levels.find(item => item.id === state.progress.current.activityId);
         const currentProject = state.course.projects.find(item => item.id === state.progress.current.activityId);
-        const currentLevel = currentActivity ? { ...learnerLevelContent(currentActivity.content), locationId: currentActivity.locationId, propIds: clone(currentActivity.propIds), kind: currentActivity.kind } : currentProject ? clone(currentProject) : null;
+        const currentLevel = currentActivity ? { ...learnerLevelContent(currentActivity.content), kind: currentActivity.kind } : currentProject ? clone(currentProject) : null;
         const recentRewardEntry = [...state.progress.awardLedger].reverse().find(item => item.kind !== 'xp' && item.kind !== 'star') || null;
         return json(res, 200, { course: publicCourse(state.course), progress: state.progress, summary: derived, learner: state.progress.learner, weekCard: currentWeekView(state.course, state.progress, state.weekCard), currentLevel, recentReward: recentRewardEntry }, { course: state.versions.course, progress: state.versions.progress, weekCard: state.versions.weekCard });
       }

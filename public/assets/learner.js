@@ -44,6 +44,7 @@ function normalizeRanks() {
     const blueprint = RANK_BLUEPRINTS.find(value => value.id === rank.id) || RANK_BLUEPRINTS[index];
     const locationIds = rank.locationIds || (rank.buildingId ? [rank.buildingId] : []);
     const project = projectFor(rank.projectId);
+    const hasProject = Boolean(project || rank.projectId);
     const total = rank.activityIds?.length || rank.levelIds?.length || courseLevels().filter(level => level.rankId === rank.id).length || 1;
     const completed = rankState.completedActivities ?? rankState.completedLevels ?? courseLevels().filter(level => level.rankId === rank.id && completedIds.has(level.id)).length;
     let status = rankState.status;
@@ -54,9 +55,9 @@ function normalizeRanks() {
       name: rank.title || rank.name || blueprint?.name,
       title: rank.title || rank.name || blueprint?.name,
       domain: rank.technologyTheme || (Array.isArray(rank.technology) ? rank.technology.join(' · ') : rank.technology) || blueprint?.domain,
-      building: locationIds.map(locationFor).filter(Boolean).join(' · ') || blueprint?.building,
+      building: locationIds.map(locationFor).filter(Boolean).join(' · ') || (hasProject ? blueprint?.building : ''),
       summary: rank.summary || project?.pitch || blueprint?.summary,
-      project: project?.title || blueprint?.project,
+      project: project?.title || (hasProject ? blueprint?.project : ''),
       reward: rank.token?.title || blueprint?.reward,
       status,
       locked: status === 'locked',
@@ -182,14 +183,18 @@ function renderLobby() {
   const rank = ranks.find(item => item.status === 'current') || ranks[0];
   const xp = xpState();
   const percent = progressPercent({ xp: xp.current, nextLevelXp: xp.target });
-  const location = locationFor(level?.locationId || level?.scene?.locationId) || rank?.building || '乐园待开放区域';
+  const projectMode = level?.activityType === 'rank-project' || Array.isArray(level?.chapters);
+  const location = (level?.locationIds || []).map(locationFor).filter(Boolean).join(' · ') || rank?.building || '乐园项目区';
+  const objectives = Array.isArray(level?.objectives) ? level.objectives.join('；') : '';
+  const trainingSummary = objectives || level?.summary || level?.description || level?.scene?.intro || rank?.summary || '先预测，再运行，用实际结果修正自己的解释。';
   const displayName = learner().displayName || learner().name || '学习者';
   const reward = recentReward();
-  const hasStarted = (progress().attempts || []).some(attempt => attempt.payload?.levelId === level?.id || attempt.payload?.projectId === level?.id);
+  const hasStarted = (progress().attempts || []).some(attempt => (attempt.payload?.levelId === level?.id || attempt.payload?.projectId === level?.id)
+    && attempt.payload?.contentVersion === level?.version);
 
   $('#hero-welcome').textContent = `${displayName}，欢迎回到蛋仔岛`;
-  $('#lobby-title').textContent = level ? `从${location}继续` : '今天先看看乐园地图';
-  $('#hero-summary').textContent = level?.scene?.intro || level?.summary || level?.description || '今天只做好一个小步骤：先预测，再运行，最后说清原因。';
+  $('#lobby-title').textContent = level ? `${projectMode ? '继续作品' : '继续训练'}：${level.title}` : '今天先看看乐园地图';
+  $('#hero-summary').textContent = projectMode ? (level?.story || trainingSummary) : trainingSummary;
   $('#continue-link').href = `/play.html?level=${encodeURIComponent(level?.id || '')}`;
   $('#continue-link').textContent = hasStarted ? '继续游玩' : '开始这一关';
   $('#continue-meta').textContent = `${level?.estimatedMinutes || course().learningPolicy?.lessonMinutes?.typical || 20} 分钟 · 每一步自动记录`;
@@ -205,8 +210,10 @@ function renderLobby() {
     ? `本段位已获得 ${rank.earnedStars} 颗星。继续完成首次独立变式，再去挑战 Boss。`
     : '练习获得经验，首次独立完成变式获得星星。';
 
-  $('#current-place-title').textContent = location;
-  $('#current-place-copy').textContent = level?.scene?.intro || rank?.summary || '程序执行一步，场景就响应一步。';
+  $('.current-place').dataset.mode = projectMode ? 'project' : 'level';
+  $('.current-place .section-label').textContent = projectMode ? '当前项目' : '当前训练';
+  $('#current-place-title').textContent = projectMode ? (level?.title || location) : (level?.title || rank?.domain || '在线互动训练');
+  $('#current-place-copy').textContent = projectMode ? (level?.story || rank?.summary || '逐章完成作品，并留下可复现的运行证据。') : trainingSummary;
 
   const week = activeWeek();
   const rest = week?.mode === 'rest';
@@ -229,7 +236,9 @@ function renderMap() {
   const level = currentLevel();
   $('#rank-route').innerHTML = normalizeRanks().map((rank, index) => {
     const playable = !rank.locked && (rank.status === 'current' || rank.status === 'available') && level?.rankId === rank.id;
-    const title = rank.project ? `${esc(rank.summary)}<span class="rank-building">段位作品：${esc(rank.project)}</span>` : `${esc(rank.summary)}<span class="rank-building">场景：${esc(rank.building)}</span>`;
+    const title = rank.project
+      ? `${esc(rank.summary)}<span class="rank-building">段位作品：${esc(rank.project)}</span>`
+      : `${esc(rank.summary)}<span class="rank-building">通关方式：在线互动题与综合挑战</span>`;
     return `<li class="rank-route-item"><article class="rank-card" data-status="${esc(rank.status)}">
       <div class="rank-card-egg" aria-hidden="true">${index + 1}</div>
       <div><h2>${esc(rank.name)}</h2><h3>${esc(rank.domain)}</h3><p>${title}</p>

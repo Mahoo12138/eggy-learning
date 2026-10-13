@@ -29,8 +29,8 @@ const state = {
 initComfortControls();
 
 const KIND_LABELS = {
-  scene: '直接体验',
-  experience: '直接体验',
+  scene: '观察示例',
+  experience: '观察示例',
   prediction: '先做预测',
   predict: '先做预测',
   'run-observe': '运行与观察',
@@ -63,7 +63,9 @@ function isCodeStep(step) { return ['run-observe', 'run', 'code-edit', 'guided-e
 function isIndependent(step) { return ['independent-variation', 'independent-transfer', 'variation'].includes(stepType(step)); }
 
 function levelAttemptPayloads(step) {
-  return attempts().map(attempt => attempt.payload || attempt).filter(payload => payload.levelId === state.level?.id && payload.stepId === step?.id);
+  return attempts().map(attempt => attempt.payload || attempt).filter(payload => payload.levelId === state.level?.id
+    && payload.contentVersion === state.level?.version
+    && payload.stepId === step?.id);
 }
 
 function exposedVariantIds(step) {
@@ -139,6 +141,7 @@ function fullSolutionLabel(step = currentStep()) {
 function priorAttempt(stepId, variantId = '') {
   const matching = attempts().filter(attempt => {
     const payload = attempt.payload || attempt;
+    if (payload.contentVersion !== state.level?.version) return false;
     return state.mode === 'project'
       ? payload.projectId === state.level?.id && payload.checkpointId === stepId
       : payload.levelId === state.level?.id && payload.stepId === stepId && (!variantId || payload.variantId === variantId);
@@ -162,13 +165,19 @@ function restoreState() {
     if (prior?.hintLevel) state.hintLevels.set(step.id, prior.hintLevel);
     if (prior?.viewedFullAnswer) state.viewedFullAnswer.add(step.id);
   }
-  const currentMatches = progressCurrent().activityId === state.level?.id;
+  const hasCurrentVersionAttempt = attempts().some(attempt => {
+    const payload = attempt.payload || attempt;
+    return (payload.levelId === state.level?.id || payload.projectId === state.level?.id)
+      && payload.contentVersion === state.level?.version;
+  });
+  const currentMatches = progressCurrent().activityId === state.level?.id
+    && (state.mode === 'project' || hasCurrentVersionAttempt);
   const id = currentMatches ? (progressCurrent().stepId || state.progress?.currentStepId || state.progress?.stepId) : '';
   const index = steps().findIndex(step => step.id === id);
   const artifact = state.mode === 'project' ? (state.progress?.projectArtifacts || []).find(item => item.projectId === state.level?.id) : null;
   const completedCount = state.mode === 'project'
     ? (artifact?.completedChapterIds?.length || 0) + (artifact?.bossCompletedAt ? 1 : 0)
-    : state.completedStepIds.length || Number(state.progress?.completedStepCount || 0);
+    : state.completedStepIds.length;
   state.index = index >= 0 ? index : Math.min(completedCount, Math.max(steps().length - 1, 0));
 }
 
@@ -275,7 +284,7 @@ function renderText(step) {
 }
 
 function renderExperience(step) {
-  $('#interaction-root').innerHTML = `<div class="experience-action"><span aria-hidden="true">▶</span><p>${esc(step.actionText || '启动场景后，先留意什么发生了变化，暂时不需要背记名词。')}</p></div>`;
+  $('#interaction-root').innerHTML = `<div class="experience-action"><span aria-hidden="true">▶</span><p>${esc(step.actionText || '运行示例后，先记录实际输出和变量变化，再解释原因。')}</p></div>`;
 }
 
 function projectProgressState() {
@@ -371,15 +380,18 @@ function renderStep() {
   if (!step) { setPhase('empty'); return; }
   state.feedback = null;
   renderChrome();
-  const rank = rankInfo();
   const variant = selectedVariant(step);
-  const prompt = variant?.prompt || step.prompt || step.goal || step.story || '按照场景提示完成当前步骤。';
-  $('#scene-panel').style.setProperty('--scene-position', scenePosition());
-  $('#scene-rank').textContent = rank.name || state.level.rankId;
-  $('#scene-building').textContent = rank.building || state.level.scene?.locationId || '当前场景';
-  $('#scene-caption').textContent = state.level.scene?.intro || state.level.story || '程序结果会先在场景中发生，再解释原因。';
-  $('#scene-output').dataset.state = 'ready';
-  $('#scene-output p').textContent = step.scenePrompt || step.checkpoint?.task || (isProjectBoss(step) ? '项目 Boss 已就绪，先按阶段留下可复现证据。' : '场景已就绪，等待你的这次操作。');
+  const prompt = variant?.prompt || step.prompt || step.goal || step.story || '按照当前目标完成这一步。';
+  $('#play-view').dataset.mode = state.mode;
+  if (state.mode === 'project') {
+    const rank = rankInfo();
+    $('#scene-panel').style.setProperty('--scene-position', scenePosition());
+    $('#scene-rank').textContent = rank.name || state.level.rankId;
+    $('#scene-building').textContent = rank.building || state.level.locationIds?.[0] || '当前项目';
+    $('#scene-caption').textContent = state.level.story || '把这一段技术逐步做成可运行的作品。';
+    $('#scene-output').dataset.state = 'ready';
+    $('#scene-output p').textContent = step.checkpoint?.task || (isProjectBoss(step) ? '项目 Boss 已就绪，先按阶段留下可复现证据。' : '项目已就绪，等待你的这次操作。');
+  }
   $('#step-kind').textContent = KIND_LABELS[stepType(step)] || '当前步骤';
   $('#step-title').textContent = step.title || (variant ? variant.title : '') || KIND_LABELS[stepType(step)] || '继续游玩';
   $('#step-prompt').textContent = prompt;
@@ -423,7 +435,7 @@ function validateAnswer(step, answer) {
     if (maximum && (!Number.isInteger(answer.performancePoints) || answer.performancePoints < 0 || answer.performancePoints > maximum)) return `表现分需要是 0–${maximum} 的整数。`;
     return '';
   }
-  if (['choice', 'single-choice'].includes(step.interaction?.kind || step.interaction?.type) && !answer) return '先选一个答案，再看场景结果。';
+  if (['choice', 'single-choice'].includes(step.interaction?.kind || step.interaction?.type) && !answer) return '先选一个答案，再看检查结果。';
   if ($('#text-answer')) {
     const minimum = Number(step.answerPolicy?.minimumCharacters || 1);
     if (String(answer).trim().length < minimum) return minimum > 1 ? `先用至少 ${minimum} 个字说出你的解释。` : '先写下自己的解释。';
@@ -524,8 +536,10 @@ function renderFeedback(result) {
   $('#feedback-message').textContent = result.message;
   $('#feedback-output').hidden = !result.output;
   $('#feedback-output').textContent = result.output;
-  $('#scene-output').dataset.state = result.passed ? 'success' : 'error';
-  $('#scene-output p').textContent = result.output || result.message;
+  if (state.mode === 'project') {
+    $('#scene-output').dataset.state = result.passed ? 'success' : 'error';
+    $('#scene-output p').textContent = result.output || result.message;
+  }
   $('#next-step').textContent = result.passed ? (state.index === steps().length - 1 || result.completed ? '收下这次成果' : '继续下一步') : result.selfCheck ? '继续完善作品' : '修改后再试';
   if (result.passed) $('#check-step').textContent = '本步已通过';
   if (result.passed) $('#step-form').querySelectorAll('input,textarea,button').forEach(control => { control.disabled = true; });

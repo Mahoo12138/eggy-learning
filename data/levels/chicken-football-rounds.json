@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "chicken-football-rounds",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-i",
   "sequence": 3,
-  "title": "足球场三轮点球",
-  "estimatedMinutes": 18,
+  "title": "用函数统计多次输入",
+  "estimatedMinutes": 24,
   "prerequisiteLevelIds": [
     "chicken-bomb-boundary"
   ],
@@ -16,12 +16,13 @@
     "propIds": [
       "bouncy-ball"
     ],
-    "intro": "足球场要连续记录三次射门。力量在 4 到 7 之间算进球。",
-    "success": "足球场记分牌完成了多轮比赛并准确复用判定规则。"
+    "intro": "让循环负责重复读入，让函数负责单次判定，再把每次返回值累加。",
+    "success": "循环次数、边界规则和函数返回值共同得到正确统计。"
   },
   "objectives": [
-    "用循环重复处理多轮输入",
-    "把单次判定封装为函数"
+    "用小函数封装单次范围判定",
+    "识别循环边界造成的少读或多读",
+    "累计多次函数返回值"
   ],
   "teachingLoop": [
     "predict",
@@ -34,82 +35,82 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "三次力量是 3、5、7，最终进球数是多少？",
+      "prompt": "in_range(value) 在 4–7（含端点）时返回 1。依次输入 3、4、7、8、6，count 最终是多少？",
       "interaction": {
         "kind": "number",
         "min": 0,
-        "max": 3
+        "max": 5
       },
       "evaluator": {
         "kind": "number-exact",
-        "expected": 2
+        "expected": 3
       },
       "feedback": {
-        "correct": "5 和 7 满足范围，3 不满足。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "4、7、6 三个值位于闭区间，返回值累加为 3。",
+        "incorrect": "逐个写出五次函数返回的 0 或 1，再相加。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行并观察循环如何三次调用同一个判定函数。",
+      "prompt": "运行五轮统计，观察循环次数、函数调用次数和最终计数之间的关系。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint is_goal(int power) {\n  return power >= 4 && power <= 7;\n}\nint main(void) {\n  int goals = 0;\n  for (int round = 0; round < 3; round++) {\n    int power;\n    scanf(\"%d\", &power);\n    goals = goals + is_goal(power);\n  }\n  printf(\"进球%d次\\n\", goals);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint in_range(int value) {\n  return value >= 4 && value <= 7;\n}\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 5; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += in_range(value);\n  }\n  printf(\"count=%d\\n\", count);\n  return 0;\n}\n"
       },
-      "stdin": "3\n5\n7\n",
+      "stdin": "3\n4\n7\n8\n6\n",
       "evaluator": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "3\n5\n7\n",
-            "stdout": "进球2次\n"
+            "stdin": "3\n4\n7\n8\n6\n",
+            "stdout": "count=3\n"
           },
           {
-            "stdin": "4\n4\n4\n",
-            "stdout": "进球3次\n"
+            "stdin": "4\n4\n4\n4\n4\n",
+            "stdout": "count=5\n"
           }
         ]
       },
       "visualizer": {
-        "kind": "round-scoreboard",
-        "target": "football-field",
-        "rounds": 3
+        "kind": "loop-trace",
+        "target": "count",
+        "iterations": 5
       },
-      "observationPrompt": "循环执行了几次，is_goal 被调用了几次？"
+      "observationPrompt": "循环体和 in_range 各执行了几次？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "把进球规则放进 is_goal 函数有什么好处？",
+      "prompt": "为什么把范围规则放在 in_range 中，比直接在循环里重复写条件更容易检查和修改？",
       "referencePoints": [
-        "循环只负责重复读入",
-        "规则集中在一个位置",
-        "修改边界时不必重写每一轮"
+        "循环只负责读入和累计",
+        "边界规则集中在一个函数",
+        "函数可以用独立边界用例验证"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 16,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "比赛改为 5 轮，进球力量范围仍为 4–7。",
+      "prompt": "程序应该读取 5 个整数，当前循环只读取 4 个。只修复循环边界，保留 in_range 的规则。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint is_goal(int power) { return power >= 4 && power <= 7; }\nint main(void) {\n  int goals = 0;\n  for (int round = 0; round < 3; round++) {\n    int power; scanf(\"%d\", &power);\n    goals += is_goal(power);\n  }\n  printf(\"进球%d次\\n\", goals);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint in_range(int value) { return value >= 4 && value <= 7; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 4; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += in_range(value);\n  }\n  printf(\"count=%d\\n\", count);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "4\n5\n8\n7\n1\n",
-            "stdout": "进球3次\n"
+            "stdin": "4\n3\n7\n8\n6\n",
+            "stdout": "count=3\n"
           },
           {
-            "stdin": "3\n3\n3\n3\n3\n",
-            "stdout": "进球0次\n"
+            "stdin": "0\n0\n0\n0\n5\n",
+            "stdout": "count=1\n"
           }
         ]
       },
@@ -117,90 +118,90 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "规则没有变化，只有轮数变化。"
+          "text": "第二组用例只有第五个输入有效。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 for 循环的终止条件。"
+          "text": "检查 for 的终止条件，而不是修改判定函数。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "从 round=0 开始，round<5 会执行 5 次。"
+          "text": "i 从 0 开始时，i < 5 正好执行五轮。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "把 round < 3 攀为 round < 5。",
+        "text": "把循环条件 i < 4 改为 i < 5。",
         "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立实现另一套多轮判定。",
+      "prompt": "独立完成“函数判定一次、循环统计多次”的新问题。",
       "runtimeId": "c17-console",
       "variantSetId": "chicken-round-function-v1",
       "variants": [
         {
           "id": "three-bounces",
-          "prompt": "读入 4 次弹力球碰撞高度，高度至少 6 算有效，输出有效次数。",
+          "prompt": "实现 is_valid(value)：value >= 6 返回 1。读取 4 个整数并输出 valid=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint is_valid(int height) {\n  /* 完成规则 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 4 次并统计 */\n  printf(\"有效%d次\\n\", count);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint is_valid(int value) {\n  /* 完成判定 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 4 次并统计 */\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
                 "stdin": "5\n6\n8\n2\n",
-                "stdout": "有效2次\n"
+                "stdout": "valid=2\n"
               },
               {
                 "stdin": "6\n6\n6\n6\n",
-                "stdout": "有效4次\n"
+                "stdout": "valid=4\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint is_valid(int height) {\n  return height >= 6;\n}\nint main(void) {\n  int count = 0;\n  for (int round = 0; round < 4; round++) {\n    int height;\n    scanf(\"%d\", &height);\n    if (is_valid(height)) {\n      count++;\n    }\n  }\n  printf(\"有效%d次\\n\", count);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint is_valid(int value) { return value >= 6; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 4; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_valid(value);\n  }\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
         },
         {
           "id": "three-spring-boards",
-          "prompt": "读入 3 次弹板力度，2–5 算安全，输出安全次数。",
+          "prompt": "实现 is_safe(value)：2–5（含端点）返回 1。读取 5 个整数并输出 safe=N。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint is_safe(int power) {\n  /* 完成规则 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 3 次并统计 */\n  printf(\"安全%d次\\n\", count);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint is_safe(int value) {\n  /* 完成判定 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 5 次并统计 */\n  printf(\"safe=%d\\n\", count);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "1\n2\n5\n",
-                "stdout": "安全2次\n"
+                "stdin": "1\n2\n5\n6\n3\n",
+                "stdout": "safe=3\n"
               },
               {
-                "stdin": "6\n6\n6\n",
-                "stdout": "安全0次\n"
+                "stdin": "0\n0\n0\n0\n0\n",
+                "stdout": "safe=0\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint is_safe(int power) {\n  return power >= 2 && power <= 5;\n}\nint main(void) {\n  int count = 0;\n  for (int round = 0; round < 3; round++) {\n    int power;\n    scanf(\"%d\", &power);\n    if (is_safe(power)) {\n      count++;\n    }\n  }\n  printf(\"安全%d次\\n\", count);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint is_safe(int value) { return value >= 2 && value <= 5; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 5; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_safe(value);\n  }\n  printf(\"safe=%d\\n\", count);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "把“重复几次”和“怎样判定”分开。"
+          "text": "先单独写出一次输入返回 0 还是 1。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "循环放在 main，范围判断放在函数。"
+          "text": "函数负责规则，main 中的循环负责读入和累加。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "函数每次返回 0 或 1，累加到 count。"
+          "text": "确认循环上界与题目要求的输入个数一致。"
         }
       ],
       "fullSolutionPolicy": {

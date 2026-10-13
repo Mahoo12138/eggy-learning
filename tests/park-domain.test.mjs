@@ -25,12 +25,17 @@ const LEVEL_DOCS = await Promise.all(
 const COURSE = sanitizeCourse(RAW_COURSE, LEVEL_DOCS);
 const INITIAL_PROGRESS = JSON.parse(await readFile(join(ROOT, 'data/progress.json'), 'utf8'));
 const INITIAL_WEEK_CARD = JSON.parse(await readFile(join(ROOT, 'data/week-card.json'), 'utf8'));
+const EARLY_RANK_IDS = new Set(['quail', 'pigeon', 'chicken']);
+const PARK_SCENE_TERMS = [
+  '摩天轮', '盲盒', '烘焙', '奶茶', '游戏厅', '换新店', '形象店', '喷泉', '蛋仔公园', '足球', '商城', '钢琴',
+  '咸鱼', '弹簧绳', '钩爪', '加速鞋', '炸弹', '地雷', '传送球', '缩小牛奶', '垫脚石', '弹板', '云雾弹', '墨汁炸弹', '弹力球'
+];
 
 function clone(value) { return structuredClone(value); }
 function iso(minute) { return new Date(Date.UTC(2026, 9, 13, 1, minute)).toISOString(); }
 
-function levelInput(levelId, requestId, overrides = {}) {
-  const level = COURSE.levels.find(item => item.id === levelId);
+function levelInput(levelId, requestId, overrides = {}, course = COURSE) {
+  const level = course.levels.find(item => item.id === levelId);
   const step = level.content.steps.find(item => item.type === 'independent-variation') || level.content.steps[0];
   return {
     requestId,
@@ -48,8 +53,8 @@ function levelInput(levelId, requestId, overrides = {}) {
   };
 }
 
-function bossInput(levelId, checkpointId, requestId, overrides = {}) {
-  const level = COURSE.levels.find(item => item.id === levelId);
+function bossInput(levelId, checkpointId, requestId, overrides = {}, course = COURSE) {
+  const level = course.levels.find(item => item.id === levelId);
   return {
     requestId,
     levelId,
@@ -66,8 +71,8 @@ function bossInput(levelId, checkpointId, requestId, overrides = {}) {
   };
 }
 
-function projectInput(projectId, checkpointId, requestId, overrides = {}) {
-  const project = COURSE.projects.find(item => item.id === projectId);
+function projectInput(projectId, checkpointId, requestId, overrides = {}, course = COURSE) {
+  const project = course.projects.find(item => item.id === projectId);
   return {
     requestId,
     projectId,
@@ -83,63 +88,63 @@ function projectInput(projectId, checkpointId, requestId, overrides = {}) {
   };
 }
 
-function flow(initial = freshProgress(COURSE, 'learner-1')) {
+function flow(initial = freshProgress(COURSE, 'learner-1'), course = COURSE) {
   return {
     progress: initial,
     clock: 0,
     level(input) {
       const number = ++this.clock;
-      const output = submitAttempt(COURSE, this.progress, input, { id: `attempt-${number}`, submittedAt: iso(number) });
+      const output = submitAttempt(course, this.progress, input, { id: `attempt-${number}`, submittedAt: iso(number) });
       this.progress = output.progress;
       return output;
     },
     project(input) {
       const number = ++this.clock;
-      const output = submitProjectCheckpoint(COURSE, this.progress, input, { id: `attempt-${number}`, submittedAt: iso(number) });
+      const output = submitProjectCheckpoint(course, this.progress, input, { id: `attempt-${number}`, submittedAt: iso(number) });
       this.progress = output.progress;
       return output;
     }
   };
 }
 
-function playToIndependentVariation(run, levelId, prefix = levelId) {
-  const level = COURSE.levels.find(item => item.id === levelId);
+function playToIndependentVariation(run, levelId, prefix = levelId, course = COURSE) {
+  const level = course.levels.find(item => item.id === levelId);
   const variationIndex = level.content.steps.findIndex(item => item.type === 'independent-variation');
   for (const step of level.content.steps.slice(0, variationIndex)) {
     run.level(levelInput(levelId, `${prefix}-${step.id}`, {
       stepId: step.id,
       variantId: '',
       independent: false
-    }));
+    }, course));
   }
   return level.content.steps[variationIndex];
 }
 
-function completeLesson(run, levelId, prefix = levelId) {
-  playToIndependentVariation(run, levelId, prefix);
-  return run.level(levelInput(levelId, `${prefix}-independent-clear`));
+function completeLesson(run, levelId, prefix = levelId, course = COURSE) {
+  playToIndependentVariation(run, levelId, prefix, course);
+  return run.level(levelInput(levelId, `${prefix}-independent-clear`, {}, course));
 }
 
-function completeOnlineRank(run, rankId) {
-  const rank = COURSE.ranks.find(item => item.id === rankId);
-  const boss = COURSE.levels.find(item => item.id === rank.promotion.bossActivityId);
+function completeOnlineRank(run, rankId, course = COURSE) {
+  const rank = course.ranks.find(item => item.id === rankId);
+  const boss = course.levels.find(item => item.id === rank.promotion.bossActivityId);
   for (const levelId of rank.activityIds.filter(item => item !== boss.id)) {
-    completeLesson(run, levelId, `clear-${levelId}`);
+    completeLesson(run, levelId, `clear-${levelId}`, course);
   }
   for (const [index, checkpoint] of boss.content.checkpoints.entries()) {
     run.level(bossInput(boss.id, checkpoint.id, `clear-${boss.id}-${checkpoint.id}`, {
       independent: index === boss.content.checkpoints.length - 1
-    }));
+    }, course));
   }
 }
 
-function completeProjectRank(run, rankId, performancePoints = 0) {
-  const rank = COURSE.ranks.find(item => item.id === rankId);
-  const project = COURSE.projects.find(item => item.id === rank.projectId);
+function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE) {
+  const rank = course.ranks.find(item => item.id === rankId);
+  const project = course.projects.find(item => item.id === rank.projectId);
   for (const chapter of project.chapters) {
-    run.project(projectInput(project.id, chapter.id, `clear-${project.id}-${chapter.id}`));
+    run.project(projectInput(project.id, chapter.id, `clear-${project.id}-${chapter.id}`, {}, course));
   }
-  run.project(projectInput(project.id, project.boss.id, `clear-${project.id}-${project.boss.id}`, { performancePoints }));
+  run.project(projectInput(project.id, project.boss.id, `clear-${project.id}-${project.boss.id}`, { performancePoints }, course));
 }
 
 test('the checked-in rich v2 documents validate and hydrate every indexed online level', () => {
@@ -154,6 +159,37 @@ test('the checked-in rich v2 documents validate and hydrate every indexed online
   assert.equal(COURSE.ranks[8].title, '无敌凤凰蛋');
   assert.doesNotThrow(() => sanitizeProgress(indexOnly, INITIAL_PROGRESS));
   assert.doesNotThrow(() => sanitizeWeekCard(indexOnly, INITIAL_WEEK_CARD));
+});
+
+test('the first three online ranks keep empty compatibility locations while every later project keeps real locations', () => {
+  const earlyRanks = RAW_COURSE.ranks.filter(rank => EARLY_RANK_IDS.has(rank.id));
+  assert.equal(earlyRanks.length, 3);
+  for (const rank of earlyRanks) {
+    assert.equal(Object.hasOwn(rank, 'locationIds'), true, `${rank.id} 应保留兼容字段`);
+    assert.deepEqual(rank.locationIds, [], `${rank.id} 不应再绑定乐园建筑`);
+    assert.equal(rank.projectId, null);
+  }
+
+  const earlyDetails = LEVEL_DOCS.filter(detail => EARLY_RANK_IDS.has(detail.rankId));
+  assert.equal(earlyDetails.length, 12);
+  const earlyLearnerCopy = JSON.stringify(earlyDetails.map(detail => {
+    const visible = clone(detail);
+    delete visible.scene;
+    return visible;
+  }));
+  for (const term of PARK_SCENE_TERMS) {
+    assert.equal(earlyLearnerCopy.includes(term), false, `前三段位学习正文不应出现乐园建筑或道具词“${term}”`);
+  }
+
+  const locations = new Set(RAW_COURSE.locations.map(location => location.id));
+  const laterRanks = RAW_COURSE.ranks.filter(rank => rank.order >= 4);
+  assert.equal(laterRanks.length, 6);
+  for (const rank of laterRanks) {
+    const project = RAW_COURSE.projects.find(item => item.id === rank.projectId);
+    assert.ok(project, `${rank.id} 应绑定一个段位作品`);
+    assert.ok(project.locationIds.length > 0, `${project.id} 应保留至少一个项目地点`);
+    assert.ok(project.locationIds.every(locationId => locations.has(locationId)), `${project.id} 只能引用现有地点`);
+  }
 });
 
 test('course validation rejects incomplete hydration, index/detail drift, mirror drift, and unknown fields', () => {
@@ -179,6 +215,14 @@ test('course validation rejects incomplete hydration, index/detail drift, mirror
   const uppercaseId = clone(RAW_COURSE);
   uppercaseId.courseId = 'Eggy-programming-park';
   assert.throws(() => sanitizeCourse(uppercaseId), /小写稳定编号/);
+
+  const themedOnlineRank = clone(RAW_COURSE);
+  themedOnlineRank.ranks[0].locationIds = [RAW_COURSE.locations[0].id];
+  assert.throws(() => sanitizeCourse(themedOnlineRank), /在线互动段位，不能绑定作品场景/);
+
+  const locationlessProjectRank = clone(RAW_COURSE);
+  locationlessProjectRank.ranks[3].locationIds = [];
+  assert.throws(() => sanitizeCourse(locationlessProjectRank), /段位作品缺少场景/);
 });
 
 test('independent variants require a non-empty full solution', () => {
@@ -414,6 +458,101 @@ test('earned XP, stars, and rank tokens survive a compatible course revision', (
   assert.equal(after.xp.total, before.xp.total);
   assert.equal(after.starsTotal, before.starsTotal);
   assert.deepEqual(after.tokens.map(item => item.key), before.tokens.map(item => item.key));
+});
+
+test('a v1 full-solution view cannot taint the same variant after the lesson is revised to v2', () => {
+  const levelId = 'quail-fountain-sequence';
+  const checkedInLevel = COURSE.levels.find(item => item.id === levelId);
+  assert.equal(checkedInLevel.version, 2, '仓库内前三段位内容应已发布为 v2');
+  const v1Draft = clone(COURSE);
+  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
+  const v1DraftLevel = v1Draft.levels.find(item => item.id === levelId);
+  v1DraftLevel.version = 1;
+  v1DraftLevel.content.version = 1;
+  const v1Course = sanitizeCourse(v1Draft);
+  const v1Level = v1Course.levels.find(item => item.id === levelId);
+  const completionStep = v1Level.content.steps.find(item => item.type === 'independent-variation');
+  const variant = completionStep.variants[0];
+  let progress = freshProgress(v1Course, 'learner-1');
+  let clock = 1;
+
+  const submit = (course, step, overrides = {}) => {
+    const level = course.levels.find(item => item.id === levelId);
+    const output = submitAttempt(course, progress, {
+      requestId: `versioned-${level.version}-${clock}`,
+      levelId,
+      contentVersion: level.version,
+      stepId: step.id,
+      variantId: '',
+      action: 'check',
+      answer: 'versioned learner answer',
+      hintLevel: 0,
+      viewedFullAnswer: false,
+      passed: true,
+      independent: false,
+      ...overrides
+    }, { id: `versioned-attempt-${clock}`, submittedAt: iso(clock) });
+    clock++;
+    progress = output.progress;
+    return output;
+  };
+
+  for (const step of v1Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v1Course, step);
+  submit(v1Course, completionStep, {
+    variantId: variant.id,
+    action: 'reveal',
+    answer: '',
+    hintLevel: 3,
+    viewedFullAnswer: true,
+    passed: false,
+    independent: false
+  });
+  assert.equal(progress.attempts.at(-1).payload.contentVersion, 1);
+
+  const v2Course = COURSE;
+  const v2Level = v2Course.levels.find(item => item.id === levelId);
+  progress = sanitizeProgress(v2Course, progress);
+
+  assert.equal(progress.attempts.some(attempt => attempt.payload.contentVersion === 1 && attempt.payload.viewedFullAnswer), true, '历史尝试应作为不可变记录保留');
+  for (const step of v2Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v2Course, step);
+  const cleared = submit(v2Course, v2Level.content.steps.find(step => step.id === completionStep.id), {
+    variantId: variant.id,
+    action: 'submit',
+    independent: true
+  });
+
+  assert.equal(cleared.result.levelCompleted, true, 'v1 查看答案不应阻止 v2 的同名变式完成');
+  assert.equal(cleared.result.starAwarded, true, '只有当前 contentVersion 的答案曝光才会影响星星');
+});
+
+test('a v1 Boss checkpoint cannot unlock the following checkpoint in Boss contentVersion 2', () => {
+  const bossId = 'quail-opening-boss';
+  const checkedInBoss = COURSE.levels.find(item => item.id === bossId);
+  assert.equal(checkedInBoss.version, 2, '仓库内前三段位 Boss 应已发布为 v2');
+  const v1Draft = clone(COURSE);
+  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
+  const v1DraftBoss = v1Draft.levels.find(item => item.id === bossId);
+  v1DraftBoss.version = 1;
+  v1DraftBoss.content.version = 1;
+  const v1Course = sanitizeCourse(v1Draft);
+  const run = flow(freshProgress(v1Course, 'learner-1'), v1Course);
+  for (const levelId of ['quail-fountain-sequence', 'quail-piano-output', 'quail-opening-broadcast']) {
+    completeLesson(run, levelId, `boss-version-${levelId}`, v1Course);
+  }
+  const bossV1 = v1Course.levels.find(item => item.id === bossId);
+  run.level(bossInput(bossV1.id, bossV1.content.checkpoints[0].id, 'boss-version-v1-first', { independent: false }, v1Course));
+
+  const v2Course = COURSE;
+  const bossV2 = v2Course.levels.find(item => item.id === bossId);
+  const progress = sanitizeProgress(v2Course, run.progress);
+  const second = bossV2.content.checkpoints[1];
+
+  assert.throws(
+    () => submitAttempt(v2Course, progress, {
+      ...bossInput(bossV2.id, second.id, 'boss-version-v2-skip', { independent: false }, v2Course)
+    }, { id: 'boss-version-v2-skip-attempt', submittedAt: iso(58) }),
+    error => error.status === 409 && error.code === 'checkpoint_locked'
+  );
 });
 
 test('progress rejects forged aggregates, duplicate immutable awards, and dangling evidence', () => {

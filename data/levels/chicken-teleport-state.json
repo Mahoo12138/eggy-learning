@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "chicken-teleport-state",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-iii",
   "sequence": 1,
-  "title": "传送球的两阶段规则",
-  "estimatedMinutes": 18,
+  "title": "用分支处理多状态输入",
+  "estimatedMinutes": 22,
   "prerequisiteLevelIds": [
     "pigeon-data-boss"
   ],
@@ -16,12 +16,12 @@
     "propIds": [
       "teleport-ball"
     ],
-    "intro": "第一次使用传送球要放置传送点，第二次使用才会传送。",
-    "success": "传送球与其他两阶段道具都按状态执行正确动作。"
+    "intro": "把一个整数状态准确映射到四种结果，并让非法值进入兜底分支。",
+    "success": "所有合法状态和非法输入都进入了唯一且可解释的分支。"
   },
   "objectives": [
-    "用条件分支表达不同状态",
-    "理解一次操作只能进入一条路径"
+    "用 if / else if / else 表达互斥状态",
+    "通过非法输入检查兜底分支是否可靠"
   ],
   "teachingLoop": [
     "predict",
@@ -34,91 +34,106 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "placed 为 0 时，程序应该执行“放置”还是“传送”？",
+      "prompt": "阅读规则：0→pending，1→running，2→done，其余→invalid。填写每个输入最终输出。",
       "interaction": {
-        "kind": "single-choice",
-        "options": [
-          "放置传送点",
-          "立即传送",
-          "两个动作都执行"
-        ]
+        "kind": "mapping"
       },
       "evaluator": {
-        "kind": "choice",
-        "expectedIndex": 0
+        "kind": "mapping-exact",
+        "expected": {
+          "0": "pending",
+          "1": "running",
+          "2": "done",
+          "3": "invalid"
+        }
       },
       "feedback": {
-        "correct": "条件为假时进入 else，完成第一次放置。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "四个输入都落入了唯一分支。接下来用真实运行核对。",
+        "incorrect": "从上到下逐条判断；一旦条件成立，后面的 else if 和 else 不再执行。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "分别用 placed=0 和 placed=1 运行，观察分支变化。",
+      "prompt": "分别输入合法状态和非法状态，观察同一条分支链如何给出四种结果。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int placed;\n  scanf(\"%d\", &placed);\n  if (placed == 1) {\n    printf(\"传送\\n\");\n  } else {\n    printf(\"放置传送点\\n\");\n  }\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int status;\n  scanf(\"%d\", &status);\n  if (status == 0) {\n    puts(\"pending\");\n  } else if (status == 1) {\n    puts(\"running\");\n  } else if (status == 2) {\n    puts(\"done\");\n  } else {\n    puts(\"invalid\");\n  }\n  return 0;\n}\n"
       },
-      "stdin": "0\n",
+      "stdin": "2\n",
       "evaluator": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
             "stdin": "0\n",
-            "stdout": "放置传送点\n"
+            "stdout": "pending\n"
           },
           {
             "stdin": "1\n",
-            "stdout": "传送\n"
+            "stdout": "running\n"
+          },
+          {
+            "stdin": "2\n",
+            "stdout": "done\n"
+          },
+          {
+            "stdin": "7\n",
+            "stdout": "invalid\n"
           }
         ]
       },
       "visualizer": {
-        "kind": "branch-scene",
-        "target": "teleport-ball",
+        "kind": "branch-trace",
+        "target": "status",
         "branches": {
-          "放置传送点": "place",
-          "传送": "teleport"
+          "pending": "0",
+          "running": "1",
+          "done": "2",
+          "invalid": "fallback"
         }
       },
-      "observationPrompt": "两次输入分别进入了哪条路径？"
+      "observationPrompt": "为什么 status=2 不会继续执行最后的 else？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么一次运行不会既放置传送点又立即传送？",
+      "prompt": "如果把三个 if 都写成彼此独立的 if，和现在的 if / else if / else 相比，控制流有什么不同？",
       "referencePoints": [
-        "if 与 else 互斥",
-        "条件结果只选择一条分支"
+        "else if 链最多执行一个分支",
+        "独立 if 会分别判断每个条件",
+        "最后的 else 只属于紧邻的 if 链"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 16,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "把非法状态处理清楚：placed 只能是 0 或 1，其他值输出“状态错误”。",
+      "prompt": "修复程序：补上 status=2 的 done 分支，同时让其他整数继续输出 invalid。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int placed;\n  scanf(\"%d\", &placed);\n  if (placed == 1) {\n    printf(\"传送\\n\");\n  } else {\n    printf(\"放置传送点\\n\");\n  }\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int status;\n  scanf(\"%d\", &status);\n  if (status == 0) {\n    puts(\"pending\");\n  } else if (status == 1) {\n    puts(\"running\");\n  } else {\n    puts(\"invalid\");\n  }\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
             "stdin": "0\n",
-            "stdout": "放置传送点\n"
+            "stdout": "pending\n"
           },
           {
             "stdin": "1\n",
-            "stdout": "传送\n"
+            "stdout": "running\n"
           },
           {
             "stdin": "2\n",
-            "stdout": "状态错误\n"
+            "stdout": "done\n"
+          },
+          {
+            "stdin": "-1\n",
+            "stdout": "invalid\n"
           }
         ]
       },
@@ -126,98 +141,106 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "当前 else 把所有非 1 值都当成 0。"
+          "text": "当前程序把 2 交给了兜底分支。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "在 else 前增加对 placed == 0 的判断。"
+          "text": "在 status == 1 与最后的 else 之间补一条判断。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "使用 if / else if / else 三条路径。"
+          "text": "新增 else if (status == 2)，不要把兜底 else 改成无条件成功。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "先判断 placed == 1，再 else if (placed == 0)，最后 else 输出错误。",
+        "text": "保留 0 和 1 的分支，在最后的 else 前加入 else if (status == 2) 输出 done。",
         "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立实现另一个两阶段道具规则。",
+      "prompt": "独立完成另一组多状态映射，并用非法输入检查兜底分支。",
       "runtimeId": "c17-console",
       "variantSetId": "chicken-two-state-item-v1",
       "variants": [
         {
           "id": "mine-arm-trigger",
-          "prompt": "armed=0 输出“布置地雷”，armed=1 输出“地雷触发”，其他值输出“状态错误”。",
+          "prompt": "读取 state：-1 输出 offline，0 输出 connecting，1 输出 online，其他值输出 invalid。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int armed;\n  scanf(\"%d\", &armed);\n  /* 编写规则 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int state;\n  scanf(\"%d\", &state);\n  /* 完成四种结果 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
+                "stdin": "-1\n",
+                "stdout": "offline\n"
+              },
+              {
                 "stdin": "0\n",
-                "stdout": "布置地雷\n"
+                "stdout": "connecting\n"
               },
               {
                 "stdin": "1\n",
-                "stdout": "地雷触发\n"
+                "stdout": "online\n"
               },
               {
-                "stdin": "-1\n",
-                "stdout": "状态错误\n"
+                "stdin": "2\n",
+                "stdout": "invalid\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int armed;\n  scanf(\"%d\", &armed);\n  if (armed == 0) {\n    printf(\"布置地雷\\n\");\n  } else if (armed == 1) {\n    printf(\"地雷触发\\n\");\n  } else {\n    printf(\"状态错误\\n\");\n  }\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int state;\n  scanf(\"%d\", &state);\n  if (state == -1) puts(\"offline\");\n  else if (state == 0) puts(\"connecting\");\n  else if (state == 1) puts(\"online\");\n  else puts(\"invalid\");\n  return 0;\n}\n"
         },
         {
           "id": "spring-board-ready",
-          "prompt": "ready=0 输出“放置弹板”，ready=1 输出“弹射”，其他值输出“状态错误”。",
+          "prompt": "读取 stage：0 输出 queued，1 输出 running，2 输出 done，其他值输出 invalid。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int ready;\n  scanf(\"%d\", &ready);\n  /* 编写规则 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int stage;\n  scanf(\"%d\", &stage);\n  /* 完成四种结果 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
                 "stdin": "0\n",
-                "stdout": "放置弹板\n"
+                "stdout": "queued\n"
               },
               {
                 "stdin": "1\n",
-                "stdout": "弹射\n"
+                "stdout": "running\n"
               },
               {
-                "stdin": "3\n",
-                "stdout": "状态错误\n"
+                "stdin": "2\n",
+                "stdout": "done\n"
+              },
+              {
+                "stdin": "9\n",
+                "stdout": "invalid\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int ready;\n  scanf(\"%d\", &ready);\n  if (ready == 0) {\n    printf(\"放置弹板\\n\");\n  } else if (ready == 1) {\n    printf(\"弹射\\n\");\n  } else {\n    printf(\"状态错误\\n\");\n  }\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int stage;\n  scanf(\"%d\", &stage);\n  if (stage == 0) puts(\"queued\");\n  else if (stage == 1) puts(\"running\");\n  else if (stage == 2) puts(\"done\");\n  else puts(\"invalid\");\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先列出三个可能结果。"
+          "text": "先列出每个合法值和兜底结果。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "每个结果对应一条分支。"
+          "text": "从最具体的相等判断开始写。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "合法值分别判断，剩余值交给最后的 else。"
+          "text": "用连续的 else if 保证一次输入只得到一个输出。"
         }
       ],
       "fullSolutionPolicy": {

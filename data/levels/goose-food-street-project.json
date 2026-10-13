@@ -4,7 +4,7 @@
   "version": 1,
   "activityType": "rank-project",
   "rankId": "goose",
-  "title": "蛋仔美食街·今天吃什么",
+  "title": "蛋仔食堂·今天吃什么",
   "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
   "languages": [
     "c"
@@ -21,7 +21,7 @@
   "prerequisiteActivityIds": [
     "chicken-rules-boss"
   ],
-  "story": "苹果派雪雪烘焙店和淘气丸子奶茶店共同维护一份美食清单，为来宾推荐餐点并保存最近选择。",
+  "story": "蛋仔食堂每天从苹果派雪雪烘焙店和淘气丸子奶茶店收集菜单。学习者要把菜名、分类、库存与选择记录组织起来，让“今天吃什么”可以查询、筛选、随机推荐并在重启后保留数据。",
   "oneProjectRule": {
     "allChaptersModifySameArtifact": true,
     "chapterExercisesAreNotSeparateProjects": true

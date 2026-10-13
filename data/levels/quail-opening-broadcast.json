@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "quail-opening-broadcast",
-  "version": 1,
+  "version": 2,
   "activityType": "interactive-lesson",
   "rankId": "quail",
   "subrankId": "quail-i",
   "sequence": 3,
-  "title": "接通开园欢迎广播",
+  "title": "检查输入是否真正读取成功",
   "estimatedMinutes": 18,
   "prerequisiteLevelIds": [
     "quail-piano-output"
@@ -14,12 +14,12 @@
   "scene": {
     "locationId": "central-fountain",
     "propIds": [],
-    "intro": "中央广场要读取来宾名字，再播出专属欢迎语。",
-    "success": "中央广场为不同来宾播出了正确的专属欢迎语。"
+    "intro": "同一段程序分别接收有效整数和非法文本，比较 scanf 返回值与变量内容。",
+    "success": "已经能先验证读取结果，再使用输入值并处理范围错误。"
   },
   "objectives": [
-    "理解输入进入变量再参与输出",
-    "观察输入与实际结果的关系"
+    "使用 scanf 返回值区分成功读取与格式错误",
+    "把格式错误、范围错误和合法输入分成不同路径"
   ],
   "teachingLoop": [
     "predict",
@@ -32,13 +32,13 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "输入“圆圆”后，name 中保存的是什么？",
+      "prompt": "输入 abc 时，scanf(\"%d\", &value) 返回 0。程序只有在返回值为 1 时才输出 value，否则输出 input-error。实际输出是什么？",
       "interaction": {
         "kind": "single-choice",
         "options": [
-          "圆圆",
-          "欢迎来到蛋仔岛",
-          "程序文件名"
+          "input-error",
+          "value=0",
+          "程序必然崩溃"
         ]
       },
       "evaluator": {
@@ -46,56 +46,81 @@
         "expectedIndex": 0
       },
       "feedback": {
-        "correct": "输入文本会被读入 name，再由 printf 使用。",
-        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+        "correct": "读取失败时返回值不是 1，因此程序不会使用 value。",
+        "incorrect": "不要猜变量内容；先看 scanf 的返回值会让程序进入哪条分支。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "使用输入“圆圆”运行，观察名字怎样进入欢迎语。",
+      "prompt": "分别输入整数和文本，观察 scanf 返回值如何决定后续路径。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，欢迎来到蛋仔岛！\\n\", name);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int value;\n  int read = scanf(\"%d\", &value);\n  printf(\"read=%d\\n\", read);\n  if (read == 1) {\n    printf(\"value=%d\\n\", value);\n  } else {\n    printf(\"input-error\\n\");\n  }\n  return 0;\n}\n"
       },
-      "stdin": "圆圆\n",
+      "stdin": "42\n",
       "evaluator": {
-        "kind": "stdout-exact",
-        "expected": "圆圆，欢迎来到蛋仔岛！\n"
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "42\n",
+            "stdout": "read=1\nvalue=42\n"
+          },
+          {
+            "stdin": "abc\n",
+            "stdout": "read=0\ninput-error\n"
+          }
+        ]
       },
       "visualizer": {
-        "kind": "broadcast-caption",
-        "target": "central-fountain"
+        "kind": "branch-scene",
+        "target": "input-validation",
+        "branches": {
+          "read=1": "success",
+          "read=0": "format-error"
+        }
       },
-      "observationPrompt": "输出中哪一部分来自代码，哪一部分来自输入？"
+      "observationPrompt": "为什么读取失败后不应该继续比较或输出 value？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么格式字符串里写的是 %s，而屏幕上显示的是“圆圆”？",
+      "prompt": "解释为什么 scanf 的返回值比“输入看起来像数字”更可靠，并说明失败后继续使用 value 的风险。",
       "referencePoints": [
-        "%s 是字符串占位符",
-        "printf 使用 name 当前保存的值"
+        "scanf 返回成功赋值的项目数",
+        "读取失败时目标变量可能没有得到新的有效值"
       ],
       "answerPolicy": {
-        "minimumCharacters": 8,
+        "minimumCharacters": 20,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "把广播改成“圆圆，中央广场已经开园！”。",
+      "prompt": "补全输入校验：格式错误输出 input-error；整数不在 1 到 100 内输出 out-of-range；合法值输出 value:n。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，欢迎来到蛋仔岛！\\n\", name);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int value;\n  scanf(\"%d\", &value);\n  printf(\"value:%d\\n\", value);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "圆圆\n",
-            "stdout": "圆圆，中央广场已经开园！\n"
+            "stdin": "abc\n",
+            "stdout": "input-error\n"
+          },
+          {
+            "stdin": "0\n",
+            "stdout": "out-of-range\n"
+          },
+          {
+            "stdin": "101\n",
+            "stdout": "out-of-range\n"
+          },
+          {
+            "stdin": "64\n",
+            "stdout": "value:64\n"
           }
         ]
       },
@@ -103,90 +128,106 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "名字已经正确，观察逗号后面的固定文字。"
+          "text": "需要先判断格式是否成功，再判断数值范围。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "修改 printf 的格式字符串。"
+          "text": "把 scanf 放进第一个 if 条件，范围判断放到 else if。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "保留 %s，只替换欢迎语的固定部分。"
+          "text": "使用 if (scanf(...) != 1)，再用 value < 1 || value > 100。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "使用 printf(\"%s，中央广场已经开园！\\n\", name);",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "先判断 scanf(\"%d\", &value) != 1 并输出 input-error；否则判断 value < 1 || value > 100 并输出 out-of-range；最后输出 value。",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成另一条会随输入变化的广播。",
+      "prompt": "独立实现另一组输入合同，同时覆盖格式错误和两个边界。",
       "runtimeId": "c17-console",
       "variantSetId": "quail-broadcast-v1",
       "variants": [
         {
           "id": "gate-open",
-          "prompt": "任意名字输入后输出“名字，可以入园啦！”。",
+          "prompt": "读取 age。格式错误输出 input-error；合法范围是 0 到 150（含边界）；越界输出 out-of-range；合法时输出 age:n。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，等待入园。\\n\", name);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n\nint main(void) {\n  int age;\n  /* 读取、校验并输出 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "小蓝\n",
-                "stdout": "小蓝，可以入园啦！\n"
+                "stdin": "x\n",
+                "stdout": "input-error\n"
               },
               {
-                "stdin": "团团\n",
-                "stdout": "团团，可以入园啦！\n"
+                "stdin": "-1\n",
+                "stdout": "out-of-range\n"
+              },
+              {
+                "stdin": "150\n",
+                "stdout": "age:150\n"
+              },
+              {
+                "stdin": "151\n",
+                "stdout": "out-of-range\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，可以入园啦！\\n\", name);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n\nint main(void) {\n  int age;\n  if (scanf(\"%d\", &age) != 1) {\n    printf(\"input-error\\n\");\n  } else if (age < 0 || age > 150) {\n    printf(\"out-of-range\\n\");\n  } else {\n    printf(\"age:%d\\n\", age);\n  }\n  return 0;\n}\n"
         },
         {
           "id": "piano-ready",
-          "prompt": "任意名字输入后输出“名字，钢琴地毯准备好了！”。",
+          "prompt": "读取 count。格式错误输出 input-error；合法范围是 0 到 1000（含边界）；越界输出 out-of-range；合法时输出 count:n。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"欢迎！\\n\");\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n\nint main(void) {\n  int count;\n  /* 读取、校验并输出 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "小黄\n",
-                "stdout": "小黄，钢琴地毯准备好了！\n"
+                "stdin": "?\n",
+                "stdout": "input-error\n"
               },
               {
-                "stdin": "果果\n",
-                "stdout": "果果，钢琴地毯准备好了！\n"
+                "stdin": "0\n",
+                "stdout": "count:0\n"
+              },
+              {
+                "stdin": "1000\n",
+                "stdout": "count:1000\n"
+              },
+              {
+                "stdin": "1001\n",
+                "stdout": "out-of-range\n"
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，钢琴地毯准备好了！\\n\", name);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n\nint main(void) {\n  int count;\n  if (scanf(\"%d\", &count) != 1) {\n    printf(\"input-error\\n\");\n  } else if (count < 0 || count > 1000) {\n    printf(\"out-of-range\\n\");\n  } else {\n    printf(\"count:%d\\n\", count);\n  }\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "分别标出输入名字和固定广播文字。"
+          "text": "把可能结果列成格式错误、越界、合法三类。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 scanf 的目标和 printf 的参数。"
+          "text": "先检查 scanf 返回值，再访问输入变量。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "让 name 通过 %s 出现在输出开头。"
+          "text": "范围“含边界”意味着只拒绝小于下限或大于上限的值。"
         }
       ],
       "fullSolutionPolicy": {
@@ -226,6 +267,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先通过追问帮助学习者定位执行过程和错误原因，不直接给出完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
   }
 }

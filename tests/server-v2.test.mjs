@@ -8,9 +8,28 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { gradeLevel, startServer } from '../server.mjs';
-import { sanitizeCourse } from '../shared/park-domain.mjs';
+import { freshProgress, sanitizeCourse, submitAttempt } from '../shared/park-domain.mjs';
 
 const PROJECT = fileURLToPath(new URL('..', import.meta.url));
+const EARLY_RANK_IDS = new Set(['quail', 'pigeon', 'chicken']);
+const PARK_SCENE_TERMS = [
+  '摩天轮', '盲盒', '烘焙', '奶茶', '游戏厅', '换新店', '形象店', '喷泉', '蛋仔公园', '足球', '商城', '钢琴',
+  '咸鱼', '弹簧绳', '钩爪', '加速鞋', '炸弹', '地雷', '传送球', '缩小牛奶', '垫脚石', '弹板', '云雾弹', '墨汁炸弹', '弹力球'
+];
+
+function assertNoSceneBindings(value, label) {
+  const queue = [{ value, path: label }];
+  while (queue.length) {
+    const current = queue.pop();
+    if (!current.value || typeof current.value !== 'object') continue;
+    for (const [key, child] of Object.entries(current.value)) {
+      assert.equal(['locationId', 'locationIds', 'propIds'].includes(key), false, `${current.path}.${key} 不应暴露前三段位场景绑定`);
+      if (child && typeof child === 'object') queue.push({ value: child, path: `${current.path}.${key}` });
+    }
+  }
+  const copy = JSON.stringify(value);
+  for (const term of PARK_SCENE_TERMS) assert.equal(copy.includes(term), false, `${label} 不应出现乐园建筑或道具词“${term}”`);
+}
 
 async function checkedInCourse() {
   const index = JSON.parse(await readFile(join(PROJECT, 'data/course.json'), 'utf8'));
@@ -44,6 +63,8 @@ async function fixture(t, { start = true, storeOptions = {} } = {}) {
     await rm(root, { recursive: true, force: true });
   });
   await cp(join(PROJECT, 'data'), join(root, 'data'), { recursive: true });
+  const course = await checkedInCourse();
+  await writeFile(join(root, 'data/progress.json'), `${JSON.stringify(freshProgress(course, 'learner-1'), null, 2)}\n`, 'utf8');
 
   const result = {
     root,
@@ -132,7 +153,7 @@ function levelAttempt(overrides = {}) {
   return {
     requestId: 'attempt-run-observe-1',
     levelId: 'quail-fountain-sequence',
-    contentVersion: 1,
+    contentVersion: 2,
     stepId: 'run-observe',
     action: 'run',
     answer: '',
@@ -153,6 +174,7 @@ test('大厅、关卡和岛务状态来自同一份 v2 数据；岛屿图片以�
   assert.equal(home.body.currentLevel.id, 'quail-fountain-sequence');
   assert.ok(home.etag);
   assert.ok(home.body.course.levels.every(level => !Object.hasOwn(level, 'content')), '大厅不应一次下发所有关卡正文');
+  assert.equal(Object.hasOwn(home.body.currentLevel, 'scene'), false, '前三段位当前关卡不应下发内部场景元数据');
   const homeIndependent = home.body.currentLevel.steps.find(step => step.id === 'independent-variation');
   assert.ok(homeIndependent.variants.every(variant => !Object.hasOwn(variant, 'fullSolution')), '大厅当前关卡不应下发独立变式答案');
 
@@ -160,7 +182,9 @@ test('大厅、关卡和岛务状态来自同一份 v2 数据；岛屿图片以�
   assert.equal(level.body.level.id, 'quail-fountain-sequence');
   assert.equal(level.body.level.activityType, 'interactive-lesson');
   assert.equal(level.body.level.steps[0].id, 'predict');
-  assert.equal(level.body.location.id, 'central-fountain');
+  assert.equal(Object.hasOwn(level.body, 'location'), false);
+  assert.equal(Object.hasOwn(level.body, 'props'), false);
+  assert.equal(Object.hasOwn(level.body.level, 'scene'), false);
   const independent = level.body.level.steps.find(step => step.id === 'independent-variation');
   assert.ok(independent.variants.every(variant => variant.fullSolutionAvailable === true));
   assert.ok(independent.variants.every(variant => !Object.hasOwn(variant, 'fullSolution')));
@@ -172,14 +196,97 @@ test('大厅、关卡和岛务状态来自同一份 v2 数据；岛屿图片以�
   assert.equal(typeof admin.body.course.levels.find(item => item.id === level.body.level.id).content.steps.find(step => step.id === 'independent-variation').variants[0].fullSolution, 'string');
   assert.equal(typeof admin.body.versions.course, 'string');
 
-  const image = expect(await request(app, '/assets/park/island-hero.png'), 200);
+  const image = expect(await request(app, '/assets/park/island-axis-hero.png'), 200);
   assert.equal(image.headers['content-type'], 'image/png');
   assert.match(image.headers['cache-control'], /max-age=3600/);
   assert.deepEqual([...image.buffer.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
 
-  const head = expect(await request(app, '/assets/park/island-hero.png', { method: 'HEAD' }), 200);
+  const head = expect(await request(app, '/assets/park/island-axis-hero.png', { method: 'HEAD' }), 200);
   assert.equal(head.buffer.length, 0);
   assert.equal(Number(head.headers['content-length']), image.buffer.length);
+});
+
+test('前三段位的学习接口不暴露建筑或道具语汇，后六个段位作品仍保留地点上下文', async t => {
+  const { app } = await fixture(t);
+  const home = expect(await request(app, '/api/play/home'), 200).body;
+
+  const earlyRanks = home.course.ranks.filter(rank => EARLY_RANK_IDS.has(rank.id));
+  assert.equal(earlyRanks.length, 3);
+  for (const rank of earlyRanks) {
+    assert.equal(Object.hasOwn(rank, 'locationIds'), false, `${rank.id} 的学习者段位数据不应包含 locationIds`);
+    assertNoSceneBindings(rank, `rank:${rank.id}`);
+  }
+
+  const earlyLevelIndexes = home.course.levels.filter(level => EARLY_RANK_IDS.has(level.rankId));
+  assert.equal(earlyLevelIndexes.length, 12);
+  for (const index of earlyLevelIndexes) {
+    assertNoSceneBindings(index, `level-index:${index.id}`);
+    const activity = expect(await request(app, `/api/play/levels/${index.id}`), 200).body;
+    assert.equal(Object.hasOwn(activity, 'location'), false, `${index.id} 不应下发地点对象`);
+    assert.equal(Object.hasOwn(activity, 'locations'), false, `${index.id} 不应下发地点列表`);
+    assert.equal(Object.hasOwn(activity, 'props'), false, `${index.id} 不应下发道具列表`);
+    assert.equal(Object.hasOwn(activity.level, 'scene'), false, `${index.id} 不应下发内部 scene`);
+    assertNoSceneBindings({ rank: activity.rank, level: activity.level }, `activity:${index.id}`);
+  }
+
+  const locations = new Set(home.course.locations.map(location => location.id));
+  const laterRanks = home.course.ranks.filter(rank => rank.order >= 4);
+  assert.equal(laterRanks.length, 6);
+  for (const rank of laterRanks) {
+    const project = home.course.projects.find(item => item.id === rank.projectId);
+    assert.ok(project, `${rank.id} 应有一个段位作品`);
+    assert.ok(project.locationIds.length > 0, `${project.id} 应保留项目地点`);
+    assert.ok(project.locationIds.every(locationId => locations.has(locationId)));
+
+    const activity = expect(await request(app, `/api/play/levels/${project.id}`), 200).body;
+    assert.deepEqual(activity.project.locationIds, project.locationIds);
+    assert.deepEqual(new Set(activity.locations.map(location => location.id)), new Set(project.locationIds));
+  }
+});
+
+test('升级到 contentVersion 2 后保留 v1 历史，但不会把旧步骤当作 v2 已完成', async t => {
+  const courseV2 = await checkedInCourse();
+  const checkedInLevel = courseV2.levels[0];
+  assert.equal(checkedInLevel.version, 2, '仓库内前三段位内容应已发布为 v2');
+  const v1Draft = structuredClone(courseV2);
+  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
+  const v1DraftLevel = v1Draft.levels.find(level => level.id === checkedInLevel.id);
+  v1DraftLevel.version = 1;
+  v1DraftLevel.content.version = 1;
+  const courseV1 = sanitizeCourse(v1Draft);
+  const levelV1 = courseV1.levels.find(level => level.id === checkedInLevel.id);
+  const firstStep = levelV1.content.steps[0];
+  let progressV1 = freshProgress(courseV1, 'learner-1');
+  progressV1 = submitAttempt(courseV1, progressV1, {
+    requestId: 'version-one-first-step',
+    levelId: levelV1.id,
+    contentVersion: 1,
+    stepId: firstStep.id,
+    variantId: '',
+    action: 'check',
+    answer: 'v1 learner answer',
+    hintLevel: 0,
+    viewedFullAnswer: false,
+    passed: true,
+    independent: false
+  }, {
+    id: 'version-one-attempt',
+    submittedAt: '2026-10-13T01:01:00.000Z'
+  }).progress;
+
+  const f = await fixture(t, { start: false });
+  await writeFile(join(f.root, 'data/progress.json'), `${JSON.stringify(progressV1, null, 2)}\n`, 'utf8');
+
+  const app = await f.start();
+  const home = expect(await request(app, '/api/play/home'), 200).body;
+  assert.equal(home.currentLevel.version, 2);
+  assert.equal(home.progress.attempts.length, 1);
+  assert.equal(home.progress.attempts[0].payload.contentVersion, 1);
+
+  const activity = expect(await request(app, `/api/play/levels/${levelV1.id}`), 200).body;
+  assert.equal(activity.level.version, 2);
+  assert.deepEqual(activity.completedStepIds, [], 'v1 的通过记录不能推进 v2 的步骤游标');
+  assert.equal(activity.progress.attempts[0].payload.stepId, firstStep.id, 'v1 历史仍应完整保留给管理端和学习记录');
 });
 
 test('拒绝伪造 Host、跨源写入、非 JSON 写入和静态目录穿越', async t => {
@@ -207,21 +314,21 @@ test('拒绝伪造 Host、跨源写入、非 JSON 写入和静态目录穿越', 
 test('Boss 的对象值与映射关系按完整结构判定，不会误落入文本长度规则', async () => {
   const course = await checkedInCourse();
   const objectBase = {
-    requestId: 'boss-object-1', levelId: 'pigeon-data-boss', contentVersion: 1,
+    requestId: 'boss-object-1', levelId: 'pigeon-data-boss', contentVersion: 2,
     stepId: 'predict-values', action: 'check', hintLevel: 0, viewedFullAnswer: false
   };
-  const objectCorrect = await gradeLevel(course, { ...objectBase, answer: JSON.stringify({ total: 8, left: 7 }) });
+  const objectCorrect = await gradeLevel(course, { ...objectBase, answer: JSON.stringify({ used: 31, left: 19 }) });
   assert.equal(objectCorrect.input.passed, true);
-  const objectExtra = await gradeLevel(course, { ...objectBase, requestId: 'boss-object-2', answer: JSON.stringify({ total: 8, left: 7, guessed: true }) });
+  const objectExtra = await gradeLevel(course, { ...objectBase, requestId: 'boss-object-2', answer: JSON.stringify({ used: 31, left: 19, guessed: true }) });
   assert.equal(objectExtra.input.passed, false);
 
   const mappingBase = {
-    requestId: 'boss-mapping-1', levelId: 'chicken-rules-boss', contentVersion: 1,
+    requestId: 'boss-mapping-1', levelId: 'chicken-rules-boss', contentVersion: 2,
     stepId: 'predict-paths', action: 'check', hintLevel: 0, viewedFullAnswer: false
   };
-  const mappingCorrect = await gradeLevel(course, { ...mappingBase, answer: JSON.stringify({ 0: '放置', 1: '传送', 2: '错误' }) });
+  const mappingCorrect = await gradeLevel(course, { ...mappingBase, answer: JSON.stringify({ 0: 'pending', 1: 'running', 2: 'done', 3: 'invalid' }) });
   assert.equal(mappingCorrect.input.passed, true);
-  const mappingWrong = await gradeLevel(course, { ...mappingBase, requestId: 'boss-mapping-2', answer: JSON.stringify({ 0: '传送', 1: '放置', 2: '错误' }) });
+  const mappingWrong = await gradeLevel(course, { ...mappingBase, requestId: 'boss-mapping-2', answer: JSON.stringify({ 0: 'running', 1: 'pending', 2: 'done', 3: 'invalid' }) });
   assert.equal(mappingWrong.input.passed, false);
 });
 
@@ -261,7 +368,7 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
       requestId: 'attempt-predict-1',
       stepId: 'predict',
       action: 'check',
-      answer: JSON.stringify(['蓝色喷泉', '黄色喷泉', '粉色喷泉'])
+      answer: JSON.stringify(['before:3', 'inside:3', 'after:6'])
     })
   }), 200);
   assert.equal(prediction.body.feedback.passed, true);
@@ -269,8 +376,8 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
 
   const first = expect(await request(app, '/api/play/attempts', { method: 'POST', data: input }), 200);
   assert.equal(first.body.feedback.kind, 'program');
-  assert.equal(first.body.feedback.actualOutput, '蓝\n黄\n粉\n', JSON.stringify(first.body.feedback));
-  assert.equal(first.body.feedback.cases[0].expected, '蓝\n黄\n粉\n');
+  assert.equal(first.body.feedback.actualOutput, 'before:3\ninside:3\nafter:6\n', JSON.stringify(first.body.feedback));
+  assert.equal(first.body.feedback.cases[0].expected, 'before:3\ninside:3\nafter:6\n');
   assert.equal(first.body.feedback.cases[0].phase, 'run');
   assert.equal(first.body.feedback.cases[0].passed, true);
   assert.equal(first.body.result.replayed, false);
@@ -300,12 +407,12 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
       requestId: 'attempt-explain-1',
       stepId: 'explain',
       action: 'check',
-      answer: '程序会按从上到下的顺序逐条执行输出语句。'
+      answer: 'main 调用 twice 时先进入函数体，函数返回并完成 result 赋值后，才继续执行 after 输出。'
     })
   }), 200);
   assert.equal(explanation.body.feedback.passed, true);
 
-  const wrongSource = '#include <stdio.h>\nint main(void) {\n  puts("蓝");\n  return 0;\n}\n';
+  const wrongSource = '#include <stdio.h>\nint main(void) {\n  puts("wrong");\n  return 0;\n}\n';
   const wrong = expect(await request(app, '/api/play/attempts', {
     method: 'POST',
     data: levelAttempt({
@@ -316,8 +423,8 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
     })
   }), 200);
   assert.equal(wrong.body.feedback.kind, 'program');
-  assert.equal(wrong.body.feedback.actualOutput, '蓝\n');
-  assert.equal(wrong.body.feedback.expectedOutput, '粉\n蓝\n黄\n');
+  assert.equal(wrong.body.feedback.actualOutput, 'wrong\n');
+  assert.equal(wrong.body.feedback.expectedOutput, 'result:7\n');
   assert.equal(wrong.body.feedback.cases[0].phase, 'run');
   assert.equal(wrong.body.feedback.cases[0].passed, false);
   assert.equal(wrong.body.result.levelCompleted, false);
@@ -333,12 +440,12 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
   const sourceStep = course.levels.find(item => item.id === 'quail-fountain-sequence').content.steps.find(step => step.id === 'independent-variation');
   const exposedVariant = sourceStep.variants.find(variant => variant.id === 'greenless-yellow-pink-blue');
 
-  expect(await submit({ requestId: 'replacement-predict', stepId: 'predict', action: 'check', answer: JSON.stringify(['蓝色喷泉', '黄色喷泉', '粉色喷泉']) }), 200);
+  expect(await submit({ requestId: 'replacement-predict', stepId: 'predict', action: 'check', answer: JSON.stringify(['before:3', 'inside:3', 'after:6']) }), 200);
   expect(await submit({ requestId: 'replacement-run', stepId: 'run-observe', action: 'run' }), 200);
-  expect(await submit({ requestId: 'replacement-explain', stepId: 'explain', action: 'check', answer: '每条输出语句依次执行，所以喷泉不会在同一时刻一起启动。' }), 200);
-  expect(await submit({ requestId: 'replacement-edit', stepId: 'short-edit', action: 'run', answer: '#include <stdio.h>\nint main(void){puts("粉");puts("蓝");puts("黄");return 0;}\n' }), 200);
+  expect(await submit({ requestId: 'replacement-explain', stepId: 'explain', action: 'check', answer: '调用函数时控制流先进入函数体，返回并完成 result 赋值后，main 才执行下一条输出。' }), 200);
+  expect(await submit({ requestId: 'replacement-edit', stepId: 'short-edit', action: 'run', answer: '#include <stdio.h>\nint transform(int value){return value * 2 + 1;}\nint main(void){int value;if(scanf("%d",&value)!=1)return 1;printf("result:%d\\n",transform(value));return 0;}\n' }), 200);
 
-  const exposedSource = '#include <stdio.h>\nint main(void){puts("黄");puts("粉");puts("蓝");return 0;}\n';
+  const exposedSource = exposedVariant.fullSolution;
   const exposed = expect(await submit({
     requestId: 'replacement-exposed', stepId: 'independent-variation', action: 'reveal',
     variantId: 'greenless-yellow-pink-blue', answer: '', hintLevel: 3, viewedFullAnswer: true
@@ -372,7 +479,7 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
   assert.equal(sameVariant.body.next.replacementVariant.id, 'blue-pink-yellow');
   assert.equal(Object.hasOwn(sameVariant.body.next.replacementVariant, 'fullSolution'), false);
 
-  const freshSource = '#include <stdio.h>\nint main(void){puts("蓝");puts("粉");puts("黄");return 0;}\n';
+  const freshSource = sourceStep.variants.find(variant => variant.id === 'blue-pink-yellow').fullSolution;
   const recovered = expect(await submit({
     requestId: 'replacement-fresh', stepId: 'independent-variation', action: 'submit',
     variantId: 'blue-pink-yellow', answer: freshSource

@@ -16,10 +16,12 @@ function selectRank(id) {
   const project = home.course.projects?.find(item => item.id === rank.projectId);
   const reward = home.course.rewardCatalog?.find(item => item.sourceRankId === rank.id);
   const venueNames = (rank.locationIds || []).map(locationId => home.course.locations?.find(item => item.id === locationId)?.title).filter(Boolean);
+  const trainingLabel = project ? '项目背景' : '训练形式';
+  const trainingValue = project ? (venueNames.join('、') || '整座蛋仔岛') : '在线互动题与综合挑战';
   const contentRows = levels.length
     ? levels.map((level, index) => `<div class="level-row"><span>${String(index + 1).padStart(2, '0')} · ${esc(level.title)}</span><span>${esc(level.kind === 'rank-boss' ? 'BOSS' : `${level.estimatedMinutes || 20} 分钟`)}</span></div>`).join('')
     : (project?.chapters || []).map((chapter, index) => `<div class="level-row"><span>${String(index + 1).padStart(2, '0')} · ${esc(chapter.title)}</span><span>章节</span></div>`).join('') + (project?.boss ? `<div class="level-row"><span>BOSS · ${esc(project.boss.title)}</span><span>综合挑战</span></div>` : '');
-  detail.innerHTML = `<div class="rank-detail-grid"><div><span class="label">第 ${esc(rank.order)} 阶 · ${esc(modeLabel(rank))}</span><h2>${esc(rank.title)}</h2><p>${esc(rank.technologyTheme)}</p><div class="rank-meta"><div><span>技术主题</span><strong>${esc(rank.technologyTheme)}</strong></div><div><span>主要场景</span><strong>${esc(venueNames.join('、') || '整座蛋仔岛')}</strong></div><div><span>晋段成果</span><strong>${esc(project?.title || reward?.title || '能力信物')}</strong></div><div><span>学习内容</span><strong>${esc(levels.length || project?.chapters?.length || 0)} 个关卡或章节</strong></div></div></div><div><span class="label">关卡与章节</span><div class="level-list">${contentRows || '<div class="level-row"><span>课程内容正在装入建筑</span><span>已规划</span></div>'}</div></div></div>`;
+  detail.innerHTML = `<div class="rank-detail-grid"><div><span class="label">第 ${esc(rank.order)} 阶 · ${esc(modeLabel(rank))}</span><h2>${esc(rank.title)}</h2><p>${esc(rank.technologyTheme)}</p><div class="rank-meta"><div><span>技术主题</span><strong>${esc(rank.technologyTheme)}</strong></div><div><span>${trainingLabel}</span><strong>${esc(trainingValue)}</strong></div><div><span>晋段成果</span><strong>${esc(project?.title || reward?.title || '能力信物')}</strong></div><div><span>学习内容</span><strong>${esc(levels.length || project?.chapters?.length || 0)} 个关卡或章节</strong></div></div></div><div><span class="label">关卡与章节</span><div class="level-list">${contentRows || '<div class="level-row"><span>课程内容正在准备</span><span>已规划</span></div>'}</div></div></div>`;
   detail.hidden = false;
   detail.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
 }
