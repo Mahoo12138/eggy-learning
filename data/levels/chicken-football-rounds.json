@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 2,
+  "id": "chicken-football-rounds",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "chicken",
+  "subrankId": "chicken-i",
+  "sequence": 3,
+  "title": "足球场三轮点球",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "chicken-bomb-boundary"
+  ],
+  "scene": {
+    "locationId": "football-field",
+    "propIds": [
+      "bouncy-ball"
+    ],
+    "intro": "足球场要连续记录三次射门。力量在 4 到 7 之间算进球。",
+    "success": "足球场记分牌完成了多轮比赛并准确复用判定规则。"
+  },
+  "objectives": [
+    "用循环重复处理多轮输入",
+    "把单次判定封装为函数"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "三次力量是 3、5、7，最终进球数是多少？",
+      "interaction": {
+        "kind": "number",
+        "min": 0,
+        "max": 3
+      },
+      "evaluator": {
+        "kind": "number-exact",
+        "expected": 2
+      },
+      "feedback": {
+        "correct": "5 和 7 满足范围，3 不满足。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "运行并观察循环如何三次调用同一个判定函数。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint is_goal(int power) {\n  return power >= 4 && power <= 7;\n}\nint main(void) {\n  int goals = 0;\n  for (int round = 0; round < 3; round++) {\n    int power;\n    scanf(\"%d\", &power);\n    goals = goals + is_goal(power);\n  }\n  printf(\"进球%d次\\n\", goals);\n  return 0;\n}\n"
+      },
+      "stdin": "3\n5\n7\n",
+      "evaluator": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "3\n5\n7\n",
+            "stdout": "进球2次\n"
+          },
+          {
+            "stdin": "4\n4\n4\n",
+            "stdout": "进球3次\n"
+          }
+        ]
+      },
+      "visualizer": {
+        "kind": "round-scoreboard",
+        "target": "football-field",
+        "rounds": 3
+      },
+      "observationPrompt": "循环执行了几次，is_goal 被调用了几次？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "把进球规则放进 is_goal 函数有什么好处？",
+      "referencePoints": [
+        "循环只负责重复读入",
+        "规则集中在一个位置",
+        "修改边界时不必重写每一轮"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "比赛改为 5 轮，进球力量范围仍为 4–7。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint is_goal(int power) { return power >= 4 && power <= 7; }\nint main(void) {\n  int goals = 0;\n  for (int round = 0; round < 3; round++) {\n    int power; scanf(\"%d\", &power);\n    goals += is_goal(power);\n  }\n  printf(\"进球%d次\\n\", goals);\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "4\n5\n8\n7\n1\n",
+            "stdout": "进球3次\n"
+          },
+          {
+            "stdin": "3\n3\n3\n3\n3\n",
+            "stdout": "进球0次\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "规则没有变化，只有轮数变化。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 for 循环的终止条件。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "从 round=0 开始，round<5 会执行 5 次。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "把 round < 3 攀为 round < 5。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立实现另一套多轮判定。",
+      "runtimeId": "c17-console",
+      "variantSetId": "chicken-round-function-v1",
+      "variants": [
+        {
+          "id": "three-bounces",
+          "prompt": "读入 4 次弹力球碰撞高度，高度至少 6 算有效，输出有效次数。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint is_valid(int height) {\n  /* 完成规则 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 4 次并统计 */\n  printf(\"有效%d次\\n\", count);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "5\n6\n8\n2\n",
+                "stdout": "有效2次\n"
+              },
+              {
+                "stdin": "6\n6\n6\n6\n",
+                "stdout": "有效4次\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint is_valid(int height) {\n  return height >= 6;\n}\nint main(void) {\n  int count = 0;\n  for (int round = 0; round < 4; round++) {\n    int height;\n    scanf(\"%d\", &height);\n    if (is_valid(height)) {\n      count++;\n    }\n  }\n  printf(\"有效%d次\\n\", count);\n  return 0;\n}\n"
+        },
+        {
+          "id": "three-spring-boards",
+          "prompt": "读入 3 次弹板力度，2–5 算安全，输出安全次数。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint is_safe(int power) {\n  /* 完成规则 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 3 次并统计 */\n  printf(\"安全%d次\\n\", count);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "1\n2\n5\n",
+                "stdout": "安全2次\n"
+              },
+              {
+                "stdin": "6\n6\n6\n",
+                "stdout": "安全0次\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint is_safe(int power) {\n  return power >= 2 && power <= 5;\n}\nint main(void) {\n  int count = 0;\n  for (int round = 0; round < 3; round++) {\n    int power;\n    scanf(\"%d\", &power);\n    if (is_safe(power)) {\n      count++;\n    }\n  }\n  printf(\"安全%d次\\n\", count);\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "把“重复几次”和“怎样判定”分开。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "循环放在 main，范围判断放在函数。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "函数每次返回 0 或 1，累加到 count。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

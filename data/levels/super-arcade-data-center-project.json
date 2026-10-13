@@ -1,0 +1,492 @@
+{
+  "schemaVersion": 2,
+  "id": "super-arcade-data-center-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "super-phoenix",
+  "title": "蛋仔游戏厅联机积分中心",
+  "technologyTheme": "C 网络编程与 C++/SQL/SQLite 数据持久化",
+  "languages": [
+    "c",
+    "cpp",
+    "sql"
+  ],
+  "locationIds": [
+    "arcade",
+    "football-field",
+    "piano-carpet"
+  ],
+  "propIds": [],
+  "estimatedSessions": {
+    "minimum": 26,
+    "typical": 36
+  },
+  "prerequisiteActivityIds": [
+    "peak-delivery-center-project"
+  ],
+  "story": "足球场和钢琴地毯作为联网终端上报比赛事件，游戏厅负责接收、去重、保存、查询积分并安全兑换奖励。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "multi-process-local-service",
+    "workingTitle": "蛋仔游戏厅联机积分中心",
+    "components": [
+      {
+        "id": "checkpoint-client",
+        "language": "c",
+        "entryFile": "client/main.c"
+      },
+      {
+        "id": "event-gateway",
+        "language": "c",
+        "entryFile": "gateway/main.c"
+      },
+      {
+        "id": "score-service",
+        "language": "cpp",
+        "entryFile": "service/main.cpp"
+      },
+      {
+        "id": "database",
+        "language": "sql",
+        "entryFile": "db/schema.sql"
+      }
+    ],
+    "runTarget": "local-linux-network"
+  },
+  "coreContract": [
+    "C 客户端和服务端通过明确消息边界传输事件",
+    "部分读写、断线、超时和重复提交有确定处理",
+    "C++ 服务用 SQLite 事务保存积分与兑换",
+    "多客户端并发写入不产生重复积分或双重兑换"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "network-model",
+      "title": "找到客户端、服务端和端口",
+      "goal": "理解 IP、端口、连接和请求响应。",
+      "concepts": [
+        "客户端服务端",
+        "IP",
+        "端口",
+        "TCP"
+      ],
+      "guidedBuild": "完成单客户端回显，并用日志标记连接生命周期。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "区分监听套接字与已连接套接字。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 socket、bind、listen、accept、connect。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "服务端用监听描述符接收连接，再使用新的连接描述符通信。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "客户端退出后服务端仍能接受下一位客户端。",
+        "evidence": "连接日志和命令记录",
+        "automatedChecks": [
+          "sequential-clients",
+          "client-disconnect"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "多客户端章节复用同一连接生命周期。"
+    },
+    {
+      "id": "message-framing",
+      "title": "为比赛事件划清边界",
+      "goal": "设计长度前缀协议并处理部分读写。",
+      "concepts": [
+        "字节流",
+        "消息帧",
+        "部分读写",
+        "字节序"
+      ],
+      "guidedBuild": "实现 read_exact、write_all 和最大消息限制。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察一次 recv 返回值为何可能小于消息长度。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查读写循环和剩余字节计算。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "TCP 提供字节流，不保留应用消息边界。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "将一条消息拆成多次发送仍能正确解析。",
+        "evidence": "分片测试与协议说明",
+        "automatedChecks": [
+          "fragmented-frame",
+          "coalesced-frames",
+          "oversized-frame-rejected"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 会随机拆分和合并网络数据。"
+    },
+    {
+      "id": "disconnect-timeout",
+      "title": "处理掉线与超时",
+      "goal": "区分正常关闭、连接重置、超时和可重试错误。",
+      "concepts": [
+        "EOF",
+        "errno",
+        "超时",
+        "有限重试"
+      ],
+      "guidedBuild": "为客户端加入超时和指数上限内的有限重连。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先记录 recv=0 与 recv=-1 的差别。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查错误分类和重试计数。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "并非所有失败都适合重试，重试也必须有上限。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "服务器中途断开时客户端明确结束或在上限内恢复。",
+        "evidence": "掉线日志与重试次数",
+        "automatedChecks": [
+          "clean-close",
+          "reset",
+          "timeout",
+          "retry-cap"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "积分提交使用幂等事件 ID，重连不重复加分。"
+    },
+    {
+      "id": "multi-client",
+      "title": "同时接收多个终端",
+      "goal": "复用线程知识处理多个本地客户端。",
+      "concepts": [
+        "连接并发",
+        "线程边界",
+        "背压"
+      ],
+      "guidedBuild": "每个连接独立解析消息，共享出口采用有界队列。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察慢客户端是否拖住其他客户端。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查每连接状态与共享队列。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "连接缓冲不能混用，共享资源才需要同步。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "一个客户端停发时其他两个仍可完成。",
+        "evidence": "三客户端时间线",
+        "automatedChecks": [
+          "slow-client-isolated",
+          "three-clients",
+          "bounded-queue"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "数据库写入章节将共享出口接入事务。"
+    },
+    {
+      "id": "sql-model",
+      "title": "设计积分与兑换数据",
+      "goal": "学习表、主键、外键、唯一约束和查询。",
+      "concepts": [
+        "关系模型",
+        "SELECT",
+        "INSERT",
+        "约束"
+      ],
+      "guidedBuild": "建立 players、events、balances、redemptions。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "找出怎样识别重复比赛事件。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 events 的主键或唯一约束。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "业务唯一性必须由数据库约束守住。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "重复 event_id 插入失败且余额不变化。",
+        "evidence": "schema.sql 与 SQL 结果",
+        "automatedChecks": [
+          "duplicate-event",
+          "foreign-key",
+          "balance-query"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "事务章节在多条语句中复用这些约束。"
+    },
+    {
+      "id": "sqlite-cpp",
+      "title": "从 C++ 安全访问 SQLite",
+      "goal": "使用预编译语句、绑定参数和 RAII。",
+      "concepts": [
+        "SQLite C API",
+        "prepared statement",
+        "绑定",
+        "RAII"
+      ],
+      "guidedBuild": "封装 Connection、Statement 和错误传播。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察含引号的玩家名是否破坏查询。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 SQL 拼接与参数绑定。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "数据通过绑定进入语句，不应拼接成 SQL 文本。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "正确保存并查询含空格、引号和中文的名字。",
+        "evidence": "接口代码与查询结果",
+        "automatedChecks": [
+          "quoted-name",
+          "unicode-name",
+          "statement-finalized"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 使用同一封装处理事务回滚。"
+    },
+    {
+      "id": "transactions",
+      "title": "让积分与兑换一起成功或失败",
+      "goal": "用事务维护多表一致性。",
+      "concepts": [
+        "事务",
+        "提交",
+        "回滚",
+        "并发写入"
+      ],
+      "guidedBuild": "积分事件插入与余额更新放在同一事务。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "在两条写入之间注入失败，观察是否只完成一半。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 BEGIN、COMMIT 和所有错误出口的 ROLLBACK。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "一个业务动作的多次写入必须具有原子性。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "兑换库存不足或中途失败时余额和兑换记录都不改变。",
+        "evidence": "故障注入前后数据库快照",
+        "automatedChecks": [
+          "rollback-midway",
+          "insufficient-points",
+          "concurrent-writers"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "最终联调用事务和 event_id 同时抵抗重试。"
+    },
+    {
+      "id": "end-to-end",
+      "title": "完成终端到数据库的全链路",
+      "goal": "联调 C 客户端、C 网关、C++ 服务和 SQLite。",
+      "concepts": [
+        "接口合同",
+        "端到端测试",
+        "可观测性"
+      ],
+      "guidedBuild": "为一条事件建立 trace_id，贯穿网络日志和数据库。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "从最终余额反查每个组件处理了什么。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查协议字段、进程间交接和事务结果。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "统一事件 ID 让重试、去重和故障定位使用同一事实。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "终端重复提交、断线重连后最终只计一次积分。",
+        "evidence": "端到端日志、数据库查询、故障说明",
+        "automatedChecks": [
+          "duplicate-over-reconnect",
+          "eventual-single-credit",
+          "query-result"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 会组合分片、掉线、重复与并发写。"
+    }
+  ],
+  "boss": {
+    "id": "super-arcade-data-center-boss",
+    "title": "全岛联机积分赛",
+    "story": "足球场与钢琴地毯同时上报，网络会分片和断线，客户端可能重复发送，数据库写入中途也会失败。",
+    "performancePoints": {
+      "maximum": 100,
+      "pass": 80,
+      "dimensions": {
+        "protocolCorrectness": 25,
+        "failureHandling": 25,
+        "databaseConsistency": 30,
+        "observabilityAndExplanation": 20
+      }
+    },
+    "phases": [
+      {
+        "id": "network-chaos",
+        "title": "网络分片与掉线",
+        "successCriteria": [
+          "消息不粘连或丢失",
+          "重试有上限",
+          "连接资源释放"
+        ]
+      },
+      {
+        "id": "duplicate-write",
+        "title": "重复事件与并发写入",
+        "successCriteria": [
+          "同一事件只计一次",
+          "事务无半完成",
+          "并发结果一致"
+        ]
+      },
+      {
+        "id": "independent-query",
+        "title": "独立加入排行榜查询",
+        "successCriteria": [
+          "排序规则明确",
+          "同分结果稳定",
+          "查询不修改数据"
+        ]
+      }
+    ],
+    "faultScenarios": [
+      "partial-read",
+      "coalesced-messages",
+      "disconnect-after-send",
+      "duplicate-event",
+      "transaction-failure",
+      "concurrent-writes"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-arcade-data-core",
+      "title": "游戏厅数据核心",
+      "wallCategory": "project-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/super-arcade-data-center-project.json"
+}

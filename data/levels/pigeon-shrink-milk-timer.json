@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 2,
+  "id": "pigeon-shrink-milk-timer",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "pigeon",
+  "subrankId": "pigeon-ii",
+  "sequence": 2,
+  "title": "缩小牛奶的状态计时",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "pigeon-salty-fish-counter"
+  ],
+  "scene": {
+    "locationId": "makeover-shop",
+    "propIds": [
+      "shrink-milk",
+      "speed-shoes"
+    ],
+    "intro": "换新店要预览缩小牛奶效果，同时显示体型百分比和剩余秒数。",
+    "success": "换新店能准确预览不同临时道具的状态。"
+  },
+  "objectives": [
+    "区分多个变量的含义和类型",
+    "用表达式更新体型与剩余时间"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "size 为 100，执行 size = size / 2 后体型百分比是多少？",
+      "interaction": {
+        "kind": "number",
+        "min": 0,
+        "max": 100
+      },
+      "evaluator": {
+        "kind": "number-exact",
+        "expected": 50
+      },
+      "feedback": {
+        "correct": "整数表达式 100 / 2 得到 50。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "运行后观察两个变量分别控制哪一块状态面板。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int size = 100;\n  int seconds = 3;\n  size = size / 2;\n  seconds = seconds - 1;\n  printf(\"体型%d%%，剩余%d秒\\n\", size, seconds);\n  return 0;\n}\n"
+      },
+      "stdin": "",
+      "evaluator": {
+        "kind": "stdout-exact",
+        "expected": "体型50%，剩余2秒\n"
+      },
+      "visualizer": {
+        "kind": "status-panel",
+        "target": "makeover-shop",
+        "fields": [
+          "size-percent",
+          "seconds-left"
+        ]
+      },
+      "observationPrompt": "size 和 seconds 的变化是否互相影响？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "为什么需要两个变量，而不是用一个数字同时表示体型和时间？",
+      "referencePoints": [
+        "两个数据含义不同",
+        "它们会按不同规则变化"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "让效果再经过 1 秒，输出体型 50%、剩余 1 秒。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int size = 100;\n  int seconds = 3;\n  size = size / 2;\n  seconds = seconds - 1;\n  printf(\"体型%d%%，剩余%d秒\\n\", size, seconds);\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdout-exact",
+        "expected": "体型50%，剩余1秒\n"
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "体型已经正确，只有时间不对。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 seconds 的更新次数。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "每经过 1 秒，seconds 再减 1。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "在输出前再执行一次 seconds = seconds - 1;。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立完成另一种临时道具状态。",
+      "runtimeId": "c17-console",
+      "variantSetId": "pigeon-temporary-state-v1",
+      "variants": [
+        {
+          "id": "speed-two-seconds",
+          "prompt": "加速鞋速度从 100 提升到 150，5 秒后还剩 3 秒；输出“速度150%，剩余3秒”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int speed = 100;\n  int seconds = 5;\n  /* 更新状态 */\n  printf(\"速度%d%%，剩余%d秒\\n\", speed, seconds);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "速度150%，剩余3秒\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int speed = 100;\n  int seconds = 5;\n  speed += 50;\n  seconds -= 2;\n  printf(\"速度%d%%，剩余%d秒\\n\", speed, seconds);\n  return 0;\n}\n"
+        },
+        {
+          "id": "milk-one-second",
+          "prompt": "体型从 80 减半，4 秒后还剩 3 秒；输出“体型40%，剩余3秒”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int size = 80;\n  int seconds = 4;\n  /* 更新状态 */\n  printf(\"体型%d%%，剩余%d秒\\n\", size, seconds);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "体型40%，剩余3秒\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int size = 80;\n  int seconds = 4;\n  size /= 2;\n  seconds -= 1;\n  printf(\"体型%d%%，剩余%d秒\\n\", size, seconds);\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "分别计算两个目标值。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查两个变量各自的赋值表达式。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "不要用一个变量覆盖另一种含义。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

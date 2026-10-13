@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 2,
+  "id": "invincible-independent-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "invincible-phoenix",
+  "title": "无敌凤凰蛋自主作品",
+  "technologyTheme": "独立需求分析、系统架构、跨模块集成、故障恢复与长期可接手性",
+  "languages": [
+    "learner-choice-c-or-cpp",
+    "sql-when-needed"
+  ],
+  "locationIds": [
+    "ferris-wheel",
+    "blind-box-store",
+    "snow-bakery",
+    "milk-tea-shop",
+    "arcade",
+    "makeover-shop",
+    "central-fountain",
+    "eggy-park",
+    "football-field",
+    "mall",
+    "piano-carpet"
+  ],
+  "propIds": [
+    "salty-fish",
+    "spring-rope",
+    "speed-shoes",
+    "bomb",
+    "mine",
+    "teleport-ball",
+    "shrink-milk",
+    "stepping-box",
+    "spring-board",
+    "smoke-bomb",
+    "ink-bomb",
+    "bouncy-ball"
+  ],
+  "estimatedSessions": {
+    "minimum": 28,
+    "typical": 40
+  },
+  "prerequisiteActivityIds": [
+    "super-arcade-data-center-project"
+  ],
+  "story": "学习者先选择蛋仔岛中一个真实游玩或运营问题，独立定义作品；参考整合方案只在提交自己的架构后解锁。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "learner-defined-system",
+    "workingTitle": null,
+    "learnerMustName": true,
+    "runTarget": "learner-declared",
+    "requiredDeliverables": [
+      "需求边界",
+      "架构图",
+      "接口合同",
+      "可运行纵切",
+      "故障测试",
+      "接手文档"
+    ]
+  },
+  "coreContract": [
+    "先由学习者提出可验证的用户目标和不做范围",
+    "至少整合三个已学技术领域，其中一项来自真实硬件、网络或并发",
+    "关键状态有持久化或恢复策略",
+    "另一位使用者能按文档启动、验证并解释主要故障"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "mission",
+      "title": "确定作品使命与边界",
+      "goal": "从一个具体使用场景写出目标、约束和验收故事。",
+      "concepts": [
+        "需求",
+        "范围",
+        "验收场景"
+      ],
+      "guidedBuild": "完成一页项目使命说明，不先看参考架构。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "检查目标是否描述了用户可观察结果。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查目标、不做事项和失败条件。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "明确边界才能判断作品是否完成。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "给出三个成功场景和三个失败场景。",
+        "evidence": "使命说明与场景表",
+        "automatedChecks": [],
+        "selfChecks": [
+          "目标可观察",
+          "不做范围明确",
+          "失败可复现"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "最终交付逐条回到这些场景验收。"
+    },
+    {
+      "id": "architecture",
+      "title": "画出自己的系统结构",
+      "goal": "决定组件、数据流、信任边界和技术选择。",
+      "concepts": [
+        "架构",
+        "数据流",
+        "技术取舍"
+      ],
+      "guidedBuild": "先提交自己的组件图，之后才可查看整合建议。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "追踪一条用户操作经过哪些组件。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查每条连接的协议和失败处理。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "组件边界要用可验证合同连接。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "解释为何每项技术解决当前问题而非只为凑数量。",
+        "evidence": "架构图与取舍记录",
+        "automatedChecks": [],
+        "selfChecks": [
+          "组件职责单一",
+          "数据所有者明确",
+          "失败边界明确"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "故障演练会逐一关闭或延迟这些连接。"
+    },
+    {
+      "id": "contracts",
+      "title": "固定组件接口合同",
+      "goal": "为消息、文件、数据库和硬件交互定义格式与错误。",
+      "concepts": [
+        "接口合同",
+        "版本",
+        "幂等性"
+      ],
+      "guidedBuild": "为核心链路建立示例和反例。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "检查重复请求、缺失字段和旧版本输入。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查协议结构与错误响应。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "接口必须在成功和失败时都给出确定结果。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立增加一次重复提交和一次部分失败用例。",
+        "evidence": "合同文档与自动测试",
+        "automatedChecks": [
+          "duplicate-request",
+          "missing-field",
+          "version-mismatch"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "纵切和 Boss 只能通过这些公开接口连接组件。"
+    },
+    {
+      "id": "vertical-slice",
+      "title": "跑通最小纵向切片",
+      "goal": "用真实输入贯穿至少三个组件。",
+      "concepts": [
+        "纵切",
+        "集成测试",
+        "可观测性"
+      ],
+      "guidedBuild": "交付一个小但完整、可重复运行的用户流程。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "从用户结果反向检查每个组件的证据。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查日志、持久化和最终输出的关联 ID。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "纵切应证明组件能真实协作，而非各自演示。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "冷启动后按一条命令或操作完成端到端流程。",
+        "evidence": "启动说明、运行记录、状态查询",
+        "automatedChecks": [],
+        "selfChecks": [
+          "冷启动可用",
+          "结果可查询",
+          "日志可串联"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "故障章节在同一纵切中注入失败。"
+    },
+    {
+      "id": "failure-recovery",
+      "title": "让系统在真实故障后恢复",
+      "goal": "处理进程退出、断线、损坏输入、硬件异常或数据库忙。",
+      "concepts": [
+        "故障注入",
+        "恢复",
+        "幂等",
+        "降级"
+      ],
+      "guidedBuild": "选择三类与架构真正相关的故障并自动复现。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先记录故障前、故障中和恢复后的状态。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查重试、回滚、超时和安全状态。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "恢复必须避免重复副作用和伪成功。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "进程中断后重启，已确认结果不重复、未确认结果可解释。",
+        "evidence": "故障脚本、状态快照、恢复说明",
+        "automatedChecks": [],
+        "selfChecks": [
+          "无数据静默丢失",
+          "无无限重试",
+          "恢复结果可追踪"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 由管理者从已声明故障中组合未知顺序。"
+    },
+    {
+      "id": "handover",
+      "title": "让未来的自己接得回来",
+      "goal": "整理构建、运行、诊断、备份和限制。",
+      "concepts": [
+        "可接手性",
+        "运维说明",
+        "决策记录"
+      ],
+      "guidedBuild": "在间隔后只按文档重新部署和验证。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "隐藏自己的记忆，只看文档是否足够。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查依赖、配置、数据位置和恢复步骤。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "作品长期价值取决于能否再次理解和运行。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "让管理者按文档完成一次冷启动验收。",
+        "evidence": "接手文档与验收记录",
+        "automatedChecks": [],
+        "selfChecks": [
+          "环境清单完整",
+          "备份恢复明确",
+          "已知限制诚实"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "最终演示必须从干净环境开始。"
+    }
+  ],
+  "boss": {
+    "id": "invincible-independent-boss",
+    "title": "蛋仔岛作品发布日",
+    "story": "学习者自行讲述作品目标、现场运行核心流程，并处理一个事先未公开的组合故障。",
+    "phases": [
+      {
+        "id": "clean-start",
+        "title": "从干净环境启动",
+        "successCriteria": [
+          "依赖和配置可复现",
+          "无隐藏手工状态"
+        ]
+      },
+      {
+        "id": "live-use",
+        "title": "完成真实用户流程",
+        "successCriteria": [
+          "核心目标可观察",
+          "数据和日志一致"
+        ]
+      },
+      {
+        "id": "unknown-failure",
+        "title": "处理未知组合故障",
+        "successCriteria": [
+          "先复现再修改",
+          "恢复无重复副作用",
+          "解释根因与限制"
+        ]
+      },
+      {
+        "id": "handover",
+        "title": "完成接手验证",
+        "successCriteria": [
+          "另一人仅按文档完成启动与检查"
+        ]
+      }
+    ],
+    "referenceIntegration": {
+      "unlockAfter": "architecture checkpoint submitted",
+      "title": "蛋仔岛开园运营系统参考整合",
+      "guidanceOnly": true,
+      "suggestedConnections": [
+        "STM32 机关状态",
+        "C 网络网关",
+        "Linux 进程监督",
+        "C++ 并发服务",
+        "SQLite 持久化"
+      ]
+    },
+    "faultScenarios": [
+      "selected-from-learner-declared-risks",
+      "one-undeclared-interface-edge"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-invincible-phoenix-crown",
+      "title": "无敌凤凰蛋冠冕",
+      "wallCategory": "final-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/invincible-independent-project.json"
+}

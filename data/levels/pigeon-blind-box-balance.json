@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 2,
+  "id": "pigeon-blind-box-balance",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "pigeon",
+  "subrankId": "pigeon-i",
+  "sequence": 3,
+  "title": "校准盲盒商店瓶盖余额",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "pigeon-shrink-milk-timer"
+  ],
+  "scene": {
+    "locationId": "blind-box-store",
+    "propIds": [
+      "teleport-ball"
+    ],
+    "intro": "盲盒商店结算台要同时显示购买前余额、价格和购买后余额。",
+    "success": "盲盒商店的结算屏在不同购买数量下都显示正确。"
+  },
+  "objectives": [
+    "使用整数表示余额和价格",
+    "根据多项数据计算结算结果"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "有 12 个瓶盖，购买价格为 5 的盲盒后还剩多少？",
+      "interaction": {
+        "kind": "number",
+        "min": 0,
+        "max": 99
+      },
+      "evaluator": {
+        "kind": "number-exact",
+        "expected": 7
+      },
+      "feedback": {
+        "correct": "余额 12 减去价格 5，得到 7。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "运行并观察三个变量怎样组成结算结果。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 12;\n  int price = 5;\n  int left = caps - price;\n  printf(\"购买前%d，价格%d，剩余%d\\n\", caps, price, left);\n  return 0;\n}\n"
+      },
+      "stdin": "",
+      "evaluator": {
+        "kind": "stdout-exact",
+        "expected": "购买前12，价格5，剩余7\n"
+      },
+      "visualizer": {
+        "kind": "checkout-panel",
+        "target": "blind-box-store",
+        "fields": [
+          "before",
+          "price",
+          "after"
+        ]
+      },
+      "observationPrompt": "left 是原始数据还是由其他数据计算出的结果？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "如果只保存 left 而不保留 caps 和 price，会丢失哪些信息？",
+      "referencePoints": [
+        "无法解释结算过程",
+        "不能分别显示购买前余额和价格"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "改为连续购买两个价格为 4 的盲盒，输出剩余 4 个瓶盖。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 12;\n  int price = 4;\n  int left = caps - price;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdout-exact",
+        "expected": "剩余4\n"
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "当前只减去了一次价格。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "修改 left 的表达式。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "两个同价盲盒的总价是 price * 2。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "令 left = caps - price * 2;。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立完成另一笔瓶盖结算。",
+      "runtimeId": "c17-console",
+      "variantSetId": "pigeon-checkout-v1",
+      "variants": [
+        {
+          "id": "twenty-three-items",
+          "prompt": "20 个瓶盖，买 3 个单价 4 的盲盒，输出“剩余8”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 20;\n  int price = 4;\n  int count = 3;\n  int left = 0;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "剩余8\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int caps = 20;\n  int price = 4;\n  int count = 3;\n  int left = caps - price * count;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+        },
+        {
+          "id": "eighteen-two-items",
+          "prompt": "18 个瓶盖，买 2 个单价 6 的盲盒，输出“剩余6”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int caps = 18;\n  int price = 6;\n  int count = 2;\n  int left = caps;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "剩余6\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int caps = 18;\n  int price = 6;\n  int count = 2;\n  int left = caps - price * count;\n  printf(\"剩余%d\\n\", left);\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先算总价，再算剩余。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "left 的表达式需要使用 caps、price 和 count。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "剩余 = caps - price * count。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

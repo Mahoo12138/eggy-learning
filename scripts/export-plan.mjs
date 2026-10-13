@@ -1,23 +1,56 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
-import { validateCurriculum } from '../shared/study-domain.mjs';
+import { sanitizeCourse } from '../shared/park-domain.mjs';
 
-const root = fileURLToPath(new URL('..', import.meta.url));
-const course = validateCurriculum(JSON.parse(await readFile(join(root, 'data/curriculum.json'), 'utf8')));
-const lines = [`# ${course.title}`, '', `导出时间：${new Date().toISOString()}。来源：data/curriculum.json。请在管理页维护课程，再重新导出；本文件不是另一份可编辑课程。`, '', course.schedule, '', '学习单元与日历周分开；以当前周容量安排，可以减量或暂停。验收依据是独立完成与证据，不是打卡次数。', ''];
-for (const stage of course.stages.filter(s => !s.archived)) {
-  lines.push(`## ${stage.title}`, '', stage.description, '');
-  for (const unit of course.units.filter(u => !u.archived && u.stageId === stage.id)) {
-    lines.push(`### ${unit.title}`, '', `单元编号：${unit.id}；验收版本：${unit.assessmentVersion}`, '', `目标：${unit.goal}`, '', `开始前：${unit.prerequisite}`, '', `产物：${unit.deliverable}`, '');
-    for (const task of unit.tasks.filter(t => !t.archived)) {
-      lines.push(`#### ${task.title}${task.id === unit.acceptanceTaskId ? '（独立验收）' : ''}`, '', `预计 ${task.estimatedMinutes} 分钟，可按可用时间拆分。`, '', ...task.steps.map((step, i) => `${i + 1}. ${step}`), '', `留下什么：${task.output}`, '', `如何检查：${task.verify}`, '');
-      for (const q of task.questions.filter(q => !q.archived)) lines.push(`**${q.kind === 'reflection' ? '练习思考题' : '任务提问'} · ${q.id} / v${q.version}**`, '', q.prompt, '', ...q.hints.map(h => `- 提示：${h}`), '', ...q.referencePoints.map(p => `- 参考要点：${p}`), '');
-    }
-    lines.push('**验收标准**', '', ...unit.criteria.map(c => `- ${c.text}`), '');
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const raw = JSON.parse(await readFile(join(root, 'data/course.json'), 'utf8'));
+const details = await Promise.all([...raw.levels, ...raw.projects].map(item => readFile(join(root, 'data', item.file), 'utf8').then(JSON.parse)));
+const course = sanitizeCourse(raw, details);
+const locations = new Map(course.locations.map(item => [item.id, item.title]));
+const rewards = new Map(course.rewardCatalog.map(item => [item.sourceRankId, item.title]));
+
+const lines = [
+  `# ${course.title}`,
+  '',
+  `> ${course.subtitle}`,
+  '',
+  `导出时间：${new Date().toISOString()}。唯一可编辑来源是 \`data/course.json\` 与 \`data/levels/\`；本文用于审阅。`,
+  '',
+  '## 学习规则',
+  '',
+  '- 一次只显示一个步骤：体验、预测、运行观察、解释、引导操作、即时反馈、独立变式、延后重现。',
+  '- 练习获得经验；首次独立完成变式获得星星；综合 Boss 负责晋段。',
+  '- 查看完整解法不会扣除已有奖励，但当前变式不再授星，会改派等价新变式。',
+  '- 允许休息周，不形成欠课；段位、星星、信物和作品永久保留。',
+  '',
+  '## 九阶乐园地图',
+  ''
+];
+
+for (const rank of course.ranks) {
+  const place = rank.locationIds.map(id => locations.get(id)).join('、');
+  lines.push(`### ${rank.order}. ${rank.title}`, '', `- 技术：${rank.technologyTheme}`, `- 场景：${place}`, `- 晋段奖励：${rewards.get(rank.id)}`, '');
+  const levels = course.levels.filter(level => level.rankId === rank.id).sort((a, b) => a.sequence - b.sequence);
+  if (levels.length) {
+    lines.push('| 顺序 | 关卡 | 形式 | 时长 |', '|---:|---|---|---:|');
+    for (const level of levels) lines.push(`| ${level.sequence} | ${level.title} | ${level.kind === 'rank-boss' ? '综合 Boss' : '在线互动'} | ${level.estimatedMinutes} 分钟 |`);
+    lines.push('');
+  }
+  const project = course.projects.find(item => item.id === rank.projectId);
+  if (project) {
+    lines.push(`**段位作品：${project.title}**`, '', project.story, '', '| 章节 | 目标 | 独立检查 |', '|---|---|---|');
+    for (const chapter of project.chapters) lines.push(`| ${chapter.title} | ${chapter.goal} | ${chapter.checkpoint.task} |`);
+    lines.push('', `**Boss：${project.boss.title}** — ${project.boss.story || project.boss.goal || '完成综合故障与独立变式。'}`, '');
   }
 }
+
+lines.push('## 场景与道具', '', '| 建筑 | 程序含义 |', '|---|---|');
+for (const location of course.locations) lines.push(`| ${location.title} | ${location.role} |`);
+lines.push('', '| 道具 | 程序含义 |', '|---|---|');
+for (const prop of course.props) lines.push(`| ${prop.title} | ${prop.semanticRole} |`);
+lines.push('', `> ${course.legalNotice}`, '');
+
 const destination = join(root, 'docs/当前学习训练计划.md');
-await mkdir(join(root, 'docs'), { recursive: true });
-await writeFile(destination, lines.join('\n').replace(/\n{3,}/g, '\n\n') + '\n');
-console.log(destination);
+await writeFile(destination, `${lines.join('\n')}\n`, 'utf8');
+console.log(`已导出 ${destination}`);

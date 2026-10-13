@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 2,
+  "learnerId": "learner-1",
+  "timezone": "Asia/Shanghai",
+  "revision": 0,
+  "preferences": {
+    "normalPlayCount": 3,
+    "shortLevelMaximumMinutes": 20,
+    "allowRestWeek": true
+  },
+  "suggestionPolicy": {
+    "mainGoalCount": 1,
+    "shortLevelCount": 1,
+    "carryIncompleteForward": true,
+    "createOverdueDebt": false,
+    "requireMakeup": false,
+    "prioritize": [
+      "unfinished-current-activity",
+      "return-after-gap-check",
+      "next-unlocked-mainline",
+      "optional-short-level"
+    ]
+  },
+  "weeks": [],
+  "receipts": []
+}

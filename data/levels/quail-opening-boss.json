@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 2,
+  "id": "quail-opening-boss",
+  "version": 1,
+  "activityType": "rank-boss",
+  "rankId": "quail",
+  "sequence": 4,
+  "title": "中央广场开园检查",
+  "estimatedMinutes": 24,
+  "prerequisiteLevelIds": [
+    "quail-fountain-sequence",
+    "quail-piano-output",
+    "quail-opening-broadcast"
+  ],
+  "scene": {
+    "locationId": "central-fountain",
+    "propIds": [],
+    "intro": "喷泉、钢琴和欢迎广播将在同一次开园检查中依次启动。"
+  },
+  "resumePolicy": {
+    "checkpointed": true,
+    "resumeAtLastIncompleteCheckpoint": true
+  },
+  "checkpoints": [
+    {
+      "id": "predict-show",
+      "kind": "prediction",
+      "title": "先读懂启动顺序",
+      "prompt": "根据给出的三条输出，排列喷泉、钢琴、广播的启动顺序。",
+      "evaluator": {
+        "kind": "exact-order",
+        "expected": [
+          "喷泉",
+          "钢琴",
+          "广播"
+        ]
+      }
+    },
+    {
+      "id": "repair-broadcast",
+      "kind": "code-repair",
+      "title": "修复没有名字的广播",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"欢迎开园！\\n\");\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "圆圆\n",
+            "stdout": "圆圆，欢迎开园！\n"
+          },
+          {
+            "stdin": "小蓝\n",
+            "stdout": "小蓝，欢迎开园！\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "输入已经成功，输出却没有使用 name。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查最后一条 printf。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "在格式字符串里放入 %s，并把 name 作为参数。"
+        }
+      ]
+    },
+    {
+      "id": "transfer-new-show",
+      "kind": "independent-transfer",
+      "title": "独立编排另一场开园秀",
+      "prompt": "读取来宾名字，依次输出“喷泉启动”“钢琴启动”“名字，欢迎入园！”。",
+      "runtimeId": "c17-console",
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "团团\n",
+            "stdout": "喷泉启动\n钢琴启动\n团团，欢迎入园！\n"
+          },
+          {
+            "stdin": "果果\n",
+            "stdout": "喷泉启动\n钢琴启动\n果果，欢迎入园！\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先确认总共有三行输出。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "前两行固定，第三行使用输入变量。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "把执行顺序、换行和 %s 三件事分别检查。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "revealRequiresNewEquivalentCheckpoint": true
+      }
+    }
+  ],
+  "completionRule": {
+    "allCheckpointsRequired": true,
+    "finalCheckpointMustBeIndependent": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "xp": 80,
+    "rankPromotion": true,
+    "coreToken": {
+      "id": "token-square-start-key",
+      "title": "广场启动钥匙",
+      "wallCategory": "ability-token"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "title",
+      "checkpoint",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "用问题引导学习者解释现象；不要替学习者完成最后的迁移检查点。"
+  }
+}

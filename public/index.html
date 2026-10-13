@@ -2,26 +2,39 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <title>嵌入式学习 · 2028</title>
-  <script>try{document.documentElement.dataset.theme=localStorage.getItem('embedded-study-theme-v1')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch{}</script>
-  <link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/interaction.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="蛋仔编程乐园：从第一行 C 代码开始，逐步学习 MCU、Linux、并发、网络与数据库。">
+  <meta name="theme-color" content="#ffe45c">
+  <title>蛋仔编程乐园</title>
+  <link rel="stylesheet" href="/assets/landing.css">
 </head>
 <body>
-  <header class="top"><div class="top-inner"><div class="top-title"><h1>嵌入式学习</h1><span class="muted">2028 届 · 三项目训练</span></div><div class="actions"><button id="theme" type="button" title="当前主题：系统；点击切换为深色" aria-label="当前主题：系统；点击切换为深色">系统</button></div></div></header>
-  <main class="shell narrow">
-    <div class="hero"><p class="eyebrow">Learning by building</p><h1>做出作品，<br>留下能解释的证据。</h1><p>学习者推进训练，管理者维护内容。围绕同一份计划，按真实可用时间逐步完成三个作品。</p></div>
-    <div class="grid2 link-cards">
-      <a class="panel" href="/learner.html"><p class="eyebrow">Learner</p><h2>学习者工作台</h2><p class="muted">查看当前任务，完成训练与作答，留下证据和复盘；时间不足时调整本周安排。</p><div class="jump">开始学习与记录 →</div></a>
-      <a class="panel" href="/admin.html"><p class="eyebrow">Manager</p><h2>管理者工作台</h2><p class="muted">维护阶段、任务、题目和计划，查看学习状态、卡点与训练档案。</p><div class="jump">进入内容与计划管理 →</div></a>
-    </div>
-    <div class="grid2 link-cards">
-      <a class="panel" href="/plan.html"><p class="eyebrow">Roadmap</p><h2>课程总览</h2><p class="muted">查看当前课程、三个个人项目和路线图。这里只介绍计划，不展示个人进度。</p><div class="jump">浏览学习路线 →</div></a>
-      <a class="panel" href="/report.html"><p class="eyebrow">Research</p><h2>招聘调研</h2><p class="muted">深圳嵌入式与 C/C++ 岗位要求、技术栈与 AI 时代的学习建议，保留原调研快照。</p><div class="jump">阅读调研报告 →</div></a>
-    </div>
-    <p class="muted">两个工作台共用仓库中的课程与学习档案。保存写入文件，Git 提交与远端同步由各自完成。学习单元可以跨周推进，四天是常态容量。</p>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="landing-nav">
+    <a class="brand" href="/" aria-label="蛋仔编程乐园首页"><span class="brand-mark" aria-hidden="true">C</span><span>蛋仔编程乐园</span></a>
+    <nav aria-label="主要入口"><a href="/plan.html">乐园地图</a><a href="/learner.html">继续游玩</a><a href="/admin.html">岛务管理处</a></nav>
+  </header>
+  <main id="main">
+    <section class="landing-hero" aria-labelledby="hero-title">
+      <div class="hero-image" role="img" aria-label="一座由摩天轮、商店、游戏厅、喷泉、足球场和钢琴地毯组成的海岛乐园"></div>
+      <div class="hero-shade"></div>
+      <div class="hero-copy">
+        <p class="kicker">从第一行代码，玩到自己的作品</p>
+        <h1 id="hero-title">代码会让<br>整座乐园动起来</h1>
+        <p class="hero-lead">一次只看一个问题。先预测，再运行；先理解，再完成独立变式。练习获得经验，真正掌握才获得星星。</p>
+        <div class="hero-actions"><a class="button primary" href="/learner.html">进入蛋仔岛</a><a class="button secondary" href="/plan.html">看看九阶地图</a></div>
+        <ul class="hero-facts" aria-label="学习方式"><li><strong>9</strong><span>阶能力段位</span></li><li><strong>1</strong><span>屏一个步骤</span></li><li><strong>6</strong><span>件阶段作品</span></li></ul>
+      </div>
+    </section>
+    <section class="landing-principles" aria-labelledby="principles-title">
+      <div><p class="kicker dark">游玩规则</p><h2 id="principles-title">每次打开，都知道下一步做什么</h2></div>
+      <ol>
+        <li><span>01</span><strong>看见现象</strong><p>让道具、建筑或数据先发生变化，再提出问题。</p></li>
+        <li><span>02</span><strong>运行并解释</strong><p>逐行观察代码、终端和状态，不靠背答案通关。</p></li>
+        <li><span>03</span><strong>独立变式</strong><p>换一个输入或规则再次完成，第一次独立通过获得星星。</p></li>
+      </ol>
+    </section>
   </main>
-  <script type="module" src="/assets/common.js"></script>
+  <footer><p>非官方个人学习项目，仅供本地学习使用；相关游戏名称与素材版权归原权利人所有。</p><a href="/report.html">查看嵌入式与 C++ 调研资料</a></footer>
 </body>
 </html>

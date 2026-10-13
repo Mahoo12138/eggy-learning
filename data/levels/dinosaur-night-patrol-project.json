@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 2,
+  "id": "dinosaur-night-patrol-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "dinosaur",
+  "title": "蛋仔岛夜班巡检台",
+  "technologyTheme": "Linux C 系统编程、文件描述符、进程、fork/exec/wait、管道、信号与故障恢复",
+  "languages": [
+    "c"
+  ],
+  "locationIds": [
+    "central-fountain",
+    "ferris-wheel",
+    "arcade",
+    "mall"
+  ],
+  "propIds": [],
+  "estimatedSessions": {
+    "minimum": 18,
+    "typical": 26
+  },
+  "prerequisiteActivityIds": [
+    "ostrich-ferris-wheel-project"
+  ],
+  "story": "夜间总控台要同时启动多个建筑巡检程序，收集报告，并在子进程故障时留下明确记录。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "linux-terminal-application",
+    "workingTitle": "蛋仔岛夜班巡检台",
+    "entryFile": "src/patrol.c",
+    "runTarget": "linux-c17"
+  },
+  "coreContract": [
+    "为每个巡检任务创建和回收子进程",
+    "通过管道收集结构清楚的巡检结果",
+    "正确处理文件描述符关闭、EOF、信号和异常退出",
+    "父进程不遗留僵尸进程，单点故障不吞掉其他报告"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "fd-basics",
+      "title": "认识总控台的文件描述符",
+      "goal": "用 read/write 处理日志文件并检查短读写。",
+      "concepts": [
+        "系统调用",
+        "文件描述符",
+        "返回值"
+      ],
+      "guidedBuild": "实现可靠读取循环并处理 EINTR。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察 read 返回 0、正数和 -1 的区别。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查读取循环和错误分支。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "系统调用返回值决定是否继续，不能假设一次完成。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "读取空文件和大于缓冲区的报告。",
+        "evidence": "strace 摘要和输出",
+        "automatedChecks": [
+          "empty-file",
+          "multi-read",
+          "interrupted-read"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "管道章节复用同一套读取循环。"
+    },
+    {
+      "id": "fork-model",
+      "title": "为建筑派出巡检员",
+      "goal": "用 fork 区分父子进程并记录 PID。",
+      "concepts": [
+        "进程地址空间",
+        "fork 返回值",
+        "PID"
+      ],
+      "guidedBuild": "父进程创建两个子进程，子进程只执行各自巡检。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察 fork 后哪些代码会执行两次。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查三种 fork 返回情况。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "父子进程从同一位置继续，但返回值不同。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "创建三个巡检员且每个只报告一次。",
+        "evidence": "PID 日志与进程树",
+        "automatedChecks": [
+          "three-children",
+          "no-duplicate-parent-work"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "wait 章节要求父进程准确对应每个 PID。"
+    },
+    {
+      "id": "exec-wait",
+      "title": "启动真实巡检程序",
+      "goal": "用 exec 替换子进程并用 waitpid 收集退出状态。",
+      "concepts": [
+        "exec",
+        "waitpid",
+        "退出码",
+        "僵尸进程"
+      ],
+      "guidedBuild": "为不同建筑执行独立巡检命令。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "区分 exec 失败和巡检程序返回非零。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查子进程 exec 后的失败出口与父进程 waitpid。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "exec 成功不会返回，失败必须用明确退出码结束子进程。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "一个命令不存在时，其他巡检仍正常完成。",
+        "evidence": "退出状态表与 ps 检查",
+        "automatedChecks": [
+          "exec-failure",
+          "all-children-reaped"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 让一个巡检员异常退出，父进程仍需回收。"
+    },
+    {
+      "id": "pipe-reports",
+      "title": "用管道汇总巡检报告",
+      "goal": "创建管道并关闭每个进程不使用的端点。",
+      "concepts": [
+        "pipe",
+        "EOF",
+        "端点关闭",
+        "短读写"
+      ],
+      "guidedBuild": "每个子进程将一条报告写回父进程。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "若父进程永远等不到 EOF，先找仍打开的写端。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "列出父子进程各自需要关闭的端点。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "只要还有写端打开，读端就不会得到 EOF。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "汇总三份不同长度报告且不截断。",
+        "evidence": "端点表和完整输出",
+        "automatedChecks": [
+          "eof-arrives",
+          "long-report",
+          "no-fd-leak"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "信号章节在中断时仍要关闭管道端点。"
+    },
+    {
+      "id": "signals",
+      "title": "处理中止与超时",
+      "goal": "用信号通知停止，并让阻塞系统调用正确恢复或退出。",
+      "concepts": [
+        "sigaction",
+        "EINTR",
+        "优雅退出"
+      ],
+      "guidedBuild": "父进程在超时后通知子进程，随后回收并标记结果。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察信号到达时哪个系统调用被中断。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查处理函数是否只做异步信号安全操作。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "处理函数设置标志，普通控制流负责清理资源。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "连续两次停止请求不会重复清理或挂起。",
+        "evidence": "信号时序和退出状态",
+        "automatedChecks": [
+          "timeout-stop",
+          "double-signal",
+          "no-zombie"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 组合超时、异常退出和关闭写端。"
+    },
+    {
+      "id": "supervisor",
+      "title": "完成巡检监督器",
+      "goal": "把启动、汇总、超时、重试和退出码组合起来。",
+      "concepts": [
+        "监督进程",
+        "故障隔离",
+        "有限重试"
+      ],
+      "guidedBuild": "为每个建筑维护 running、passed、failed、timed-out 状态。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先区分进程状态和业务巡检结果。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查状态表的 PID、退出码和报告字段。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "重试必须有上限，且不能覆盖第一次失败证据。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "仅对超时任务重试一次，其他结果不重复。",
+        "evidence": "状态表与重试日志",
+        "automatedChecks": [
+          "retry-timeout-once",
+          "preserve-first-failure",
+          "clean-exit"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 不告诉故障类型，只提供最终不完整报告。"
+    }
+  ],
+  "boss": {
+    "id": "dinosaur-night-patrol-boss",
+    "title": "全岛闭园巡检",
+    "story": "一个子进程挂起，一个异常退出，一个忘记关闭管道写端，另一个正常完成。",
+    "phases": [
+      {
+        "id": "observe",
+        "title": "从进程树和系统调用定位",
+        "successCriteria": [
+          "识别挂起、异常退出与 EOF 阻塞"
+        ]
+      },
+      {
+        "id": "repair",
+        "title": "修复回收和管道生命周期",
+        "successCriteria": [
+          "所有子进程被回收",
+          "父进程最终得到 EOF",
+          "正常报告不丢失"
+        ]
+      },
+      {
+        "id": "independent-policy",
+        "title": "加入有限重试与总超时",
+        "successCriteria": [
+          "只重试符合条件的任务",
+          "总控台可在期限内退出"
+        ]
+      }
+    ],
+    "faultScenarios": [
+      "child-hang",
+      "nonzero-exit",
+      "pipe-writer-leak",
+      "partial-report"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-night-patrol-lamp",
+      "title": "夜班巡检灯",
+      "wallCategory": "project-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/dinosaur-night-patrol-project.json"
+}

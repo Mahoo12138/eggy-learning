@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 2,
+  "courseId": "eggy-programming-park",
+  "courseRevision": 1,
+  "revision": 0,
+  "learner": {
+    "id": "learner-1",
+    "displayName": "学习者",
+    "avatar": {
+      "bodyColor": "yellow",
+      "face": "default",
+      "accessories": []
+    }
+  },
+  "preferences": {
+    "sound": true,
+    "reducedMotion": "system",
+    "codeFontSize": 15
+  },
+  "current": {
+    "rankId": "quail",
+    "subrankId": "quail-iii",
+    "activityId": "quail-fountain-sequence",
+    "stepId": "predict"
+  },
+  "xp": {
+    "total": 0,
+    "level": 1,
+    "currentLevelXp": 0,
+    "nextLevelXp": 100
+  },
+  "rankStates": [
+    {
+      "rankId": "quail",
+      "status": "available",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "pigeon",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "chicken",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "goose",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "ostrich",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "dinosaur",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "peak-phoenix",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "super-phoenix",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    },
+    {
+      "rankId": "invincible-phoenix",
+      "status": "locked",
+      "earnedStars": 0,
+      "performancePoints": 0,
+      "bossStatus": "not-started",
+      "promotedAt": null
+    }
+  ],
+  "sessions": [],
+  "attempts": [],
+  "projectArtifacts": [],
+  "awardLedger": [],
+  "achievementWall": {
+    "earned": [],
+    "visibleLockedIds": [
+      "achievement-first-independent-debug",
+      "achievement-old-skill-new-scene",
+      "achievement-return-after-solution",
+      "achievement-return-after-gap",
+      "achievement-error-explainer"
+    ],
+    "hiddenCount": 2
+  },
+  "derivedStatePolicy": {
+    "sourceOfTruth": "sessions, attempts, projectArtifacts and immutable awardLedger entries in this file",
+    "neverDemote": true,
+    "neverRevokeEarnedAwards": true,
+    "duplicateAwardKey": "reject"
+  },
+  "updatedAt": null
+}

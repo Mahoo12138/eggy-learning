@@ -1,0 +1,431 @@
+{
+  "schemaVersion": 2,
+  "id": "peak-delivery-center-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "peak-phoenix",
+  "title": "蛋仔商城道具配送中心",
+  "technologyTheme": "C++ 工程、资源管理、线程、任务队列、互斥量、条件变量、竞态、死锁与安全停机",
+  "languages": [
+    "cpp"
+  ],
+  "locationIds": [
+    "mall"
+  ],
+  "propIds": [
+    "salty-fish",
+    "spring-rope",
+    "speed-shoes",
+    "bomb",
+    "mine",
+    "teleport-ball",
+    "shrink-milk",
+    "stepping-box",
+    "spring-board",
+    "smoke-bomb",
+    "ink-bomb",
+    "bouncy-ball"
+  ],
+  "estimatedSessions": {
+    "minimum": 22,
+    "typical": 30
+  },
+  "prerequisiteActivityIds": [
+    "dinosaur-night-patrol-project"
+  ],
+  "story": "商城订单不断进入，道具仓库由多个工作人员线程共同处理，必须避免重复发货、负库存和关店死锁。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "cpp-terminal-service",
+    "workingTitle": "蛋仔商城道具配送中心",
+    "entryFile": "src/main.cpp",
+    "runTarget": "linux-cpp20"
+  },
+  "coreContract": [
+    "订单进入线程安全任务队列",
+    "库存更新满足不重复发货且不为负数",
+    "工作线程可等待、被唤醒、取消任务并安全退出",
+    "异常与资源由 RAII 管理，关店不会泄漏线程或锁"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "cpp-domain-model",
+      "title": "建立订单与库存模型",
+      "goal": "用 string、vector、unordered_map 和值语义表达业务数据。",
+      "concepts": [
+        "C++ 类型",
+        "容器",
+        "const",
+        "值语义"
+      ],
+      "guidedBuild": "建立 Item、Order 和 Inventory，并验证查找失败。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察不存在的道具是否被隐式创建。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 map 查询和修改接口。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "读取与插入应使用不同接口，避免查询产生副作用。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立增加订单校验并拒绝未知道具。",
+        "evidence": "单元测试与错误输出",
+        "automatedChecks": [
+          "unknown-item",
+          "zero-quantity",
+          "valid-order"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "并发库存章节复用同一模型，不改变公开合同。"
+    },
+    {
+      "id": "raii-ownership",
+      "title": "让资源自动回收",
+      "goal": "使用 RAII 管理线程、文件和锁的生命周期。",
+      "concepts": [
+        "构造析构",
+        "智能指针",
+        "异常安全"
+      ],
+      "guidedBuild": "把手动清理路径收束到对象生命周期。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "从每个提前返回和异常出口检查资源。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查拥有资源的类及其析构函数。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "所有权明确后，控制流变化也能触发释放。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "在处理中抛出异常仍能关闭日志并回收对象。",
+        "evidence": "异常测试与资源检查",
+        "automatedChecks": [
+          "exception-cleanup",
+          "no-double-free"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "安全停机章节让线程守卫处理 join。"
+    },
+    {
+      "id": "worker-threads",
+      "title": "让多个工作人员领取订单",
+      "goal": "创建工作线程并用 join 管理结束。",
+      "concepts": [
+        "std::thread",
+        "join",
+        "线程生命周期"
+      ],
+      "guidedBuild": "启动固定数量工作线程处理只读订单列表。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "确认 main 退出前每个线程处于什么状态。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查线程创建、工作函数和 join。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "可连接线程析构会终止程序，必须明确 join 或安全封装。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "线程数量从配置读取且 0、1、多线程均可运行。",
+        "evidence": "线程日志与边界测试",
+        "automatedChecks": [
+          "zero-worker-rejected",
+          "one-worker",
+          "four-workers"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "任务队列章节从静态列表过渡到动态生产消费。"
+    },
+    {
+      "id": "blocking-queue",
+      "title": "建立等待式任务队列",
+      "goal": "使用 mutex 和 condition_variable 实现生产者消费者。",
+      "concepts": [
+        "互斥量",
+        "条件变量",
+        "谓词等待"
+      ],
+      "guidedBuild": "工作线程在无任务时等待，新订单或关店时被唤醒。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察虚假唤醒后是否会读取空队列。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 wait 的谓词和关闭标志。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "谓词必须同时覆盖“有任务”和“已关闭”。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "空队列关店时所有线程都能退出。",
+        "evidence": "压力测试与退出日志",
+        "automatedChecks": [
+          "spurious-wakeup-safe",
+          "close-empty-queue",
+          "all-workers-joined"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 在订单到达与关店同时发生时复用队列合同。"
+    },
+    {
+      "id": "inventory-race",
+      "title": "修复共享库存竞态",
+      "goal": "让检查和扣减成为一个原子临界区。",
+      "concepts": [
+        "数据竞争",
+        "临界区",
+        "锁粒度"
+      ],
+      "guidedBuild": "复现两个订单同时看到同一件库存的错误。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "记录两个线程读取库存和写回的时序。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查“检查够不够”和“实际扣减”之间。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "逻辑上不可分割的操作必须由同一把锁保护。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "1000 组并发订单下库存不为负且成功数正确。",
+        "evidence": "竞态复现和压力测试",
+        "automatedChecks": [
+          "no-negative-stock",
+          "exact-success-count",
+          "repeat-1000"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "数据库阶段会比较内存锁与事务的一致性边界。"
+    },
+    {
+      "id": "deadlock-cancel",
+      "title": "解除双仓库死锁",
+      "goal": "固定锁顺序并支持任务取消。",
+      "concepts": [
+        "死锁",
+        "锁顺序",
+        "scoped_lock",
+        "取消"
+      ],
+      "guidedBuild": "复现两个转仓订单反向加锁导致的等待环。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "画出线程分别持有什么锁、等待什么锁。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查两个转仓路径的加锁顺序。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "所有路径必须遵循一致顺序或一次取得多把锁。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "反向转仓并发 100 次不死锁且总库存不变。",
+        "evidence": "等待图、超时测试、库存校验",
+        "automatedChecks": [
+          "no-deadlock",
+          "stock-conserved"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 将转仓、普通订单和关店并发发生。"
+    },
+    {
+      "id": "graceful-shutdown",
+      "title": "完成商城安全关店",
+      "goal": "拒绝新订单、处理策略明确，并唤醒所有线程退出。",
+      "concepts": [
+        "停止协议",
+        "状态转换",
+        "join"
+      ],
+      "guidedBuild": "实现 accepting、draining、stopped 三阶段。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察关闭后新订单是否仍能进入。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查关闭标志、队列关闭和线程 join 顺序。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "先关闭入口，再决定排空或取消，最后回收线程。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "实现“排空队列”和“取消剩余”两种明确策略。",
+        "evidence": "两种关店测试与最终统计",
+        "automatedChecks": [
+          "reject-after-close",
+          "drain-policy",
+          "cancel-policy",
+          "all-joined"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 不预告关店发生时刻。"
+    }
+  ],
+  "boss": {
+    "id": "peak-delivery-center-boss",
+    "title": "商城节日前夜配送高峰",
+    "story": "订单重复到达、库存争抢、转仓反向加锁，营业中途还收到立即关店指令。",
+    "performancePoints": {
+      "maximum": 100,
+      "pass": 80,
+      "dimensions": {
+        "correctness": 40,
+        "concurrencySafety": 30,
+        "shutdownRecovery": 20,
+        "explanation": 10
+      }
+    },
+    "phases": [
+      {
+        "id": "load",
+        "title": "高并发订单压力",
+        "successCriteria": [
+          "无重复发货",
+          "库存不为负",
+          "统计可复现"
+        ]
+      },
+      {
+        "id": "deadlock",
+        "title": "转仓死锁注入",
+        "successCriteria": [
+          "在期限内完成",
+          "总库存守恒"
+        ]
+      },
+      {
+        "id": "shutdown",
+        "title": "独立处理营业中关店",
+        "successCriteria": [
+          "入口关闭",
+          "线程全部回收",
+          "剩余订单结果明确"
+        ]
+      }
+    ],
+    "faultScenarios": [
+      "duplicate-order",
+      "inventory-race",
+      "reverse-lock-order",
+      "shutdown-during-work"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-delivery-center-model",
+      "title": "配送中心微缩模型",
+      "wallCategory": "project-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/peak-delivery-center-project.json"
+}

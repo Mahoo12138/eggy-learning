@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 2,
+  "id": "quail-opening-broadcast",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "quail",
+  "subrankId": "quail-i",
+  "sequence": 3,
+  "title": "接通开园欢迎广播",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "quail-piano-output"
+  ],
+  "scene": {
+    "locationId": "central-fountain",
+    "propIds": [],
+    "intro": "中央广场要读取来宾名字，再播出专属欢迎语。",
+    "success": "中央广场为不同来宾播出了正确的专属欢迎语。"
+  },
+  "objectives": [
+    "理解输入进入变量再参与输出",
+    "观察输入与实际结果的关系"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "输入“圆圆”后，name 中保存的是什么？",
+      "interaction": {
+        "kind": "single-choice",
+        "options": [
+          "圆圆",
+          "欢迎来到蛋仔岛",
+          "程序文件名"
+        ]
+      },
+      "evaluator": {
+        "kind": "choice",
+        "expectedIndex": 0
+      },
+      "feedback": {
+        "correct": "输入文本会被读入 name，再由 printf 使用。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "使用输入“圆圆”运行，观察名字怎样进入欢迎语。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，欢迎来到蛋仔岛！\\n\", name);\n  return 0;\n}\n"
+      },
+      "stdin": "圆圆\n",
+      "evaluator": {
+        "kind": "stdout-exact",
+        "expected": "圆圆，欢迎来到蛋仔岛！\n"
+      },
+      "visualizer": {
+        "kind": "broadcast-caption",
+        "target": "central-fountain"
+      },
+      "observationPrompt": "输出中哪一部分来自代码，哪一部分来自输入？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "为什么格式字符串里写的是 %s，而屏幕上显示的是“圆圆”？",
+      "referencePoints": [
+        "%s 是字符串占位符",
+        "printf 使用 name 当前保存的值"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "把广播改成“圆圆，中央广场已经开园！”。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，欢迎来到蛋仔岛！\\n\", name);\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "圆圆\n",
+            "stdout": "圆圆，中央广场已经开园！\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "名字已经正确，观察逗号后面的固定文字。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "修改 printf 的格式字符串。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "保留 %s，只替换欢迎语的固定部分。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "使用 printf(\"%s，中央广场已经开园！\\n\", name);",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立完成另一条会随输入变化的广播。",
+      "runtimeId": "c17-console",
+      "variantSetId": "quail-broadcast-v1",
+      "variants": [
+        {
+          "id": "gate-open",
+          "prompt": "任意名字输入后输出“名字，可以入园啦！”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，等待入园。\\n\", name);\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "小蓝\n",
+                "stdout": "小蓝，可以入园啦！\n"
+              },
+              {
+                "stdin": "团团\n",
+                "stdout": "团团，可以入园啦！\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，可以入园啦！\\n\", name);\n  return 0;\n}\n"
+        },
+        {
+          "id": "piano-ready",
+          "prompt": "任意名字输入后输出“名字，钢琴地毯准备好了！”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"欢迎！\\n\");\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "小黄\n",
+                "stdout": "小黄，钢琴地毯准备好了！\n"
+              },
+              {
+                "stdin": "果果\n",
+                "stdout": "果果，钢琴地毯准备好了！\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  char name[20];\n  scanf(\"%19s\", name);\n  printf(\"%s，钢琴地毯准备好了！\\n\", name);\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "分别标出输入名字和固定广播文字。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 scanf 的目标和 printf 的参数。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "让 name 通过 %s 出现在输出开头。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

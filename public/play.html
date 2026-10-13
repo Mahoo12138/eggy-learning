@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN" data-motion="full" data-sound="on">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#72c8ff">
+  <title>游玩关卡 · 蛋仔编程乐园</title>
+  <link rel="stylesheet" href="/assets/park.css">
+  <link rel="stylesheet" href="/assets/interaction.css">
+</head>
+<body class="park-body play-body">
+  <a class="skip-link" href="#play-main">跳到当前步骤</a>
+  <header class="play-topbar">
+    <a class="back-link" href="/learner.html#lobby"><span aria-hidden="true">←</span> 回到蛋仔岛</a>
+    <div class="play-title-lockup"><strong id="top-level-title">正在读取关卡</strong><span id="top-step-count">第 -- 步 / 共 -- 步</span></div>
+    <div class="play-tools">
+      <button class="utility-button compact" type="button" data-comfort="sound" aria-pressed="false"><span class="tool-symbol sound-symbol" aria-hidden="true"></span><span data-comfort-label>声音已开</span></button>
+      <button class="utility-button compact" type="button" data-comfort="motion" aria-pressed="false"><span class="tool-symbol motion-symbol" aria-hidden="true"></span><span data-comfort-label>标准动效</span></button>
+    </div>
+  </header>
+
+  <div class="play-progress" aria-label="关卡进度"><span id="play-progress-bar"></span></div>
+  <div id="play-notice" class="app-notice play-notice" role="status" aria-live="polite" hidden></div>
+
+  <main id="play-main" tabindex="-1">
+    <section id="play-loading" class="state-view play-state" aria-labelledby="play-loading-title">
+      <div class="loading-egg" aria-hidden="true"><span></span></div>
+      <h1 id="play-loading-title">正在布置这一关…</h1>
+      <p>场景、你的上次进度和提示层级正在读取。</p>
+    </section>
+
+    <section id="play-error" class="state-view play-state" hidden aria-labelledby="play-error-title">
+      <div class="state-illustration state-illustration-error" aria-hidden="true">!</div>
+      <h1 id="play-error-title">这一关暂时没有布置好</h1>
+      <p id="play-error-message">没有读到关卡内容。</p>
+      <div class="state-actions"><button id="retry-level" class="park-button primary" type="button">重新读取</button><a class="park-button" href="/learner.html#map">回到地图</a></div>
+    </section>
+
+    <section id="play-empty" class="state-view play-state" hidden aria-labelledby="play-empty-title">
+      <div class="state-illustration" aria-hidden="true">?</div>
+      <h1 id="play-empty-title">这一关还没有游玩步骤</h1>
+      <p>管理者添加体验、预测、运行和独立变式后，可以从原位继续。</p>
+      <a class="park-button primary" href="/learner.html#map">回到地图</a>
+    </section>
+
+    <section id="play-view" class="play-view" hidden aria-labelledby="step-title">
+      <div class="scene-column">
+        <div id="scene-panel" class="scene-panel">
+          <img src="/assets/park/island-hero.png" alt="" aria-hidden="true">
+          <div class="scene-location"><span id="scene-rank">鹌鹑蛋</span><strong id="scene-building">中央喷泉广场</strong></div>
+          <div id="scene-output" class="scene-output" aria-live="polite">
+            <span class="scene-dot" aria-hidden="true"></span>
+            <p>场景已就绪，等待你的第一次操作。</p>
+          </div>
+        </div>
+        <p class="scene-caption" id="scene-caption">程序结果会先在场景中发生，再解释原因。</p>
+      </div>
+
+      <article class="step-card">
+        <header class="step-heading">
+          <p id="step-kind" class="step-kind">直接体验</p>
+          <h1 id="step-title" tabindex="-1">观察程序如何唤醒钢琴地毯</h1>
+          <p id="step-prompt">先不用记任何名词，只看每一行指令与场景变化的顺序。</p>
+        </header>
+
+        <form id="step-form" novalidate>
+          <div id="interaction-root" class="interaction-root"></div>
+          <div id="step-error" class="form-message error-message" role="alert"></div>
+          <div class="step-actions">
+            <div class="help-actions">
+              <button id="show-hint" class="park-button subtle" type="button">给我一个提示</button>
+              <button id="copy-ai-context" class="park-button quiet" type="button">复制 AI 导师上下文</button>
+            </div>
+            <button id="check-step" class="park-button primary" type="submit">运行并看结果</button>
+          </div>
+        </form>
+
+        <section id="feedback-panel" class="feedback-panel" hidden aria-labelledby="feedback-title">
+          <div class="feedback-mark" aria-hidden="true"></div>
+          <div class="feedback-copy"><h2 id="feedback-title">先看实际结果</h2><p id="feedback-message"></p><pre id="feedback-output" hidden></pre></div>
+          <button id="next-step" class="park-button primary" type="button">继续下一步</button>
+        </section>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="hint-dialog" class="park-dialog hint-dialog" aria-labelledby="hint-title">
+    <form method="dialog"><button class="dialog-close" aria-label="关闭提示">×</button></form>
+    <p class="dialog-label">分层提示</p>
+    <h2 id="hint-title">先把注意力放在一个地方</h2>
+    <div id="hint-content"></div>
+    <div class="dialog-actions"><button id="next-hint" class="park-button" type="button">再给一层提示</button><button id="reveal-answer" class="park-button quiet" type="button" hidden>查看完整思路</button></div>
+  </dialog>
+
+  <dialog id="complete-dialog" class="park-dialog complete-dialog" aria-labelledby="complete-title">
+    <div class="complete-rays" aria-hidden="true"></div>
+    <div id="complete-token" class="complete-token" aria-hidden="true"><span>★</span></div>
+    <p class="dialog-label">关卡完成</p>
+    <h2 id="complete-title">你让乐园又亮起了一盏灯</h2>
+    <p id="complete-copy">这次的经验、星星和新收藏已经留在荣誉殿堂。</p>
+    <div id="reward-list" class="reward-list"></div>
+    <div class="dialog-actions centered"><a id="continue-next-level" class="park-button primary" href="/learner.html#lobby">回到大厅</a><a class="park-button" href="/learner.html#honors">查看收藏</a></div>
+  </dialog>
+
+  <noscript><div class="noscript-note">游玩关卡需要 JavaScript 运行交互和保存进度。</div></noscript>
+  <script type="module" src="/assets/play.js"></script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 2,
+  "id": "chicken-teleport-state",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "chicken",
+  "subrankId": "chicken-iii",
+  "sequence": 1,
+  "title": "传送球的两阶段规则",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "pigeon-data-boss"
+  ],
+  "scene": {
+    "locationId": "eggy-park",
+    "propIds": [
+      "teleport-ball"
+    ],
+    "intro": "第一次使用传送球要放置传送点，第二次使用才会传送。",
+    "success": "传送球与其他两阶段道具都按状态执行正确动作。"
+  },
+  "objectives": [
+    "用条件分支表达不同状态",
+    "理解一次操作只能进入一条路径"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "placed 为 0 时，程序应该执行“放置”还是“传送”？",
+      "interaction": {
+        "kind": "single-choice",
+        "options": [
+          "放置传送点",
+          "立即传送",
+          "两个动作都执行"
+        ]
+      },
+      "evaluator": {
+        "kind": "choice",
+        "expectedIndex": 0
+      },
+      "feedback": {
+        "correct": "条件为假时进入 else，完成第一次放置。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "分别用 placed=0 和 placed=1 运行，观察分支变化。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int placed;\n  scanf(\"%d\", &placed);\n  if (placed == 1) {\n    printf(\"传送\\n\");\n  } else {\n    printf(\"放置传送点\\n\");\n  }\n  return 0;\n}\n"
+      },
+      "stdin": "0\n",
+      "evaluator": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "0\n",
+            "stdout": "放置传送点\n"
+          },
+          {
+            "stdin": "1\n",
+            "stdout": "传送\n"
+          }
+        ]
+      },
+      "visualizer": {
+        "kind": "branch-scene",
+        "target": "teleport-ball",
+        "branches": {
+          "放置传送点": "place",
+          "传送": "teleport"
+        }
+      },
+      "observationPrompt": "两次输入分别进入了哪条路径？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "为什么一次运行不会既放置传送点又立即传送？",
+      "referencePoints": [
+        "if 与 else 互斥",
+        "条件结果只选择一条分支"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "把非法状态处理清楚：placed 只能是 0 或 1，其他值输出“状态错误”。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int placed;\n  scanf(\"%d\", &placed);\n  if (placed == 1) {\n    printf(\"传送\\n\");\n  } else {\n    printf(\"放置传送点\\n\");\n  }\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "0\n",
+            "stdout": "放置传送点\n"
+          },
+          {
+            "stdin": "1\n",
+            "stdout": "传送\n"
+          },
+          {
+            "stdin": "2\n",
+            "stdout": "状态错误\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "当前 else 把所有非 1 值都当成 0。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "在 else 前增加对 placed == 0 的判断。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "使用 if / else if / else 三条路径。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "先判断 placed == 1，再 else if (placed == 0)，最后 else 输出错误。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立实现另一个两阶段道具规则。",
+      "runtimeId": "c17-console",
+      "variantSetId": "chicken-two-state-item-v1",
+      "variants": [
+        {
+          "id": "mine-arm-trigger",
+          "prompt": "armed=0 输出“布置地雷”，armed=1 输出“地雷触发”，其他值输出“状态错误”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int armed;\n  scanf(\"%d\", &armed);\n  /* 编写规则 */\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "0\n",
+                "stdout": "布置地雷\n"
+              },
+              {
+                "stdin": "1\n",
+                "stdout": "地雷触发\n"
+              },
+              {
+                "stdin": "-1\n",
+                "stdout": "状态错误\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int armed;\n  scanf(\"%d\", &armed);\n  if (armed == 0) {\n    printf(\"布置地雷\\n\");\n  } else if (armed == 1) {\n    printf(\"地雷触发\\n\");\n  } else {\n    printf(\"状态错误\\n\");\n  }\n  return 0;\n}\n"
+        },
+        {
+          "id": "spring-board-ready",
+          "prompt": "ready=0 输出“放置弹板”，ready=1 输出“弹射”，其他值输出“状态错误”。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int ready;\n  scanf(\"%d\", &ready);\n  /* 编写规则 */\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "0\n",
+                "stdout": "放置弹板\n"
+              },
+              {
+                "stdin": "1\n",
+                "stdout": "弹射\n"
+              },
+              {
+                "stdin": "3\n",
+                "stdout": "状态错误\n"
+              }
+            ]
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int ready;\n  scanf(\"%d\", &ready);\n  if (ready == 0) {\n    printf(\"放置弹板\\n\");\n  } else if (ready == 1) {\n    printf(\"弹射\\n\");\n  } else {\n    printf(\"状态错误\\n\");\n  }\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先列出三个可能结果。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "每个结果对应一条分支。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "合法值分别判断，剩余值交给最后的 else。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

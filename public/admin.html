@@ -1,1 +1,87 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>管理工作台 · 2028届</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('embedded-study-theme-v1')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch{}</script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/interaction.css"></head><body data-workspace-role="manager"><header class="top"><div class="top-inner"><div class="top-title"><div><p class="eyebrow role-label">管理者</p><h1>管理工作台</h1></div><nav class="top-links" aria-label="平台入口"><a href="/plan.html">课程总览 ↗</a><a href="/">返回首页</a><a class="role-switch" href="/learner.html">学习者入口 ↗</a></nav></div><div class="actions"><button id="theme" type="button" title="当前主题：系统；点击切换为深色" aria-label="当前主题：系统；点击切换为深色">系统</button></div></div></header><main class="shell"><div id="notice" class="notice" role="status" hidden></div><nav class="tabs" aria-label="管理者工作区域"><button data-view="overview" aria-selected="true">整体状态</button><button data-view="curriculum" aria-selected="false">课程与题目</button><button data-view="schedule" aria-selected="false">周计划维护</button><button data-view="study" aria-selected="false">学习档案</button><button data-view="history" aria-selected="false">维护提交与数据</button></nav><div class="save-state" id="save-state" aria-live="polite">正在读取仓库数据…</div><section id="view-overview"><div id="overview-content"><p class="empty">正在读取整体状态…</p></div></section><section id="view-curriculum" hidden><div class="panel-heading"><div><h2>维护当前课程</h2><p class="muted">先编辑，再一次保存。改题保留旧作答快照；涉及验收的改动会要求重新核验。</p></div><div class="actions"><button id="save-curriculum" class="primary">保存课程修改</button><button id="compare-curriculum">读取服务器版本比较</button></div></div><div class="split"><aside class="sidebar"><div class="actions"><button id="add-stage">新增阶段</button><button id="add-unit">新增单元</button></div><label class="check"><input id="show-archived" type="checkbox">显示归档内容</label><div id="curriculum-units"></div></aside><div><div class="panel"><details><summary>课程名称、安排说明与阶段维护</summary><div class="field"><label for="course-title">课程名称</label><input id="course-title"></div><div class="field"><label for="course-schedule">学习安排说明</label><textarea id="course-schedule"></textarea></div><div id="stage-editor"></div><h3 class="field">三个项目的说明与边界</h3><div id="project-editor"></div></details><div id="unit-editor"></div></div><div class="panel"><div class="panel-heading"><div><h3>学习任务</h3><p class="muted">顺序可调整；有历史引用的内容使用归档，保留稳定 ID。</p></div><button id="add-task">新增任务</button></div><div id="task-editor-list"></div></div><div class="panel"><div class="panel-heading"><h3>单元验收标准</h3><button id="add-criterion">新增标准</button></div><div id="criteria-editor"></div><div class="field"><label for="acceptance-task">独立验收任务</label><select id="acceptance-task"></select></div></div></div></div></section><section id="view-schedule" hidden><div class="panel-heading"><div><h2>维护学习周计划</h2><p class="muted">与学习者确认容量，维护本周任务范围和后续安排。核对依据已有训练证据，不代替学习者记录。</p></div><button id="refresh-schedule">刷新安排</button></div><div class="grid2"><div><section class="panel"><h3>1. 核对来源周</h3><label for="source-week">原安排所在周（选择周内任意一天）</label><input id="source-week" type="date"><div id="source-review"></div><p class="muted field">没有记录的片段仍是“待核对”。核对不代替训练证据与独立验收。</p></section><section class="panel"><h3>2. 确认未来容量</h3><div class="field"><label for="target-week">目标周（选择周内任意一天）</label><input id="target-week" type="date"></div><div class="actions field"><button data-capacity="4">常态四次</button><button data-capacity="2">减量两次</button><button data-capacity="0">本周暂停</button><button id="add-slot">增加时段</button></div><p class="muted field">预设每次 180 分钟、缓冲 30 分钟，均可编辑。暂停不要求补齐出勤。</p><div id="slots"></div><details open><summary>安排哪些任务与剩余目标</summary><p class="muted">只安排当前主线单元。可调整范围和剩余估时；放不下的片段留待安排。</p><div id="schedule-items"></div></details><div class="fields field"><div><label for="resume-date">预计恢复日期（可留空）</label><input id="resume-date" type="date"></div><div><label for="resume-minutes">恢复自测 / 分钟</label><input id="resume-minutes" type="number" min="0" max="120" value="0"></div></div><div class="field"><label for="schedule-reason">调整原因</label><input id="schedule-reason" placeholder="例如：期中考试，下一周只安排两次。"></div><div class="actions field"><button id="preview-schedule" class="primary">预览安排</button><button id="review-only">只保存核对</button></div></section></div><div><section class="panel"><h3>3. 检查并应用</h3><div id="schedule-preview"><p class="empty">确认可用时间后生成预览。预览不会修改正式计划。</p></div><div class="actions field" id="preview-actions" hidden><button id="apply-schedule" class="primary">应用本次安排</button><button id="cancel-preview">取消预览</button></div></section><section class="panel"><h3>已保存的自然周</h3><div id="saved-weeks"></div></section><section class="panel"><h3>调整历史</h3><div id="schedule-history"></div></section></div></div></section><section id="view-study" hidden><div class="panel-heading"><div><h2>学习档案</h2><p class="muted">查看学习者提交的训练证据、历史作答、卡点与复盘。训练、作答与验收由学习者在自己的页面填写。</p></div><button id="refresh-archive">刷新当前档案</button></div><div class="split"><aside class="sidebar"><label for="study-unit-filter">查找学习单元</label><input id="study-unit-filter" type="search" placeholder="标题或单元编号"><label class="check"><input id="archive-show-archived" type="checkbox">显示归档单元</label><div id="study-units"></div></aside><div id="study-content" aria-busy="false"><div id="study-heading"></div><div id="task-tabs" class="task-tabs"></div><section class="panel" id="task-detail"></section><section class="panel" id="archive-assessment"></section><section class="panel"><div class="panel-heading"><div><h3>本单元训练档案</h3><p class="muted">原记录和更正版本一起保留，统计只计算有效版本。</p></div><label class="inline-check"><input id="history-all-tasks" type="checkbox" checked> 查看本单元全部任务</label></div><div id="record-history"></div></section></div></div></section><section id="view-history" hidden><div class="grid2"><section class="panel"><h2>管理维护提交</h2><p class="muted">按 Author 邮箱分类当前 HEAD 可达的本地提交。提交数量不代表训练次数或掌握程度。</p><div class="actions"><span class="tag">维护记录 · 其余作者提交</span><button id="refresh-git">刷新</button></div><p id="git-status" class="muted field"></p><div id="git-history"></div><button id="git-more" hidden>加载更多</button></section><section class="panel"><h2>保存与导出</h2><p>保存成功表示数据已经写入仓库文件；Git 提交与 push 分别进行。</p><div class="actions"><button id="export-data" class="primary">导出全部已保存数据</button><button id="export-unsaved">导出本页编辑备份</button></div><p class="muted field">本页编辑备份用于保留尚未成功保存的表单，不会自动导入或覆盖服务器数据。显示偏好保存在浏览器，训练数据不以浏览器存储作为后备数据库。</p><p class="muted">停止服务后再执行 Git pull、切换分支或恢复文件。两种入口按用途分工，不设登录和访问权限。请在本机或可信局域网使用。</p></section></div></section></main><dialog id="editor-dialog"><form id="editor-dialog-form"><h2 id="editor-dialog-title"></h2><div id="editor-dialog-fields"></div><p id="editor-dialog-error" class="dialog-error" role="alert"></p><div class="dialog-foot"><button type="button" id="editor-dialog-cancel">取消</button><button class="primary" type="submit">保留本次编辑</button></div></form></dialog><dialog id="compare-dialog"><h2>比较服务器与本页内容</h2><p class="muted">读取不会覆盖输入。可以先下载本页编辑备份，再采用服务器版本；需要的改动请比较后重新录入。</p><div class="fields"><div><label for="compare-local">本页内容（只读）</label><textarea id="compare-local" rows="15" readonly></textarea></div><div><label for="compare-remote">服务器内容（只读）</label><textarea id="compare-remote" rows="15" readonly></textarea></div></div><div class="dialog-foot"><button id="compare-download">下载本页备份</button><button id="compare-close">保留本页</button><button id="compare-adopt" class="primary">采用服务器版本</button></div></dialog><noscript><p class="notice">学习管理与保存需要 JavaScript。请启用后重新打开。</p></noscript><script type="module" src="/assets/workspace.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#eef5fb">
+  <title>岛务管理处 · 蛋仔编程乐园</title>
+  <link rel="stylesheet" href="/assets/admin.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="admin-topbar">
+    <a class="admin-brand" href="/"><span aria-hidden="true">C</span><span><strong>岛务管理处</strong><small>蛋仔编程乐园</small></span></a>
+    <nav aria-label="页面入口"><a href="/learner.html">学习者大厅</a><a href="/plan.html">乐园地图</a></nav>
+  </header>
+
+  <main id="main" class="admin-shell">
+    <header class="page-heading">
+      <div><p>单人学习 · 本地管理</p><h1>看见学习过程，再决定下一步</h1></div>
+      <div class="save-state" id="save-state" role="status" aria-live="polite">正在读取乐园数据…</div>
+    </header>
+
+    <nav class="admin-tabs" aria-label="管理区域">
+      <button type="button" data-tab="overview" aria-selected="true">总览</button>
+      <button type="button" data-tab="archive" aria-selected="false">学习档案</button>
+      <button type="button" data-tab="workshop" aria-selected="false">课程工坊</button>
+      <button type="button" data-tab="operations" aria-selected="false">周卡与数据</button>
+    </nav>
+
+    <div id="admin-notice" class="notice" role="alert" hidden></div>
+
+    <section id="panel-overview" class="admin-panel" aria-labelledby="overview-title">
+      <div class="section-heading"><div><p>当前状态</p><h2 id="overview-title">学习者在乐园中的位置</h2></div><button class="button quiet" type="button" data-refresh>刷新</button></div>
+      <div id="overview-stats" class="stat-grid" aria-live="polite"></div>
+      <div class="dashboard-grid">
+        <article class="card"><div class="card-heading"><h3>九阶段位</h3><span>永久保留</span></div><ol id="overview-ranks" class="rank-list"></ol></article>
+        <article class="card"><div class="card-heading"><h3>最近学习活动</h3><button type="button" class="text-button" data-open-tab="archive">查看全部</button></div><div id="recent-attempts" class="activity-list"></div></article>
+      </div>
+    </section>
+
+    <section id="panel-archive" class="admin-panel" hidden aria-labelledby="archive-title">
+      <div class="section-heading"><div><p>可复盘证据</p><h2 id="archive-title">学习档案</h2><span>保留每次尝试、提示层级、作答、代码与反馈。</span></div><button class="button quiet" type="button" data-refresh>刷新</button></div>
+      <div class="filter-row">
+        <label>按结果筛选<select id="attempt-filter"><option value="all">全部尝试</option><option value="passed">已通过</option><option value="failed">未通过</option><option value="hinted">使用过提示</option></select></label>
+        <label>搜索关卡或答案<input id="attempt-search" type="search" placeholder="输入关卡、步骤或作答内容"></label>
+      </div>
+      <div id="attempt-table" class="table-card"></div>
+      <article class="card honor-admin"><div class="card-heading"><h3>成就墙与作品战利品</h3><span id="honor-count">0 件</span></div><div id="honor-list" class="honor-list"></div></article>
+    </section>
+
+    <section id="panel-workshop" class="admin-panel" hidden aria-labelledby="workshop-title">
+      <div class="section-heading"><div><p>课程工坊</p><h2 id="workshop-title">维护地图、步骤、提示与奖励</h2><span>保存前会校验九阶段位、前置关系、星星与 Boss 规则。</span></div><div class="actions"><button id="reload-course" class="button quiet" type="button">读取服务器版本</button><button id="save-course" class="button primary" type="button">保存课程</button></div></div>
+      <div class="workshop-layout">
+        <aside class="workshop-sidebar"><label for="rank-select">当前段位</label><select id="rank-select"></select><label for="level-select">关卡或作品</label><select id="level-select"></select><div id="workshop-summary" class="workshop-summary"></div></aside>
+        <div class="editor-stack">
+          <article class="card"><h3>段位设置</h3><div id="rank-editor" class="form-grid"></div></article>
+          <article class="card"><div class="card-heading"><h3 id="content-editor-title">内容设置</h3><span>JSON 编辑</span></div><p class="editor-help">这是本地单人管理工具。稳定编号用于连接历史记录；已有记录后不要随意修改编号。</p><label class="json-label" for="content-json">当前内容</label><textarea id="content-json" class="json-editor" spellcheck="false" rows="24"></textarea><p id="json-error" class="inline-error" role="alert"></p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-operations" class="admin-panel" hidden aria-labelledby="operations-title">
+      <div class="section-heading"><div><p>节奏与恢复</p><h2 id="operations-title">本周游玩卡与数据</h2><span>休息周不会形成欠课，已经获得的经验、星星和信物不会回退。</span></div></div>
+      <div class="dashboard-grid">
+        <form id="week-card-form" class="card form-card">
+          <div class="card-heading"><h3>本周游玩卡</h3><span id="week-start-label"></span></div>
+          <fieldset><legend>本周模式</legend><label class="radio-row"><input type="radio" name="mode" value="active"><span><strong>正常游玩</strong><small>安排一个主目标</small></span></label><label class="radio-row"><input type="radio" name="mode" value="rest"><span><strong>休息周</strong><small>不制造补课压力</small></span></label></fieldset>
+          <label>预计游玩次数<input id="admin-play-days" type="number" min="1" max="7" value="2"></label>
+          <label>主目标<select id="admin-main-goal"></select></label>
+          <label>短关卡<select id="admin-short-level"><option value="">不指定</option></select></label>
+          <label>备注<textarea id="admin-week-note" rows="3" maxlength="2000"></textarea></label>
+          <button class="button primary" type="submit">保存周卡</button>
+        </form>
+        <div class="stack">
+          <article class="card"><div class="card-heading"><h3>本地数据</h3><span>JSON</span></div><p>导出包含课程、关卡、成长记录和本周游玩卡，可用于审阅与备份。</p><div class="actions"><button id="export-data" class="button primary" type="button">导出全部数据</button><button id="copy-summary" class="button quiet" type="button">复制学习摘要</button></div></article>
+          <article class="card"><div class="card-heading"><h3>Git 历史</h3><button id="refresh-history" class="text-button" type="button">刷新</button></div><p id="history-status" class="muted"></p><div id="history-list" class="history-list"></div></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer><p>非官方个人学习项目，仅供本地学习使用；相关游戏名称与素材版权归原权利人所有。</p></footer>
+  <noscript><p class="notice">岛务管理处需要 JavaScript 才能读取和保存本地数据。</p></noscript>
+  <script type="module" src="/assets/admin.js"></script>
+</body>
+</html>

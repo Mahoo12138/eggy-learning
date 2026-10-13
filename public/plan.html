@@ -1,1 +1,29 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>课程总览 · 三项目学习路线</title><script>try{document.documentElement.dataset.theme=localStorage.getItem('embedded-study-theme-v1')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch{}</script><link rel="stylesheet" href="/assets/app.css"><link rel="stylesheet" href="/assets/interaction.css"></head><body><header class="top"><div class="top-inner"><div class="top-title"><h1>课程总览</h1><a href="/learner.html">学习者工作台 ↗</a><a href="/admin.html">管理者工作台</a><a href="/">首页</a></div><div class="actions"><button id="theme" type="button" title="当前主题：系统；点击切换为深色" aria-label="当前主题：系统；点击切换为深色">系统</button></div></div></header><main class="shell"><div id="notice" class="notice" role="status" hidden></div><section class="hero"><p class="eyebrow">2028 · A route through three projects</p><h1 id="course-title">三项目学习路线</h1><p id="course-description">正在读取当前课程…</p><p class="muted">本页展示当前课程与项目。训练、作答与过程记录在学习者工作台；课程和题目由管理者维护。</p></section><section><div class="panel-heading"><div><h2>沿着学习路线推进</h2><p class="muted">点击单元查看训练目标。一个学习单元可以跨周完成；课程按服务器当前版本展示。</p></div><a href="/report.html">查看招聘调研与技术栈图表 ↗</a></div><div class="map-shell" id="map-shell"><div class="map-tools"><button id="zoom-out" aria-label="缩小路线">−</button><button id="zoom-in" aria-label="放大路线">＋</button><button id="fit-map">适配整图</button><span class="muted" id="zoom-label" aria-live="polite"></span><span class="spacer"></span><button id="fullscreen" class="icon" aria-label="全屏显示学习路线" title="全屏显示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span>全屏</span></button></div><div class="map-area" id="map-area"><canvas id="roadmap" tabindex="0" role="img" aria-label="可缩放学习路线图。方向键平移，加减键缩放，数字零适配整图。下面的选择器可访问每个单元。"></canvas></div><div class="map-hint">拖动平移 · Ctrl / ⌘ + 滚轮缩放 · 方向键平移 · + / − 缩放 · 0 适配 · 点击节点查看内容</div></div><div class="grid2 field"><section class="panel"><label for="unit-select">浏览学习单元</label><select id="unit-select"></select><div id="unit-detail" class="field"></div></section><section class="panel"><h3>保持简单的学习节奏</h3><ul><li>先验收基础，再逐个推进三个作品；已掌握的内容可以独立验收。</li><li>四天是常态容量。考试、活动较多时，缩小目标或暂停，保留原成果。</li><li>每次留下具体结果、验证证据和下次起点；AI 提示之后仍要自己解释、复现和改动。</li></ul><a class="button primary" href="/learner.html">开始训练与本周安排</a></section></div></section><section class="panel"><h2>三个有趣的个人项目</h2><div id="projects"></div></section><noscript><p class="notice">需要 JavaScript 读取当前课程。可阅读仓库中的 Markdown 学习计划。</p></noscript></main><script type="module" src="/assets/plan.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="蛋仔编程乐园九阶段位与作品路线。">
+  <meta name="theme-color" content="#78cfff">
+  <title>乐园地图 · 蛋仔编程乐园</title>
+  <link rel="stylesheet" href="/assets/plan-v2.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="map-nav">
+    <a class="brand" href="/"><span aria-hidden="true">C</span>蛋仔编程乐园</a>
+    <nav aria-label="页面入口"><a aria-current="page" href="/plan.html">乐园地图</a><a href="/learner.html">继续游玩</a><a href="/admin.html">岛务管理处</a></nav>
+  </header>
+  <main id="main">
+    <section class="map-hero"><div><p>九阶能力路线</p><h1>整座岛，<br>就是一门大课程</h1><p class="lead">每个段位拥有清楚的技术主题。前三段在网页中完成互动训练，鹅蛋开始每段完成一件可运行的作品。</p></div></section>
+    <section class="route" aria-labelledby="route-title">
+      <div class="section-heading"><div><p>主线路线</p><h2 id="route-title">从鹌鹑蛋到无敌凤凰蛋</h2></div><p>点击段位查看建筑、核心能力、关卡与晋段奖励。</p></div>
+      <div id="rank-route" class="rank-route" aria-live="polite"><div class="loading-card">正在铺设乐园路线…</div></div>
+    </section>
+    <section id="rank-detail" class="rank-detail" hidden aria-live="polite"></section>
+    <section class="principle-strip" aria-label="学习规则"><div><strong>练习</strong><span>获得经验</span></div><div><strong>独立变式</strong><span>获得星星</span></div><div><strong>综合 Boss</strong><span>完成晋段</span></div><div><strong>永久保留</strong><span>段位、信物与作品</span></div></section>
+  </main>
+  <footer><p>非官方个人学习项目，仅供本地学习使用；相关游戏名称与素材版权归原权利人所有。</p><a href="/learner.html">进入蛋仔岛</a></footer>
+  <script type="module" src="/assets/plan-v2.js"></script>
+</body>
+</html>

@@ -1,0 +1,3362 @@
+{
+  "schemaVersion": 2,
+  "courseId": "eggy-programming-park",
+  "publishedRevision": 1,
+  "title": "蛋仔编程乐园",
+  "subtitle": "从第一行代码，玩到自己的作品",
+  "terminology": {
+    "platform": "蛋仔编程乐园",
+    "home": "蛋仔岛大厅",
+    "domain": "乐园地图",
+    "level": "游玩关卡",
+    "admin": "岛务管理处",
+    "continuationAction": "继续游玩"
+  },
+  "audience": {
+    "learnerCount": 1,
+    "managerCount": 1,
+    "authentication": "trusted-local-or-lan-no-login",
+    "publicUse": false
+  },
+  "learningPolicy": {
+    "lessonMinutes": {
+      "minimum": 15,
+      "typical": 20,
+      "maximum": 25
+    },
+    "loop": [
+      "直接体验",
+      "预测",
+      "运行观察",
+      "简明解释",
+      "引导操作",
+      "即时反馈",
+      "独立变式",
+      "延后重现"
+    ],
+    "noPenalty": true,
+    "noDemotion": true,
+    "xpPurpose": "记录练习与探索；重复行为有每日上限，不能无限刷取",
+    "starPurpose": "首次独立完成变式",
+    "bossPurpose": "综合挑战与晋段",
+    "fullSolutionRule": "查看完整解法不扣已有奖励；当前变式不授星，系统提供未见过的等价变式",
+    "aiHelpRule": "复制上下文不会扣奖励；不保存外部聊天正文",
+    "managerApprovalRequired": false
+  },
+  "runtimeProfiles": [
+    {
+      "id": "c17-console",
+      "language": "c",
+      "standard": "C17",
+      "execution": "managed-web-runtime"
+    },
+    {
+      "id": "native-c17",
+      "language": "c",
+      "standard": "C17",
+      "execution": "guided-local-toolchain"
+    },
+    {
+      "id": "stm32-external-toolchain",
+      "language": "c",
+      "standard": "C17",
+      "execution": "guided-real-hardware"
+    },
+    {
+      "id": "linux-c17",
+      "language": "c",
+      "standard": "C17 with POSIX",
+      "execution": "managed-linux-runtime"
+    },
+    {
+      "id": "linux-cpp20",
+      "language": "cpp",
+      "standard": "C++20",
+      "execution": "managed-linux-runtime"
+    },
+    {
+      "id": "local-linux-network",
+      "language": "multi",
+      "standard": "C17, C++20, SQLite",
+      "execution": "isolated-local-network"
+    },
+    {
+      "id": "learner-declared",
+      "language": "multi",
+      "standard": "declared-by-project",
+      "execution": "reviewed-project-runtime"
+    }
+  ],
+  "locations": [
+    {
+      "id": "ferris-wheel",
+      "title": "巨型摩天轮",
+      "role": "STM32 实时控制、安全状态与故障恢复场景"
+    },
+    {
+      "id": "blind-box-store",
+      "title": "盲盒商店",
+      "role": "变量、库存、瓶盖余额与数据校准场景"
+    },
+    {
+      "id": "snow-bakery",
+      "title": "苹果派雪雪烘焙店",
+      "role": "菜单、字符串、结构体与配方数据场景"
+    },
+    {
+      "id": "milk-tea-shop",
+      "title": "淘气丸子奶茶店",
+      "role": "选择流程、文件记录与美食街联动场景"
+    },
+    {
+      "id": "arcade",
+      "title": "游戏厅",
+      "role": "联网终端、积分事件、兑换与持久化场景"
+    },
+    {
+      "id": "makeover-shop",
+      "title": "换新店（形象店）",
+      "role": "类型、状态和表达式变化场景"
+    },
+    {
+      "id": "central-fountain",
+      "title": "中央喷泉广场",
+      "role": "程序启动、执行顺序、输入输出及夜间总控场景"
+    },
+    {
+      "id": "eggy-park",
+      "title": "蛋仔公园",
+      "role": "条件、循环、函数与道具规则场景"
+    },
+    {
+      "id": "football-field",
+      "title": "足球场",
+      "role": "回合循环、边界判定和联网比赛终端场景"
+    },
+    {
+      "id": "mall",
+      "title": "商城建筑",
+      "role": "C++ 多线程订单、共享库存和安全停机场景"
+    },
+    {
+      "id": "piano-carpet",
+      "title": "钢琴地毯",
+      "role": "逐行执行、输出观察和联网事件终端场景"
+    }
+  ],
+  "props": [
+    {
+      "id": "salty-fish",
+      "title": "咸鱼",
+      "semanticRole": "有限使用次数、递减、零值与越界"
+    },
+    {
+      "id": "spring-rope",
+      "title": "弹簧绳（钩爪）",
+      "semanticRole": "距离判断、目标选择与失败返回"
+    },
+    {
+      "id": "speed-shoes",
+      "title": "加速鞋",
+      "semanticRole": "临时状态、持续时间与恢复默认值"
+    },
+    {
+      "id": "bomb",
+      "title": "炸弹",
+      "semanticRole": "范围判断、边界条件与自身影响"
+    },
+    {
+      "id": "mine",
+      "title": "地雷",
+      "semanticRole": "事件触发、布尔状态与一次性规则"
+    },
+    {
+      "id": "teleport-ball",
+      "title": "传送球",
+      "semanticRole": "放置与传送两阶段状态机"
+    },
+    {
+      "id": "shrink-milk",
+      "title": "缩小牛奶",
+      "semanticRole": "数据变化、持续时间与状态恢复"
+    },
+    {
+      "id": "stepping-box",
+      "title": "垫脚石（箱子）",
+      "semanticRole": "坐标、数组位置与放置上限"
+    },
+    {
+      "id": "spring-board",
+      "title": "弹板",
+      "semanticRole": "输入、函数处理与输出结果"
+    },
+    {
+      "id": "smoke-bomb",
+      "title": "云雾弹",
+      "semanticRole": "共享副作用、作用范围与持续时间"
+    },
+    {
+      "id": "ink-bomb",
+      "title": "墨汁炸弹",
+      "semanticRole": "可见状态、计时和异常恢复"
+    },
+    {
+      "id": "bouncy-ball",
+      "title": "弹力球",
+      "semanticRole": "循环计数、碰撞与终止条件"
+    }
+  ],
+  "ranks": [
+    {
+      "id": "quail",
+      "order": 1,
+      "title": "鹌鹑蛋",
+      "technologyTheme": "C 程序运行、执行顺序、输入输出与错误观察",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "central-fountain",
+        "piano-carpet"
+      ],
+      "activityIds": [
+        "quail-fountain-sequence",
+        "quail-piano-output",
+        "quail-opening-broadcast",
+        "quail-opening-boss"
+      ],
+      "projectId": null,
+      "subdivisions": [
+        {
+          "id": "quail-iii",
+          "title": "开园准备",
+          "requiredStars": 1
+        },
+        {
+          "id": "quail-ii",
+          "title": "输出节奏",
+          "requiredStars": 1
+        },
+        {
+          "id": "quail-i",
+          "title": "输入广播",
+          "requiredStars": 1
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 3,
+        "bossActivityId": "quail-opening-boss",
+        "promotesTo": "pigeon"
+      }
+    },
+    {
+      "id": "pigeon",
+      "order": 2,
+      "title": "鸽子蛋",
+      "technologyTheme": "C 数据、类型、表达式与状态变化",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "blind-box-store",
+        "makeover-shop"
+      ],
+      "activityIds": [
+        "pigeon-salty-fish-counter",
+        "pigeon-shrink-milk-timer",
+        "pigeon-blind-box-balance",
+        "pigeon-data-boss"
+      ],
+      "projectId": null,
+      "subdivisions": [
+        {
+          "id": "pigeon-iii",
+          "title": "变量标牌",
+          "requiredStars": 1
+        },
+        {
+          "id": "pigeon-ii",
+          "title": "状态预览",
+          "requiredStars": 1
+        },
+        {
+          "id": "pigeon-i",
+          "title": "结算校准",
+          "requiredStars": 1
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 3,
+        "bossActivityId": "pigeon-data-boss",
+        "promotesTo": "chicken"
+      }
+    },
+    {
+      "id": "chicken",
+      "order": 3,
+      "title": "鸡蛋",
+      "technologyTheme": "C 条件、循环、函数与执行路径",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "eggy-park",
+        "football-field"
+      ],
+      "activityIds": [
+        "chicken-teleport-state",
+        "chicken-bomb-boundary",
+        "chicken-football-rounds",
+        "chicken-rules-boss"
+      ],
+      "projectId": null,
+      "subdivisions": [
+        {
+          "id": "chicken-iii",
+          "title": "状态分支",
+          "requiredStars": 1
+        },
+        {
+          "id": "chicken-ii",
+          "title": "规则边界",
+          "requiredStars": 1
+        },
+        {
+          "id": "chicken-i",
+          "title": "多轮裁判",
+          "requiredStars": 1
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 3,
+        "bossActivityId": "chicken-rules-boss",
+        "promotesTo": "goose"
+      }
+    },
+    {
+      "id": "goose",
+      "order": 4,
+      "title": "鹅蛋",
+      "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "snow-bakery",
+        "milk-tea-shop"
+      ],
+      "activityIds": [
+        "goose-food-street-project"
+      ],
+      "projectId": "goose-food-street-project",
+      "subdivisions": [
+        {
+          "id": "goose-v",
+          "title": "菜单数据"
+        },
+        {
+          "id": "goose-iv",
+          "title": "结构与内存"
+        },
+        {
+          "id": "goose-iii",
+          "title": "安全字符串"
+        },
+        {
+          "id": "goose-ii",
+          "title": "文件存档"
+        },
+        {
+          "id": "goose-i",
+          "title": "系统调试"
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 6,
+        "bossActivityId": "goose-food-street-project#goose-food-street-boss",
+        "promotesTo": "ostrich"
+      }
+    },
+    {
+      "id": "ostrich",
+      "order": 5,
+      "title": "鸵鸟蛋",
+      "technologyTheme": "STM32 裸机、GPIO、定时器、中断、UART、ADC、I²C/SPI 与状态机",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "ferris-wheel"
+      ],
+      "activityIds": [
+        "ostrich-ferris-wheel-project"
+      ],
+      "projectId": "ostrich-ferris-wheel-project",
+      "subdivisions": [
+        {
+          "id": "ostrich-v",
+          "title": "GPIO 控制"
+        },
+        {
+          "id": "ostrich-iv",
+          "title": "时间与消抖"
+        },
+        {
+          "id": "ostrich-iii",
+          "title": "中断节拍"
+        },
+        {
+          "id": "ostrich-ii",
+          "title": "传感通信"
+        },
+        {
+          "id": "ostrich-i",
+          "title": "安全状态机"
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 6,
+        "bossActivityId": "ostrich-ferris-wheel-project#ostrich-ferris-wheel-boss",
+        "promotesTo": "dinosaur"
+      }
+    },
+    {
+      "id": "dinosaur",
+      "order": 6,
+      "title": "恐龙蛋",
+      "technologyTheme": "Linux C 系统编程、进程、文件描述符、管道、信号与故障恢复",
+      "languageIds": [
+        "c"
+      ],
+      "locationIds": [
+        "central-fountain",
+        "ferris-wheel",
+        "arcade",
+        "mall"
+      ],
+      "activityIds": [
+        "dinosaur-night-patrol-project"
+      ],
+      "projectId": "dinosaur-night-patrol-project",
+      "subdivisions": [
+        {
+          "id": "dinosaur-v",
+          "title": "系统调用"
+        },
+        {
+          "id": "dinosaur-iv",
+          "title": "创建进程"
+        },
+        {
+          "id": "dinosaur-iii",
+          "title": "执行与回收"
+        },
+        {
+          "id": "dinosaur-ii",
+          "title": "管道通信"
+        },
+        {
+          "id": "dinosaur-i",
+          "title": "信号监督"
+        }
+      ],
+      "promotion": {
+        "metric": "stars",
+        "requiredStars": 6,
+        "bossActivityId": "dinosaur-night-patrol-project#dinosaur-night-patrol-boss",
+        "promotesTo": "peak-phoenix"
+      }
+    },
+    {
+      "id": "peak-phoenix",
+      "order": 7,
+      "title": "巅峰凤凰蛋",
+      "technologyTheme": "C++ 工程、资源管理与多线程并发",
+      "languageIds": [
+        "cpp"
+      ],
+      "locationIds": [
+        "mall"
+      ],
+      "activityIds": [
+        "peak-delivery-center-project"
+      ],
+      "projectId": "peak-delivery-center-project",
+      "subdivisions": [],
+      "promotion": {
+        "metric": "performance-points",
+        "minimumPoints": 80,
+        "bossActivityId": "peak-delivery-center-project#peak-delivery-center-boss",
+        "promotesTo": "super-phoenix"
+      }
+    },
+    {
+      "id": "super-phoenix",
+      "order": 8,
+      "title": "超级凤凰蛋",
+      "technologyTheme": "C 网络编程与 C++/SQL/SQLite 数据持久化",
+      "languageIds": [
+        "c",
+        "cpp",
+        "sql"
+      ],
+      "locationIds": [
+        "arcade",
+        "football-field",
+        "piano-carpet"
+      ],
+      "activityIds": [
+        "super-arcade-data-center-project"
+      ],
+      "projectId": "super-arcade-data-center-project",
+      "subdivisions": [],
+      "promotion": {
+        "metric": "performance-points",
+        "minimumPoints": 80,
+        "bossActivityId": "super-arcade-data-center-project#super-arcade-data-center-boss",
+        "promotesTo": "invincible-phoenix"
+      }
+    },
+    {
+      "id": "invincible-phoenix",
+      "order": 9,
+      "title": "无敌凤凰蛋",
+      "technologyTheme": "独立架构、跨领域整合、故障恢复与可接手性",
+      "languageIds": [
+        "learner-choice-c-or-cpp",
+        "sql-when-needed"
+      ],
+      "locationIds": [
+        "ferris-wheel",
+        "blind-box-store",
+        "snow-bakery",
+        "milk-tea-shop",
+        "arcade",
+        "makeover-shop",
+        "central-fountain",
+        "eggy-park",
+        "football-field",
+        "mall",
+        "piano-carpet"
+      ],
+      "activityIds": [
+        "invincible-independent-project"
+      ],
+      "projectId": "invincible-independent-project",
+      "subdivisions": [],
+      "promotion": {
+        "metric": "capstone",
+        "bossActivityId": "invincible-independent-project#invincible-independent-boss",
+        "promotesTo": null
+      }
+    }
+  ],
+  "levels": [
+    {
+      "id": "quail-fountain-sequence",
+      "rankId": "quail",
+      "subrankId": "quail-iii",
+      "sequence": 1,
+      "title": "让中央喷泉按顺序亮起",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/quail-fountain-sequence.json",
+      "estimatedMinutes": 18,
+      "locationId": "central-fountain",
+      "propIds": [],
+      "prerequisiteLevelIds": []
+    },
+    {
+      "id": "quail-piano-output",
+      "rankId": "quail",
+      "subrankId": "quail-ii",
+      "sequence": 2,
+      "title": "钢琴地毯的三声音阶",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/quail-piano-output.json",
+      "estimatedMinutes": 18,
+      "locationId": "piano-carpet",
+      "propIds": [],
+      "prerequisiteLevelIds": [
+        "quail-fountain-sequence"
+      ]
+    },
+    {
+      "id": "quail-opening-broadcast",
+      "rankId": "quail",
+      "subrankId": "quail-i",
+      "sequence": 3,
+      "title": "接通开园欢迎广播",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/quail-opening-broadcast.json",
+      "estimatedMinutes": 18,
+      "locationId": "central-fountain",
+      "propIds": [],
+      "prerequisiteLevelIds": [
+        "quail-piano-output"
+      ]
+    },
+    {
+      "id": "quail-opening-boss",
+      "rankId": "quail",
+      "subrankId": null,
+      "sequence": 4,
+      "title": "中央广场开园检查",
+      "kind": "rank-boss",
+      "version": 1,
+      "file": "levels/quail-opening-boss.json",
+      "estimatedMinutes": 24,
+      "locationId": "central-fountain",
+      "propIds": [],
+      "prerequisiteLevelIds": [
+        "quail-fountain-sequence",
+        "quail-piano-output",
+        "quail-opening-broadcast"
+      ]
+    },
+    {
+      "id": "pigeon-salty-fish-counter",
+      "rankId": "pigeon",
+      "subrankId": "pigeon-iii",
+      "sequence": 1,
+      "title": "咸鱼还剩几次",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/pigeon-salty-fish-counter.json",
+      "estimatedMinutes": 18,
+      "locationId": "blind-box-store",
+      "propIds": [
+        "salty-fish"
+      ],
+      "prerequisiteLevelIds": [
+        "quail-opening-boss"
+      ]
+    },
+    {
+      "id": "pigeon-shrink-milk-timer",
+      "rankId": "pigeon",
+      "subrankId": "pigeon-ii",
+      "sequence": 2,
+      "title": "缩小牛奶的状态计时",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/pigeon-shrink-milk-timer.json",
+      "estimatedMinutes": 18,
+      "locationId": "makeover-shop",
+      "propIds": [
+        "shrink-milk",
+        "speed-shoes"
+      ],
+      "prerequisiteLevelIds": [
+        "pigeon-salty-fish-counter"
+      ]
+    },
+    {
+      "id": "pigeon-blind-box-balance",
+      "rankId": "pigeon",
+      "subrankId": "pigeon-i",
+      "sequence": 3,
+      "title": "校准盲盒商店瓶盖余额",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/pigeon-blind-box-balance.json",
+      "estimatedMinutes": 18,
+      "locationId": "blind-box-store",
+      "propIds": [
+        "teleport-ball"
+      ],
+      "prerequisiteLevelIds": [
+        "pigeon-shrink-milk-timer"
+      ]
+    },
+    {
+      "id": "pigeon-data-boss",
+      "rankId": "pigeon",
+      "subrankId": null,
+      "sequence": 4,
+      "title": "形象与盲盒数据校准",
+      "kind": "rank-boss",
+      "version": 1,
+      "file": "levels/pigeon-data-boss.json",
+      "estimatedMinutes": 24,
+      "locationId": "blind-box-store",
+      "propIds": [
+        "salty-fish",
+        "shrink-milk",
+        "speed-shoes"
+      ],
+      "prerequisiteLevelIds": [
+        "pigeon-salty-fish-counter",
+        "pigeon-shrink-milk-timer",
+        "pigeon-blind-box-balance"
+      ]
+    },
+    {
+      "id": "chicken-teleport-state",
+      "rankId": "chicken",
+      "subrankId": "chicken-iii",
+      "sequence": 1,
+      "title": "传送球的两阶段规则",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/chicken-teleport-state.json",
+      "estimatedMinutes": 18,
+      "locationId": "eggy-park",
+      "propIds": [
+        "teleport-ball"
+      ],
+      "prerequisiteLevelIds": [
+        "pigeon-data-boss"
+      ]
+    },
+    {
+      "id": "chicken-bomb-boundary",
+      "rankId": "chicken",
+      "subrankId": "chicken-ii",
+      "sequence": 2,
+      "title": "炸弹范围的边界判定",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/chicken-bomb-boundary.json",
+      "estimatedMinutes": 18,
+      "locationId": "eggy-park",
+      "propIds": [
+        "bomb",
+        "smoke-bomb",
+        "ink-bomb"
+      ],
+      "prerequisiteLevelIds": [
+        "chicken-teleport-state"
+      ]
+    },
+    {
+      "id": "chicken-football-rounds",
+      "rankId": "chicken",
+      "subrankId": "chicken-i",
+      "sequence": 3,
+      "title": "足球场三轮点球",
+      "kind": "interactive-lesson",
+      "version": 1,
+      "file": "levels/chicken-football-rounds.json",
+      "estimatedMinutes": 18,
+      "locationId": "football-field",
+      "propIds": [
+        "bouncy-ball"
+      ],
+      "prerequisiteLevelIds": [
+        "chicken-bomb-boundary"
+      ]
+    },
+    {
+      "id": "chicken-rules-boss",
+      "rankId": "chicken",
+      "subrankId": null,
+      "sequence": 4,
+      "title": "蛋仔公园道具挑战赛",
+      "kind": "rank-boss",
+      "version": 1,
+      "file": "levels/chicken-rules-boss.json",
+      "estimatedMinutes": 24,
+      "locationId": "eggy-park",
+      "propIds": [
+        "teleport-ball",
+        "bomb",
+        "spring-board",
+        "bouncy-ball"
+      ],
+      "prerequisiteLevelIds": [
+        "chicken-teleport-state",
+        "chicken-bomb-boundary",
+        "chicken-football-rounds"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "schemaVersion": 2,
+      "id": "goose-food-street-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "goose",
+      "title": "蛋仔美食街·今天吃什么",
+      "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
+      "languages": [
+        "c"
+      ],
+      "locationIds": [
+        "snow-bakery",
+        "milk-tea-shop"
+      ],
+      "propIds": [],
+      "estimatedSessions": {
+        "minimum": 18,
+        "typical": 24
+      },
+      "prerequisiteActivityIds": [
+        "chicken-rules-boss"
+      ],
+      "story": "苹果派雪雪烘焙店和淘气丸子奶茶店共同维护一份美食清单，为来宾推荐餐点并保存最近选择。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "terminal-application",
+        "workingTitle": "今天吃什么",
+        "entryFile": "src/main.c",
+        "persistentFiles": [
+          "data/menu.txt",
+          "data/history.txt"
+        ],
+        "runTarget": "native-c17"
+      },
+      "coreContract": [
+        "加载并显示有效菜品",
+        "随机给出候选、允许换一个并确认",
+        "空菜单、超长名称和损坏文件不会造成越界或伪结果",
+        "确认结果可保存并在下次启动读取"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "menu-array",
+          "title": "把菜单放进数组",
+          "goal": "从固定菜单中安全读取和显示菜品。",
+          "concepts": [
+            "数组容量",
+            "下标",
+            "边界"
+          ],
+          "guidedBuild": "建立固定容量菜单并打印全部有效项。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察有效数量与数组容量是否混用。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查遍历菜单的循环边界。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "循环只能访问 0 到 count-1。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "加入空菜单和满容量菜单用例。",
+            "evidence": "终端输出与边界用例表",
+            "automatedChecks": [
+              "empty-menu",
+              "one-item",
+              "full-capacity"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "随机选择章节再次使用有效数量而非容量。"
+        },
+        {
+          "id": "dish-struct",
+          "title": "用结构体描述一道菜",
+          "goal": "把名称、类别和是否售罄组合为一个 Dish。",
+          "concepts": [
+            "struct",
+            "字段",
+            "结构体数组"
+          ],
+          "guidedBuild": "将字符串数组迁移为 Dish 数组，并按售罄状态显示。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "比较一行菜品的三个字段是否保持配对。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 Dish 定义和初始化表。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "相关数据放入同一结构体，排序或复制时才不会错位。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加饮品类别并正确过滤售罄项。",
+            "evidence": "Dish 定义和运行输出",
+            "automatedChecks": [
+              "sold-out-filter",
+              "category-preserved"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "文件加载章节继续填充同一 Dish 结构。"
+        },
+        {
+          "id": "pointer-functions",
+          "title": "让函数修改候选状态",
+          "goal": "用指针和清楚的所有权边界拆分选择流程。",
+          "concepts": [
+            "指针参数",
+            "const",
+            "返回值",
+            "生命周期"
+          ],
+          "guidedBuild": "实现 pick_candidate、replace_candidate 和 confirm_candidate。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先确认哪个函数只读菜单，哪个函数会修改当前候选。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查函数参数中的指针和 const。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "调用者持有状态，修改函数通过有效指针写回。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "新增“换一个”且不得重复当前候选。",
+            "evidence": "函数接口与重复候选测试",
+            "automatedChecks": [
+              "no-immediate-repeat",
+              "empty-source-safe"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 中通过同一接口处理读取失败后的内存菜单。"
+        },
+        {
+          "id": "safe-strings",
+          "title": "让菜名安全进入内存",
+          "goal": "处理长度、终止符和非法文本。",
+          "concepts": [
+            "字符数组",
+            "字符串终止",
+            "长度检查"
+          ],
+          "guidedBuild": "限制菜名长度并拒绝无法完整保存的输入。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察最大长度输入后的最后一个字符。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查读取上限与目标数组容量。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "字符数组必须为结尾的 \\0 留出空间。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "验证空名称、恰好上限和超过上限三种输入。",
+            "evidence": "三类字符串边界结果",
+            "automatedChecks": [
+              "empty-name",
+              "exact-limit",
+              "over-limit-rejected"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "文件加载时复用相同校验，不能信任磁盘内容。"
+        },
+        {
+          "id": "file-history",
+          "title": "保存并恢复最近选择",
+          "goal": "以明确格式读写菜单和历史。",
+          "concepts": [
+            "文件指针",
+            "返回值检查",
+            "持久化格式"
+          ],
+          "guidedBuild": "实现历史追加、启动读取和文件失败提示。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先观察 fopen 失败时程序是否仍继续读写。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查打开、读取、写入和关闭四个阶段。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "每个文件操作都可能失败，失败后不能使用无效 FILE 指针。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "让只读目录和损坏历史文件都能安全退出或回退。",
+            "evidence": "文件失败输出和恢复结果",
+            "automatedChecks": [
+              "missing-file",
+              "malformed-line",
+              "write-failure"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 在中途写入失败后要求保持原历史可读。"
+        },
+        {
+          "id": "debug-memory",
+          "title": "用调试器找到越界根因",
+          "goal": "通过断点、变量观察和最小复现定位内存错误。",
+          "concepts": [
+            "断点",
+            "调用栈",
+            "越界",
+            "最小复现"
+          ],
+          "guidedBuild": "修复一个仅在菜单满容量时出现的越界错误。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先找第一次出现异常的输入规模。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "观察循环末尾下标和 count。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "满容量时错误的 <= 会访问数组外。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "提交修复前后的复现步骤和一条防回归用例。",
+            "evidence": "复现说明、修复差异、回归输出",
+            "automatedChecks": [
+              "capacity-boundary-regression"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 把越界与损坏文件组合起来，不提前提示错误位置。"
+        }
+      ],
+      "boss": {
+        "id": "goose-food-street-boss",
+        "title": "美食街闭店前的最后一单",
+        "story": "菜单已满、历史文件含坏行，保存目录突然不可写；程序仍要给出合法候选并保护旧记录。",
+        "phases": [
+          {
+            "id": "reproduce",
+            "title": "复现三个故障",
+            "successCriteria": [
+              "分别记录满菜单、坏行、写入失败现象"
+            ]
+          },
+          {
+            "id": "repair",
+            "title": "修复数据边界",
+            "successCriteria": [
+              "无越界",
+              "坏行被拒绝",
+              "写失败不破坏旧文件"
+            ]
+          },
+          {
+            "id": "independent-change",
+            "title": "加入“今日不再推荐”规则",
+            "successCriteria": [
+              "重启后规则仍生效",
+              "可解释内存与文件状态"
+            ]
+          }
+        ],
+        "faultScenarios": [
+          "full-menu",
+          "malformed-history",
+          "write-denied",
+          "zero-valid-dishes"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-food-street-sign",
+          "title": "美食街招牌模型",
+          "wallCategory": "project-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/goose-food-street-project.json"
+    },
+    {
+      "schemaVersion": 2,
+      "id": "ostrich-ferris-wheel-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "ostrich",
+      "title": "蛋仔摩天轮安全中控站",
+      "technologyTheme": "STM32 裸机 C、GPIO、定时器、中断、UART、ADC、I²C/SPI 与非阻塞状态机",
+      "languages": [
+        "c"
+      ],
+      "locationIds": [
+        "ferris-wheel"
+      ],
+      "propIds": [],
+      "estimatedSessions": {
+        "minimum": 20,
+        "typical": 28
+      },
+      "prerequisiteActivityIds": [
+        "goose-food-street-project"
+      ],
+      "story": "摩天轮需要在按钮、传感器和故障信号共同作用下安全启动、运行、停靠和复位。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "stm32-firmware",
+        "workingTitle": "摩天轮安全中控站",
+        "entryFile": "Core/Src/main.c",
+        "runTarget": "stm32-external-toolchain",
+        "hardwareProfile": {
+          "strategy": "manager-configured-before-first-flash",
+          "requiredCapabilities": [
+            "GPIO 输入输出",
+            "至少一个硬件定时器",
+            "UART",
+            "ADC",
+            "I²C 或 SPI 外设"
+          ],
+          "debugEvidence": [
+            "串口日志",
+            "真机状态视频或照片说明",
+            "关键寄存器或变量观察"
+          ]
+        }
+      },
+      "coreContract": [
+        "启动、运行、停靠、故障和复位状态转换明确",
+        "按钮抖动和长按不会重复触发危险动作",
+        "中断只做短工作，主循环保持非阻塞",
+        "传感器异常或复位后进入安全状态"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "gpio-start",
+          "title": "点亮第一盏安全灯",
+          "goal": "建立工程，读取按钮并控制状态灯。",
+          "concepts": [
+            "GPIO",
+            "输入输出",
+            "上拉下拉"
+          ],
+          "guidedBuild": "完成按钮到状态灯的最小闭环。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先核对按钮按下时电平是高还是低。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 GPIO 初始化和读取条件。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "硬件电平定义错误会让逻辑整体反向。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加“未准备好时红灯常亮”。",
+            "evidence": "引脚表、串口或真机结果",
+            "automatedChecks": [],
+            "selfChecks": [
+              "断电重启后默认红灯",
+              "按钮释放后状态明确"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 复位阶段再次检查安全默认输出。"
+        },
+        {
+          "id": "debounce-state",
+          "title": "消除按钮抖动",
+          "goal": "用非阻塞状态机识别一次稳定按下。",
+          "concepts": [
+            "消抖",
+            "状态机",
+            "时间差"
+          ],
+          "guidedBuild": "替换阻塞延时，记录候选电平和稳定时间。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察一次按下产生了几次边沿。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查按钮状态与时间戳更新。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "只有电平稳定超过阈值才确认新状态。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "连续快速按压不会重复启动。",
+            "evidence": "串口时间戳与动作次数",
+            "automatedChecks": [],
+            "selfChecks": [
+              "短抖动不触发",
+              "稳定按下只触发一次"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "中断章节比较轮询消抖与中断通知。"
+        },
+        {
+          "id": "timer-interrupt",
+          "title": "用定时器驱动运行节拍",
+          "goal": "配置周期中断并保持中断处理短小。",
+          "concepts": [
+            "定时器",
+            "中断",
+            "volatile",
+            "共享状态"
+          ],
+          "guidedBuild": "中断只增加节拍并设置标志，主循环处理动画和状态转换。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察中断内是否包含打印或等待。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 ISR 和主循环之间共享的标志。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "中断耗时会阻塞其他实时事件。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立实现每 100 个节拍更新一次轿厢位置。",
+            "evidence": "节拍日志与中断代码",
+            "automatedChecks": [],
+            "selfChecks": [
+              "中断无阻塞调用",
+              "长时间运行节拍稳定"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 注入计数回绕，验证无符号时间差。"
+        },
+        {
+          "id": "uart-diagnostics",
+          "title": "让中控站会报告自己",
+          "goal": "设计可读且不会淹没串口的状态日志。",
+          "concepts": [
+            "UART",
+            "诊断日志",
+            "错误码"
+          ],
+          "guidedBuild": "只在状态变化时打印时间、旧状态、新状态和原因。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察主循环每轮打印是否造成大量重复。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查日志触发条件。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "状态变化事件比循环频率更适合日志。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "加入传感器错误码和一次性故障报告。",
+            "evidence": "正常与故障串口日志",
+            "automatedChecks": [],
+            "selfChecks": [
+              "日志含时间和原因",
+              "稳定状态不刷屏"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "ADC 章节通过同一日志报告越界值。"
+        },
+        {
+          "id": "sensor-bus",
+          "title": "接入高度与门锁传感器",
+          "goal": "读取 ADC，并通过 I²C 或 SPI 获取一个外设状态。",
+          "concepts": [
+            "ADC",
+            "采样",
+            "I²C/SPI",
+            "超时"
+          ],
+          "guidedBuild": "将原始值转换为可判断的高度和门锁状态。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先区分原始采样值、转换值和有效性。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查读取返回值和超时分支。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "通信成功与数据范围都要验证。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "断开传感器时中控进入故障态而非继续运行。",
+            "evidence": "正常值、边界值、断线结果",
+            "automatedChecks": [],
+            "selfChecks": [
+              "ADC 上下界",
+              "总线超时",
+              "无效值拒绝"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 同时注入门锁断线和按钮输入。"
+        },
+        {
+          "id": "safe-recovery",
+          "title": "完成安全恢复状态机",
+          "goal": "把启动条件、运行、停靠、故障和复位组合起来。",
+          "concepts": [
+            "分层状态机",
+            "超时",
+            "安全默认值"
+          ],
+          "guidedBuild": "实现 READY、RUNNING、PARKING、FAULT、RESETTING。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "逐个状态列出允许进入和离开的条件。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查故障能否从每个运行状态进入。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "安全事件的优先级必须高于普通控制事件。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "任何状态检测到门锁失效都立即停止并锁定故障。",
+            "evidence": "状态图、串口轨迹、真机自检",
+            "automatedChecks": [],
+            "selfChecks": [
+              "故障优先",
+              "复位需明确动作",
+              "重启默认安全"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 不再提示当前状态，只给传感器和日志。"
+        }
+      ],
+      "boss": {
+        "id": "ostrich-ferris-wheel-boss",
+        "title": "摩天轮雨夜安全演练",
+        "story": "按钮发生抖动、计时器接近回绕、门锁传感器中途断开，系统还会被突然复位。",
+        "phases": [
+          {
+            "id": "instrument",
+            "title": "建立可观察日志",
+            "successCriteria": [
+              "每次状态变化可追踪",
+              "中断不打印"
+            ]
+          },
+          {
+            "id": "fault-injection",
+            "title": "逐项注入故障",
+            "successCriteria": [
+              "抖动不重复启动",
+              "计时回绕不破坏超时",
+              "传感器断线进入 FAULT"
+            ]
+          },
+          {
+            "id": "power-recovery",
+            "title": "独立完成断电恢复",
+            "successCriteria": [
+              "复位后输出安全",
+              "需要明确操作才能重新启动"
+            ]
+          }
+        ],
+        "faultScenarios": [
+          "button-bounce",
+          "timer-wraparound",
+          "sensor-disconnect",
+          "unexpected-reset"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-ferris-control-console",
+          "title": "摩天轮中控模型",
+          "wallCategory": "project-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/ostrich-ferris-wheel-project.json"
+    },
+    {
+      "schemaVersion": 2,
+      "id": "dinosaur-night-patrol-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "dinosaur",
+      "title": "蛋仔岛夜班巡检台",
+      "technologyTheme": "Linux C 系统编程、文件描述符、进程、fork/exec/wait、管道、信号与故障恢复",
+      "languages": [
+        "c"
+      ],
+      "locationIds": [
+        "central-fountain",
+        "ferris-wheel",
+        "arcade",
+        "mall"
+      ],
+      "propIds": [],
+      "estimatedSessions": {
+        "minimum": 18,
+        "typical": 26
+      },
+      "prerequisiteActivityIds": [
+        "ostrich-ferris-wheel-project"
+      ],
+      "story": "夜间总控台要同时启动多个建筑巡检程序，收集报告，并在子进程故障时留下明确记录。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "linux-terminal-application",
+        "workingTitle": "蛋仔岛夜班巡检台",
+        "entryFile": "src/patrol.c",
+        "runTarget": "linux-c17"
+      },
+      "coreContract": [
+        "为每个巡检任务创建和回收子进程",
+        "通过管道收集结构清楚的巡检结果",
+        "正确处理文件描述符关闭、EOF、信号和异常退出",
+        "父进程不遗留僵尸进程，单点故障不吞掉其他报告"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "fd-basics",
+          "title": "认识总控台的文件描述符",
+          "goal": "用 read/write 处理日志文件并检查短读写。",
+          "concepts": [
+            "系统调用",
+            "文件描述符",
+            "返回值"
+          ],
+          "guidedBuild": "实现可靠读取循环并处理 EINTR。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察 read 返回 0、正数和 -1 的区别。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查读取循环和错误分支。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "系统调用返回值决定是否继续，不能假设一次完成。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "读取空文件和大于缓冲区的报告。",
+            "evidence": "strace 摘要和输出",
+            "automatedChecks": [
+              "empty-file",
+              "multi-read",
+              "interrupted-read"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "管道章节复用同一套读取循环。"
+        },
+        {
+          "id": "fork-model",
+          "title": "为建筑派出巡检员",
+          "goal": "用 fork 区分父子进程并记录 PID。",
+          "concepts": [
+            "进程地址空间",
+            "fork 返回值",
+            "PID"
+          ],
+          "guidedBuild": "父进程创建两个子进程，子进程只执行各自巡检。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察 fork 后哪些代码会执行两次。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查三种 fork 返回情况。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "父子进程从同一位置继续，但返回值不同。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "创建三个巡检员且每个只报告一次。",
+            "evidence": "PID 日志与进程树",
+            "automatedChecks": [
+              "three-children",
+              "no-duplicate-parent-work"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "wait 章节要求父进程准确对应每个 PID。"
+        },
+        {
+          "id": "exec-wait",
+          "title": "启动真实巡检程序",
+          "goal": "用 exec 替换子进程并用 waitpid 收集退出状态。",
+          "concepts": [
+            "exec",
+            "waitpid",
+            "退出码",
+            "僵尸进程"
+          ],
+          "guidedBuild": "为不同建筑执行独立巡检命令。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "区分 exec 失败和巡检程序返回非零。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查子进程 exec 后的失败出口与父进程 waitpid。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "exec 成功不会返回，失败必须用明确退出码结束子进程。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "一个命令不存在时，其他巡检仍正常完成。",
+            "evidence": "退出状态表与 ps 检查",
+            "automatedChecks": [
+              "exec-failure",
+              "all-children-reaped"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 让一个巡检员异常退出，父进程仍需回收。"
+        },
+        {
+          "id": "pipe-reports",
+          "title": "用管道汇总巡检报告",
+          "goal": "创建管道并关闭每个进程不使用的端点。",
+          "concepts": [
+            "pipe",
+            "EOF",
+            "端点关闭",
+            "短读写"
+          ],
+          "guidedBuild": "每个子进程将一条报告写回父进程。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "若父进程永远等不到 EOF，先找仍打开的写端。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "列出父子进程各自需要关闭的端点。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "只要还有写端打开，读端就不会得到 EOF。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "汇总三份不同长度报告且不截断。",
+            "evidence": "端点表和完整输出",
+            "automatedChecks": [
+              "eof-arrives",
+              "long-report",
+              "no-fd-leak"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "信号章节在中断时仍要关闭管道端点。"
+        },
+        {
+          "id": "signals",
+          "title": "处理中止与超时",
+          "goal": "用信号通知停止，并让阻塞系统调用正确恢复或退出。",
+          "concepts": [
+            "sigaction",
+            "EINTR",
+            "优雅退出"
+          ],
+          "guidedBuild": "父进程在超时后通知子进程，随后回收并标记结果。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察信号到达时哪个系统调用被中断。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查处理函数是否只做异步信号安全操作。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "处理函数设置标志，普通控制流负责清理资源。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "连续两次停止请求不会重复清理或挂起。",
+            "evidence": "信号时序和退出状态",
+            "automatedChecks": [
+              "timeout-stop",
+              "double-signal",
+              "no-zombie"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 组合超时、异常退出和关闭写端。"
+        },
+        {
+          "id": "supervisor",
+          "title": "完成巡检监督器",
+          "goal": "把启动、汇总、超时、重试和退出码组合起来。",
+          "concepts": [
+            "监督进程",
+            "故障隔离",
+            "有限重试"
+          ],
+          "guidedBuild": "为每个建筑维护 running、passed、failed、timed-out 状态。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先区分进程状态和业务巡检结果。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查状态表的 PID、退出码和报告字段。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "重试必须有上限，且不能覆盖第一次失败证据。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "仅对超时任务重试一次，其他结果不重复。",
+            "evidence": "状态表与重试日志",
+            "automatedChecks": [
+              "retry-timeout-once",
+              "preserve-first-failure",
+              "clean-exit"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 不告诉故障类型，只提供最终不完整报告。"
+        }
+      ],
+      "boss": {
+        "id": "dinosaur-night-patrol-boss",
+        "title": "全岛闭园巡检",
+        "story": "一个子进程挂起，一个异常退出，一个忘记关闭管道写端，另一个正常完成。",
+        "phases": [
+          {
+            "id": "observe",
+            "title": "从进程树和系统调用定位",
+            "successCriteria": [
+              "识别挂起、异常退出与 EOF 阻塞"
+            ]
+          },
+          {
+            "id": "repair",
+            "title": "修复回收和管道生命周期",
+            "successCriteria": [
+              "所有子进程被回收",
+              "父进程最终得到 EOF",
+              "正常报告不丢失"
+            ]
+          },
+          {
+            "id": "independent-policy",
+            "title": "加入有限重试与总超时",
+            "successCriteria": [
+              "只重试符合条件的任务",
+              "总控台可在期限内退出"
+            ]
+          }
+        ],
+        "faultScenarios": [
+          "child-hang",
+          "nonzero-exit",
+          "pipe-writer-leak",
+          "partial-report"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-night-patrol-lamp",
+          "title": "夜班巡检灯",
+          "wallCategory": "project-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/dinosaur-night-patrol-project.json"
+    },
+    {
+      "schemaVersion": 2,
+      "id": "peak-delivery-center-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "peak-phoenix",
+      "title": "蛋仔商城道具配送中心",
+      "technologyTheme": "C++ 工程、资源管理、线程、任务队列、互斥量、条件变量、竞态、死锁与安全停机",
+      "languages": [
+        "cpp"
+      ],
+      "locationIds": [
+        "mall"
+      ],
+      "propIds": [
+        "salty-fish",
+        "spring-rope",
+        "speed-shoes",
+        "bomb",
+        "mine",
+        "teleport-ball",
+        "shrink-milk",
+        "stepping-box",
+        "spring-board",
+        "smoke-bomb",
+        "ink-bomb",
+        "bouncy-ball"
+      ],
+      "estimatedSessions": {
+        "minimum": 22,
+        "typical": 30
+      },
+      "prerequisiteActivityIds": [
+        "dinosaur-night-patrol-project"
+      ],
+      "story": "商城订单不断进入，道具仓库由多个工作人员线程共同处理，必须避免重复发货、负库存和关店死锁。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "cpp-terminal-service",
+        "workingTitle": "蛋仔商城道具配送中心",
+        "entryFile": "src/main.cpp",
+        "runTarget": "linux-cpp20"
+      },
+      "coreContract": [
+        "订单进入线程安全任务队列",
+        "库存更新满足不重复发货且不为负数",
+        "工作线程可等待、被唤醒、取消任务并安全退出",
+        "异常与资源由 RAII 管理，关店不会泄漏线程或锁"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "cpp-domain-model",
+          "title": "建立订单与库存模型",
+          "goal": "用 string、vector、unordered_map 和值语义表达业务数据。",
+          "concepts": [
+            "C++ 类型",
+            "容器",
+            "const",
+            "值语义"
+          ],
+          "guidedBuild": "建立 Item、Order 和 Inventory，并验证查找失败。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察不存在的道具是否被隐式创建。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 map 查询和修改接口。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "读取与插入应使用不同接口，避免查询产生副作用。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加订单校验并拒绝未知道具。",
+            "evidence": "单元测试与错误输出",
+            "automatedChecks": [
+              "unknown-item",
+              "zero-quantity",
+              "valid-order"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "并发库存章节复用同一模型，不改变公开合同。"
+        },
+        {
+          "id": "raii-ownership",
+          "title": "让资源自动回收",
+          "goal": "使用 RAII 管理线程、文件和锁的生命周期。",
+          "concepts": [
+            "构造析构",
+            "智能指针",
+            "异常安全"
+          ],
+          "guidedBuild": "把手动清理路径收束到对象生命周期。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "从每个提前返回和异常出口检查资源。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查拥有资源的类及其析构函数。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "所有权明确后，控制流变化也能触发释放。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "在处理中抛出异常仍能关闭日志并回收对象。",
+            "evidence": "异常测试与资源检查",
+            "automatedChecks": [
+              "exception-cleanup",
+              "no-double-free"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "安全停机章节让线程守卫处理 join。"
+        },
+        {
+          "id": "worker-threads",
+          "title": "让多个工作人员领取订单",
+          "goal": "创建工作线程并用 join 管理结束。",
+          "concepts": [
+            "std::thread",
+            "join",
+            "线程生命周期"
+          ],
+          "guidedBuild": "启动固定数量工作线程处理只读订单列表。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "确认 main 退出前每个线程处于什么状态。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查线程创建、工作函数和 join。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "可连接线程析构会终止程序，必须明确 join 或安全封装。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "线程数量从配置读取且 0、1、多线程均可运行。",
+            "evidence": "线程日志与边界测试",
+            "automatedChecks": [
+              "zero-worker-rejected",
+              "one-worker",
+              "four-workers"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "任务队列章节从静态列表过渡到动态生产消费。"
+        },
+        {
+          "id": "blocking-queue",
+          "title": "建立等待式任务队列",
+          "goal": "使用 mutex 和 condition_variable 实现生产者消费者。",
+          "concepts": [
+            "互斥量",
+            "条件变量",
+            "谓词等待"
+          ],
+          "guidedBuild": "工作线程在无任务时等待，新订单或关店时被唤醒。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察虚假唤醒后是否会读取空队列。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 wait 的谓词和关闭标志。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "谓词必须同时覆盖“有任务”和“已关闭”。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "空队列关店时所有线程都能退出。",
+            "evidence": "压力测试与退出日志",
+            "automatedChecks": [
+              "spurious-wakeup-safe",
+              "close-empty-queue",
+              "all-workers-joined"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 在订单到达与关店同时发生时复用队列合同。"
+        },
+        {
+          "id": "inventory-race",
+          "title": "修复共享库存竞态",
+          "goal": "让检查和扣减成为一个原子临界区。",
+          "concepts": [
+            "数据竞争",
+            "临界区",
+            "锁粒度"
+          ],
+          "guidedBuild": "复现两个订单同时看到同一件库存的错误。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "记录两个线程读取库存和写回的时序。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查“检查够不够”和“实际扣减”之间。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "逻辑上不可分割的操作必须由同一把锁保护。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "1000 组并发订单下库存不为负且成功数正确。",
+            "evidence": "竞态复现和压力测试",
+            "automatedChecks": [
+              "no-negative-stock",
+              "exact-success-count",
+              "repeat-1000"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "数据库阶段会比较内存锁与事务的一致性边界。"
+        },
+        {
+          "id": "deadlock-cancel",
+          "title": "解除双仓库死锁",
+          "goal": "固定锁顺序并支持任务取消。",
+          "concepts": [
+            "死锁",
+            "锁顺序",
+            "scoped_lock",
+            "取消"
+          ],
+          "guidedBuild": "复现两个转仓订单反向加锁导致的等待环。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "画出线程分别持有什么锁、等待什么锁。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查两个转仓路径的加锁顺序。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "所有路径必须遵循一致顺序或一次取得多把锁。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "反向转仓并发 100 次不死锁且总库存不变。",
+            "evidence": "等待图、超时测试、库存校验",
+            "automatedChecks": [
+              "no-deadlock",
+              "stock-conserved"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 将转仓、普通订单和关店并发发生。"
+        },
+        {
+          "id": "graceful-shutdown",
+          "title": "完成商城安全关店",
+          "goal": "拒绝新订单、处理策略明确，并唤醒所有线程退出。",
+          "concepts": [
+            "停止协议",
+            "状态转换",
+            "join"
+          ],
+          "guidedBuild": "实现 accepting、draining、stopped 三阶段。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察关闭后新订单是否仍能进入。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查关闭标志、队列关闭和线程 join 顺序。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "先关闭入口，再决定排空或取消，最后回收线程。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "实现“排空队列”和“取消剩余”两种明确策略。",
+            "evidence": "两种关店测试与最终统计",
+            "automatedChecks": [
+              "reject-after-close",
+              "drain-policy",
+              "cancel-policy",
+              "all-joined"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 不预告关店发生时刻。"
+        }
+      ],
+      "boss": {
+        "id": "peak-delivery-center-boss",
+        "title": "商城节日前夜配送高峰",
+        "story": "订单重复到达、库存争抢、转仓反向加锁，营业中途还收到立即关店指令。",
+        "performancePoints": {
+          "maximum": 100,
+          "pass": 80,
+          "dimensions": {
+            "correctness": 40,
+            "concurrencySafety": 30,
+            "shutdownRecovery": 20,
+            "explanation": 10
+          }
+        },
+        "phases": [
+          {
+            "id": "load",
+            "title": "高并发订单压力",
+            "successCriteria": [
+              "无重复发货",
+              "库存不为负",
+              "统计可复现"
+            ]
+          },
+          {
+            "id": "deadlock",
+            "title": "转仓死锁注入",
+            "successCriteria": [
+              "在期限内完成",
+              "总库存守恒"
+            ]
+          },
+          {
+            "id": "shutdown",
+            "title": "独立处理营业中关店",
+            "successCriteria": [
+              "入口关闭",
+              "线程全部回收",
+              "剩余订单结果明确"
+            ]
+          }
+        ],
+        "faultScenarios": [
+          "duplicate-order",
+          "inventory-race",
+          "reverse-lock-order",
+          "shutdown-during-work"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-delivery-center-model",
+          "title": "配送中心微缩模型",
+          "wallCategory": "project-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/peak-delivery-center-project.json"
+    },
+    {
+      "schemaVersion": 2,
+      "id": "super-arcade-data-center-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "super-phoenix",
+      "title": "蛋仔游戏厅联机积分中心",
+      "technologyTheme": "C 网络编程与 C++/SQL/SQLite 数据持久化",
+      "languages": [
+        "c",
+        "cpp",
+        "sql"
+      ],
+      "locationIds": [
+        "arcade",
+        "football-field",
+        "piano-carpet"
+      ],
+      "propIds": [],
+      "estimatedSessions": {
+        "minimum": 26,
+        "typical": 36
+      },
+      "prerequisiteActivityIds": [
+        "peak-delivery-center-project"
+      ],
+      "story": "足球场和钢琴地毯作为联网终端上报比赛事件，游戏厅负责接收、去重、保存、查询积分并安全兑换奖励。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "multi-process-local-service",
+        "workingTitle": "蛋仔游戏厅联机积分中心",
+        "components": [
+          {
+            "id": "checkpoint-client",
+            "language": "c",
+            "entryFile": "client/main.c"
+          },
+          {
+            "id": "event-gateway",
+            "language": "c",
+            "entryFile": "gateway/main.c"
+          },
+          {
+            "id": "score-service",
+            "language": "cpp",
+            "entryFile": "service/main.cpp"
+          },
+          {
+            "id": "database",
+            "language": "sql",
+            "entryFile": "db/schema.sql"
+          }
+        ],
+        "runTarget": "local-linux-network"
+      },
+      "coreContract": [
+        "C 客户端和服务端通过明确消息边界传输事件",
+        "部分读写、断线、超时和重复提交有确定处理",
+        "C++ 服务用 SQLite 事务保存积分与兑换",
+        "多客户端并发写入不产生重复积分或双重兑换"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "network-model",
+          "title": "找到客户端、服务端和端口",
+          "goal": "理解 IP、端口、连接和请求响应。",
+          "concepts": [
+            "客户端服务端",
+            "IP",
+            "端口",
+            "TCP"
+          ],
+          "guidedBuild": "完成单客户端回显，并用日志标记连接生命周期。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "区分监听套接字与已连接套接字。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 socket、bind、listen、accept、connect。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "服务端用监听描述符接收连接，再使用新的连接描述符通信。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "客户端退出后服务端仍能接受下一位客户端。",
+            "evidence": "连接日志和命令记录",
+            "automatedChecks": [
+              "sequential-clients",
+              "client-disconnect"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "多客户端章节复用同一连接生命周期。"
+        },
+        {
+          "id": "message-framing",
+          "title": "为比赛事件划清边界",
+          "goal": "设计长度前缀协议并处理部分读写。",
+          "concepts": [
+            "字节流",
+            "消息帧",
+            "部分读写",
+            "字节序"
+          ],
+          "guidedBuild": "实现 read_exact、write_all 和最大消息限制。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察一次 recv 返回值为何可能小于消息长度。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查读写循环和剩余字节计算。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "TCP 提供字节流，不保留应用消息边界。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "将一条消息拆成多次发送仍能正确解析。",
+            "evidence": "分片测试与协议说明",
+            "automatedChecks": [
+              "fragmented-frame",
+              "coalesced-frames",
+              "oversized-frame-rejected"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 会随机拆分和合并网络数据。"
+        },
+        {
+          "id": "disconnect-timeout",
+          "title": "处理掉线与超时",
+          "goal": "区分正常关闭、连接重置、超时和可重试错误。",
+          "concepts": [
+            "EOF",
+            "errno",
+            "超时",
+            "有限重试"
+          ],
+          "guidedBuild": "为客户端加入超时和指数上限内的有限重连。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先记录 recv=0 与 recv=-1 的差别。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查错误分类和重试计数。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "并非所有失败都适合重试，重试也必须有上限。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "服务器中途断开时客户端明确结束或在上限内恢复。",
+            "evidence": "掉线日志与重试次数",
+            "automatedChecks": [
+              "clean-close",
+              "reset",
+              "timeout",
+              "retry-cap"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "积分提交使用幂等事件 ID，重连不重复加分。"
+        },
+        {
+          "id": "multi-client",
+          "title": "同时接收多个终端",
+          "goal": "复用线程知识处理多个本地客户端。",
+          "concepts": [
+            "连接并发",
+            "线程边界",
+            "背压"
+          ],
+          "guidedBuild": "每个连接独立解析消息，共享出口采用有界队列。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察慢客户端是否拖住其他客户端。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查每连接状态与共享队列。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "连接缓冲不能混用，共享资源才需要同步。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "一个客户端停发时其他两个仍可完成。",
+            "evidence": "三客户端时间线",
+            "automatedChecks": [
+              "slow-client-isolated",
+              "three-clients",
+              "bounded-queue"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "数据库写入章节将共享出口接入事务。"
+        },
+        {
+          "id": "sql-model",
+          "title": "设计积分与兑换数据",
+          "goal": "学习表、主键、外键、唯一约束和查询。",
+          "concepts": [
+            "关系模型",
+            "SELECT",
+            "INSERT",
+            "约束"
+          ],
+          "guidedBuild": "建立 players、events、balances、redemptions。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "找出怎样识别重复比赛事件。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 events 的主键或唯一约束。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "业务唯一性必须由数据库约束守住。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "重复 event_id 插入失败且余额不变化。",
+            "evidence": "schema.sql 与 SQL 结果",
+            "automatedChecks": [
+              "duplicate-event",
+              "foreign-key",
+              "balance-query"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "事务章节在多条语句中复用这些约束。"
+        },
+        {
+          "id": "sqlite-cpp",
+          "title": "从 C++ 安全访问 SQLite",
+          "goal": "使用预编译语句、绑定参数和 RAII。",
+          "concepts": [
+            "SQLite C API",
+            "prepared statement",
+            "绑定",
+            "RAII"
+          ],
+          "guidedBuild": "封装 Connection、Statement 和错误传播。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "观察含引号的玩家名是否破坏查询。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 SQL 拼接与参数绑定。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "数据通过绑定进入语句，不应拼接成 SQL 文本。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "正确保存并查询含空格、引号和中文的名字。",
+            "evidence": "接口代码与查询结果",
+            "automatedChecks": [
+              "quoted-name",
+              "unicode-name",
+              "statement-finalized"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 使用同一封装处理事务回滚。"
+        },
+        {
+          "id": "transactions",
+          "title": "让积分与兑换一起成功或失败",
+          "goal": "用事务维护多表一致性。",
+          "concepts": [
+            "事务",
+            "提交",
+            "回滚",
+            "并发写入"
+          ],
+          "guidedBuild": "积分事件插入与余额更新放在同一事务。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "在两条写入之间注入失败，观察是否只完成一半。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 BEGIN、COMMIT 和所有错误出口的 ROLLBACK。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "一个业务动作的多次写入必须具有原子性。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "兑换库存不足或中途失败时余额和兑换记录都不改变。",
+            "evidence": "故障注入前后数据库快照",
+            "automatedChecks": [
+              "rollback-midway",
+              "insufficient-points",
+              "concurrent-writers"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "最终联调用事务和 event_id 同时抵抗重试。"
+        },
+        {
+          "id": "end-to-end",
+          "title": "完成终端到数据库的全链路",
+          "goal": "联调 C 客户端、C 网关、C++ 服务和 SQLite。",
+          "concepts": [
+            "接口合同",
+            "端到端测试",
+            "可观测性"
+          ],
+          "guidedBuild": "为一条事件建立 trace_id，贯穿网络日志和数据库。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "从最终余额反查每个组件处理了什么。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查协议字段、进程间交接和事务结果。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "统一事件 ID 让重试、去重和故障定位使用同一事实。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "终端重复提交、断线重连后最终只计一次积分。",
+            "evidence": "端到端日志、数据库查询、故障说明",
+            "automatedChecks": [
+              "duplicate-over-reconnect",
+              "eventual-single-credit",
+              "query-result"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 会组合分片、掉线、重复与并发写。"
+        }
+      ],
+      "boss": {
+        "id": "super-arcade-data-center-boss",
+        "title": "全岛联机积分赛",
+        "story": "足球场与钢琴地毯同时上报，网络会分片和断线，客户端可能重复发送，数据库写入中途也会失败。",
+        "performancePoints": {
+          "maximum": 100,
+          "pass": 80,
+          "dimensions": {
+            "protocolCorrectness": 25,
+            "failureHandling": 25,
+            "databaseConsistency": 30,
+            "observabilityAndExplanation": 20
+          }
+        },
+        "phases": [
+          {
+            "id": "network-chaos",
+            "title": "网络分片与掉线",
+            "successCriteria": [
+              "消息不粘连或丢失",
+              "重试有上限",
+              "连接资源释放"
+            ]
+          },
+          {
+            "id": "duplicate-write",
+            "title": "重复事件与并发写入",
+            "successCriteria": [
+              "同一事件只计一次",
+              "事务无半完成",
+              "并发结果一致"
+            ]
+          },
+          {
+            "id": "independent-query",
+            "title": "独立加入排行榜查询",
+            "successCriteria": [
+              "排序规则明确",
+              "同分结果稳定",
+              "查询不修改数据"
+            ]
+          }
+        ],
+        "faultScenarios": [
+          "partial-read",
+          "coalesced-messages",
+          "disconnect-after-send",
+          "duplicate-event",
+          "transaction-failure",
+          "concurrent-writes"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-arcade-data-core",
+          "title": "游戏厅数据核心",
+          "wallCategory": "project-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/super-arcade-data-center-project.json"
+    },
+    {
+      "schemaVersion": 2,
+      "id": "invincible-independent-project",
+      "version": 1,
+      "activityType": "rank-project",
+      "rankId": "invincible-phoenix",
+      "title": "无敌凤凰蛋自主作品",
+      "technologyTheme": "独立需求分析、系统架构、跨模块集成、故障恢复与长期可接手性",
+      "languages": [
+        "learner-choice-c-or-cpp",
+        "sql-when-needed"
+      ],
+      "locationIds": [
+        "ferris-wheel",
+        "blind-box-store",
+        "snow-bakery",
+        "milk-tea-shop",
+        "arcade",
+        "makeover-shop",
+        "central-fountain",
+        "eggy-park",
+        "football-field",
+        "mall",
+        "piano-carpet"
+      ],
+      "propIds": [
+        "salty-fish",
+        "spring-rope",
+        "speed-shoes",
+        "bomb",
+        "mine",
+        "teleport-ball",
+        "shrink-milk",
+        "stepping-box",
+        "spring-board",
+        "smoke-bomb",
+        "ink-bomb",
+        "bouncy-ball"
+      ],
+      "estimatedSessions": {
+        "minimum": 28,
+        "typical": 40
+      },
+      "prerequisiteActivityIds": [
+        "super-arcade-data-center-project"
+      ],
+      "story": "学习者先选择蛋仔岛中一个真实游玩或运营问题，独立定义作品；参考整合方案只在提交自己的架构后解锁。",
+      "oneProjectRule": {
+        "allChaptersModifySameArtifact": true,
+        "chapterExercisesAreNotSeparateProjects": true
+      },
+      "artifact": {
+        "kind": "learner-defined-system",
+        "workingTitle": null,
+        "learnerMustName": true,
+        "runTarget": "learner-declared",
+        "requiredDeliverables": [
+          "需求边界",
+          "架构图",
+          "接口合同",
+          "可运行纵切",
+          "故障测试",
+          "接手文档"
+        ]
+      },
+      "coreContract": [
+        "先由学习者提出可验证的用户目标和不做范围",
+        "至少整合三个已学技术领域，其中一项来自真实硬件、网络或并发",
+        "关键状态有持久化或恢复策略",
+        "另一位使用者能按文档启动、验证并解释主要故障"
+      ],
+      "chapterTeachingLoop": [
+        "experience",
+        "predict",
+        "concise-explanation",
+        "guided-build",
+        "immediate-feedback",
+        "independent-change",
+        "later-reencounter"
+      ],
+      "chapters": [
+        {
+          "id": "mission",
+          "title": "确定作品使命与边界",
+          "goal": "从一个具体使用场景写出目标、约束和验收故事。",
+          "concepts": [
+            "需求",
+            "范围",
+            "验收场景"
+          ],
+          "guidedBuild": "完成一页项目使命说明，不先看参考架构。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "检查目标是否描述了用户可观察结果。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查目标、不做事项和失败条件。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "明确边界才能判断作品是否完成。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "给出三个成功场景和三个失败场景。",
+            "evidence": "使命说明与场景表",
+            "automatedChecks": [],
+            "selfChecks": [
+              "目标可观察",
+              "不做范围明确",
+              "失败可复现"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "最终交付逐条回到这些场景验收。"
+        },
+        {
+          "id": "architecture",
+          "title": "画出自己的系统结构",
+          "goal": "决定组件、数据流、信任边界和技术选择。",
+          "concepts": [
+            "架构",
+            "数据流",
+            "技术取舍"
+          ],
+          "guidedBuild": "先提交自己的组件图，之后才可查看整合建议。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "追踪一条用户操作经过哪些组件。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查每条连接的协议和失败处理。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "组件边界要用可验证合同连接。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "解释为何每项技术解决当前问题而非只为凑数量。",
+            "evidence": "架构图与取舍记录",
+            "automatedChecks": [],
+            "selfChecks": [
+              "组件职责单一",
+              "数据所有者明确",
+              "失败边界明确"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "故障演练会逐一关闭或延迟这些连接。"
+        },
+        {
+          "id": "contracts",
+          "title": "固定组件接口合同",
+          "goal": "为消息、文件、数据库和硬件交互定义格式与错误。",
+          "concepts": [
+            "接口合同",
+            "版本",
+            "幂等性"
+          ],
+          "guidedBuild": "为核心链路建立示例和反例。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "检查重复请求、缺失字段和旧版本输入。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查协议结构与错误响应。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "接口必须在成功和失败时都给出确定结果。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加一次重复提交和一次部分失败用例。",
+            "evidence": "合同文档与自动测试",
+            "automatedChecks": [
+              "duplicate-request",
+              "missing-field",
+              "version-mismatch"
+            ],
+            "selfChecks": [],
+            "awardsStar": true
+          },
+          "laterReencounter": "纵切和 Boss 只能通过这些公开接口连接组件。"
+        },
+        {
+          "id": "vertical-slice",
+          "title": "跑通最小纵向切片",
+          "goal": "用真实输入贯穿至少三个组件。",
+          "concepts": [
+            "纵切",
+            "集成测试",
+            "可观测性"
+          ],
+          "guidedBuild": "交付一个小但完整、可重复运行的用户流程。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "从用户结果反向检查每个组件的证据。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查日志、持久化和最终输出的关联 ID。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "纵切应证明组件能真实协作，而非各自演示。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "冷启动后按一条命令或操作完成端到端流程。",
+            "evidence": "启动说明、运行记录、状态查询",
+            "automatedChecks": [],
+            "selfChecks": [
+              "冷启动可用",
+              "结果可查询",
+              "日志可串联"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "故障章节在同一纵切中注入失败。"
+        },
+        {
+          "id": "failure-recovery",
+          "title": "让系统在真实故障后恢复",
+          "goal": "处理进程退出、断线、损坏输入、硬件异常或数据库忙。",
+          "concepts": [
+            "故障注入",
+            "恢复",
+            "幂等",
+            "降级"
+          ],
+          "guidedBuild": "选择三类与架构真正相关的故障并自动复现。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先记录故障前、故障中和恢复后的状态。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查重试、回滚、超时和安全状态。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "恢复必须避免重复副作用和伪成功。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "进程中断后重启，已确认结果不重复、未确认结果可解释。",
+            "evidence": "故障脚本、状态快照、恢复说明",
+            "automatedChecks": [],
+            "selfChecks": [
+              "无数据静默丢失",
+              "无无限重试",
+              "恢复结果可追踪"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 由管理者从已声明故障中组合未知顺序。"
+        },
+        {
+          "id": "handover",
+          "title": "让未来的自己接得回来",
+          "goal": "整理构建、运行、诊断、备份和限制。",
+          "concepts": [
+            "可接手性",
+            "运维说明",
+            "决策记录"
+          ],
+          "guidedBuild": "在间隔后只按文档重新部署和验证。",
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "隐藏自己的记忆，只看文档是否足够。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查依赖、配置、数据位置和恢复步骤。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "作品长期价值取决于能否再次理解和运行。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "让管理者按文档完成一次冷启动验收。",
+            "evidence": "接手文档与验收记录",
+            "automatedChecks": [],
+            "selfChecks": [
+              "环境清单完整",
+              "备份恢复明确",
+              "已知限制诚实"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "最终演示必须从干净环境开始。"
+        }
+      ],
+      "boss": {
+        "id": "invincible-independent-boss",
+        "title": "蛋仔岛作品发布日",
+        "story": "学习者自行讲述作品目标、现场运行核心流程，并处理一个事先未公开的组合故障。",
+        "phases": [
+          {
+            "id": "clean-start",
+            "title": "从干净环境启动",
+            "successCriteria": [
+              "依赖和配置可复现",
+              "无隐藏手工状态"
+            ]
+          },
+          {
+            "id": "live-use",
+            "title": "完成真实用户流程",
+            "successCriteria": [
+              "核心目标可观察",
+              "数据和日志一致"
+            ]
+          },
+          {
+            "id": "unknown-failure",
+            "title": "处理未知组合故障",
+            "successCriteria": [
+              "先复现再修改",
+              "恢复无重复副作用",
+              "解释根因与限制"
+            ]
+          },
+          {
+            "id": "handover",
+            "title": "完成接手验证",
+            "successCriteria": [
+              "另一人仅按文档完成启动与检查"
+            ]
+          }
+        ],
+        "referenceIntegration": {
+          "unlockAfter": "architecture checkpoint submitted",
+          "title": "蛋仔岛开园运营系统参考整合",
+          "guidanceOnly": true,
+          "suggestedConnections": [
+            "STM32 机关状态",
+            "C 网络网关",
+            "Linux 进程监督",
+            "C++ 并发服务",
+            "SQLite 持久化"
+          ]
+        },
+        "faultScenarios": [
+          "selected-from-learner-declared-risks",
+          "one-undeclared-interface-edge"
+        ],
+        "resumableByPhase": true,
+        "managerApprovalRequired": false
+      },
+      "rewards": {
+        "chapterXp": 35,
+        "independentCheckpointStar": 1,
+        "bossXp": 150,
+        "trophy": {
+          "id": "trophy-invincible-phoenix-crown",
+          "title": "无敌凤凰蛋冠冕",
+          "wallCategory": "final-trophy"
+        },
+        "neverRevoke": true
+      },
+      "aiContext": {
+        "copyFields": [
+          "rankId",
+          "title",
+          "chapter",
+          "goal",
+          "coreContract",
+          "codeOrCommand",
+          "input",
+          "expectedBehavior",
+          "actualResult",
+          "viewedHintTiers",
+          "recentAttempts"
+        ],
+        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+      },
+      "file": "levels/invincible-independent-project.json"
+    }
+  ],
+  "rewardCatalog": [
+    {
+      "id": "token-square-start-key",
+      "title": "广场启动钥匙",
+      "kind": "ability-token",
+      "sourceRankId": "quail"
+    },
+    {
+      "id": "token-data-calibration-chip",
+      "title": "数据校准芯片",
+      "kind": "ability-token",
+      "sourceRankId": "pigeon"
+    },
+    {
+      "id": "token-golden-referee-whistle",
+      "title": "金色裁判哨",
+      "kind": "ability-token",
+      "sourceRankId": "chicken"
+    },
+    {
+      "id": "trophy-food-street-sign",
+      "title": "美食街招牌模型",
+      "kind": "project-trophy",
+      "sourceRankId": "goose"
+    },
+    {
+      "id": "trophy-ferris-control-console",
+      "title": "摩天轮中控模型",
+      "kind": "project-trophy",
+      "sourceRankId": "ostrich"
+    },
+    {
+      "id": "trophy-night-patrol-lamp",
+      "title": "夜班巡检灯",
+      "kind": "project-trophy",
+      "sourceRankId": "dinosaur"
+    },
+    {
+      "id": "trophy-delivery-center-model",
+      "title": "配送中心微缩模型",
+      "kind": "project-trophy",
+      "sourceRankId": "peak-phoenix"
+    },
+    {
+      "id": "trophy-arcade-data-core",
+      "title": "游戏厅数据核心",
+      "kind": "project-trophy",
+      "sourceRankId": "super-phoenix"
+    },
+    {
+      "id": "trophy-invincible-phoenix-crown",
+      "title": "无敌凤凰蛋冠冕",
+      "kind": "final-trophy",
+      "sourceRankId": "invincible-phoenix"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "achievement-first-independent-debug",
+      "title": "第一位故障侦探",
+      "hidden": false,
+      "trigger": {
+        "event": "independent-bug-fixed",
+        "count": 1
+      },
+      "description": "第一次独立复现、定位并修复错误。"
+    },
+    {
+      "id": "achievement-old-skill-new-scene",
+      "title": "旧招新用",
+      "hidden": false,
+      "trigger": {
+        "event": "prior-rank-concept-applied",
+        "count": 1
+      },
+      "description": "在新的段位项目中主动复用旧知识。"
+    },
+    {
+      "id": "achievement-edge-case",
+      "title": "边界发现者",
+      "hidden": true,
+      "trigger": {
+        "event": "learner-added-edge-case",
+        "count": 1
+      },
+      "description": "发现课程未直接要求的有效边界情况。"
+    },
+    {
+      "id": "achievement-return-after-solution",
+      "title": "重新夺回这一星",
+      "hidden": false,
+      "trigger": {
+        "event": "replacement-variation-cleared",
+        "count": 1
+      },
+      "description": "看过完整解法后，独立完成新的等价变式。"
+    },
+    {
+      "id": "achievement-return-after-gap",
+      "title": "重新开玩",
+      "hidden": false,
+      "trigger": {
+        "event": "return-after-gap",
+        "minimumDays": 7
+      },
+      "description": "间隔一段时间后完成短自测并继续游玩。"
+    },
+    {
+      "id": "achievement-creative-extension",
+      "title": "乐园改造家",
+      "hidden": true,
+      "trigger": {
+        "event": "creative-extension-verified",
+        "count": 1
+      },
+      "description": "在核心合同之外完成有意义的创意扩展。"
+    },
+    {
+      "id": "achievement-error-explainer",
+      "title": "错误讲解员",
+      "hidden": false,
+      "trigger": {
+        "event": "error-explanation-verified",
+        "count": 1
+      },
+      "description": "清楚解释一次错误的现象、根因和修复。"
+    }
+  ],
+  "legalNotice": "非官方个人学习项目，仅供本地学习使用；相关游戏名称与素材版权归原权利人所有。"
+}

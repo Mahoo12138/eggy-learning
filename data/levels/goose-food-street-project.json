@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 2,
+  "id": "goose-food-street-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "goose",
+  "title": "蛋仔美食街·今天吃什么",
+  "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
+  "languages": [
+    "c"
+  ],
+  "locationIds": [
+    "snow-bakery",
+    "milk-tea-shop"
+  ],
+  "propIds": [],
+  "estimatedSessions": {
+    "minimum": 18,
+    "typical": 24
+  },
+  "prerequisiteActivityIds": [
+    "chicken-rules-boss"
+  ],
+  "story": "苹果派雪雪烘焙店和淘气丸子奶茶店共同维护一份美食清单，为来宾推荐餐点并保存最近选择。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "terminal-application",
+    "workingTitle": "今天吃什么",
+    "entryFile": "src/main.c",
+    "persistentFiles": [
+      "data/menu.txt",
+      "data/history.txt"
+    ],
+    "runTarget": "native-c17"
+  },
+  "coreContract": [
+    "加载并显示有效菜品",
+    "随机给出候选、允许换一个并确认",
+    "空菜单、超长名称和损坏文件不会造成越界或伪结果",
+    "确认结果可保存并在下次启动读取"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "menu-array",
+      "title": "把菜单放进数组",
+      "goal": "从固定菜单中安全读取和显示菜品。",
+      "concepts": [
+        "数组容量",
+        "下标",
+        "边界"
+      ],
+      "guidedBuild": "建立固定容量菜单并打印全部有效项。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察有效数量与数组容量是否混用。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查遍历菜单的循环边界。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "循环只能访问 0 到 count-1。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "加入空菜单和满容量菜单用例。",
+        "evidence": "终端输出与边界用例表",
+        "automatedChecks": [
+          "empty-menu",
+          "one-item",
+          "full-capacity"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "随机选择章节再次使用有效数量而非容量。"
+    },
+    {
+      "id": "dish-struct",
+      "title": "用结构体描述一道菜",
+      "goal": "把名称、类别和是否售罄组合为一个 Dish。",
+      "concepts": [
+        "struct",
+        "字段",
+        "结构体数组"
+      ],
+      "guidedBuild": "将字符串数组迁移为 Dish 数组，并按售罄状态显示。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "比较一行菜品的三个字段是否保持配对。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 Dish 定义和初始化表。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "相关数据放入同一结构体，排序或复制时才不会错位。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立增加饮品类别并正确过滤售罄项。",
+        "evidence": "Dish 定义和运行输出",
+        "automatedChecks": [
+          "sold-out-filter",
+          "category-preserved"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "文件加载章节继续填充同一 Dish 结构。"
+    },
+    {
+      "id": "pointer-functions",
+      "title": "让函数修改候选状态",
+      "goal": "用指针和清楚的所有权边界拆分选择流程。",
+      "concepts": [
+        "指针参数",
+        "const",
+        "返回值",
+        "生命周期"
+      ],
+      "guidedBuild": "实现 pick_candidate、replace_candidate 和 confirm_candidate。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先确认哪个函数只读菜单，哪个函数会修改当前候选。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查函数参数中的指针和 const。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "调用者持有状态，修改函数通过有效指针写回。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "新增“换一个”且不得重复当前候选。",
+        "evidence": "函数接口与重复候选测试",
+        "automatedChecks": [
+          "no-immediate-repeat",
+          "empty-source-safe"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 中通过同一接口处理读取失败后的内存菜单。"
+    },
+    {
+      "id": "safe-strings",
+      "title": "让菜名安全进入内存",
+      "goal": "处理长度、终止符和非法文本。",
+      "concepts": [
+        "字符数组",
+        "字符串终止",
+        "长度检查"
+      ],
+      "guidedBuild": "限制菜名长度并拒绝无法完整保存的输入。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察最大长度输入后的最后一个字符。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查读取上限与目标数组容量。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "字符数组必须为结尾的 \\0 留出空间。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "验证空名称、恰好上限和超过上限三种输入。",
+        "evidence": "三类字符串边界结果",
+        "automatedChecks": [
+          "empty-name",
+          "exact-limit",
+          "over-limit-rejected"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "文件加载时复用相同校验，不能信任磁盘内容。"
+    },
+    {
+      "id": "file-history",
+      "title": "保存并恢复最近选择",
+      "goal": "以明确格式读写菜单和历史。",
+      "concepts": [
+        "文件指针",
+        "返回值检查",
+        "持久化格式"
+      ],
+      "guidedBuild": "实现历史追加、启动读取和文件失败提示。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先观察 fopen 失败时程序是否仍继续读写。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查打开、读取、写入和关闭四个阶段。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "每个文件操作都可能失败，失败后不能使用无效 FILE 指针。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "让只读目录和损坏历史文件都能安全退出或回退。",
+        "evidence": "文件失败输出和恢复结果",
+        "automatedChecks": [
+          "missing-file",
+          "malformed-line",
+          "write-failure"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 在中途写入失败后要求保持原历史可读。"
+    },
+    {
+      "id": "debug-memory",
+      "title": "用调试器找到越界根因",
+      "goal": "通过断点、变量观察和最小复现定位内存错误。",
+      "concepts": [
+        "断点",
+        "调用栈",
+        "越界",
+        "最小复现"
+      ],
+      "guidedBuild": "修复一个仅在菜单满容量时出现的越界错误。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先找第一次出现异常的输入规模。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "观察循环末尾下标和 count。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "满容量时错误的 <= 会访问数组外。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "提交修复前后的复现步骤和一条防回归用例。",
+        "evidence": "复现说明、修复差异、回归输出",
+        "automatedChecks": [
+          "capacity-boundary-regression"
+        ],
+        "selfChecks": [],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 把越界与损坏文件组合起来，不提前提示错误位置。"
+    }
+  ],
+  "boss": {
+    "id": "goose-food-street-boss",
+    "title": "美食街闭店前的最后一单",
+    "story": "菜单已满、历史文件含坏行，保存目录突然不可写；程序仍要给出合法候选并保护旧记录。",
+    "phases": [
+      {
+        "id": "reproduce",
+        "title": "复现三个故障",
+        "successCriteria": [
+          "分别记录满菜单、坏行、写入失败现象"
+        ]
+      },
+      {
+        "id": "repair",
+        "title": "修复数据边界",
+        "successCriteria": [
+          "无越界",
+          "坏行被拒绝",
+          "写失败不破坏旧文件"
+        ]
+      },
+      {
+        "id": "independent-change",
+        "title": "加入“今日不再推荐”规则",
+        "successCriteria": [
+          "重启后规则仍生效",
+          "可解释内存与文件状态"
+        ]
+      }
+    ],
+    "faultScenarios": [
+      "full-menu",
+      "malformed-history",
+      "write-denied",
+      "zero-valid-dishes"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-food-street-sign",
+      "title": "美食街招牌模型",
+      "wallCategory": "project-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/goose-food-street-project.json"
+}

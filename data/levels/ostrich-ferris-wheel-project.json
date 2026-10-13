@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 2,
+  "id": "ostrich-ferris-wheel-project",
+  "version": 1,
+  "activityType": "rank-project",
+  "rankId": "ostrich",
+  "title": "蛋仔摩天轮安全中控站",
+  "technologyTheme": "STM32 裸机 C、GPIO、定时器、中断、UART、ADC、I²C/SPI 与非阻塞状态机",
+  "languages": [
+    "c"
+  ],
+  "locationIds": [
+    "ferris-wheel"
+  ],
+  "propIds": [],
+  "estimatedSessions": {
+    "minimum": 20,
+    "typical": 28
+  },
+  "prerequisiteActivityIds": [
+    "goose-food-street-project"
+  ],
+  "story": "摩天轮需要在按钮、传感器和故障信号共同作用下安全启动、运行、停靠和复位。",
+  "oneProjectRule": {
+    "allChaptersModifySameArtifact": true,
+    "chapterExercisesAreNotSeparateProjects": true
+  },
+  "artifact": {
+    "kind": "stm32-firmware",
+    "workingTitle": "摩天轮安全中控站",
+    "entryFile": "Core/Src/main.c",
+    "runTarget": "stm32-external-toolchain",
+    "hardwareProfile": {
+      "strategy": "manager-configured-before-first-flash",
+      "requiredCapabilities": [
+        "GPIO 输入输出",
+        "至少一个硬件定时器",
+        "UART",
+        "ADC",
+        "I²C 或 SPI 外设"
+      ],
+      "debugEvidence": [
+        "串口日志",
+        "真机状态视频或照片说明",
+        "关键寄存器或变量观察"
+      ]
+    }
+  },
+  "coreContract": [
+    "启动、运行、停靠、故障和复位状态转换明确",
+    "按钮抖动和长按不会重复触发危险动作",
+    "中断只做短工作，主循环保持非阻塞",
+    "传感器异常或复位后进入安全状态"
+  ],
+  "chapterTeachingLoop": [
+    "experience",
+    "predict",
+    "concise-explanation",
+    "guided-build",
+    "immediate-feedback",
+    "independent-change",
+    "later-reencounter"
+  ],
+  "chapters": [
+    {
+      "id": "gpio-start",
+      "title": "点亮第一盏安全灯",
+      "goal": "建立工程，读取按钮并控制状态灯。",
+      "concepts": [
+        "GPIO",
+        "输入输出",
+        "上拉下拉"
+      ],
+      "guidedBuild": "完成按钮到状态灯的最小闭环。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先核对按钮按下时电平是高还是低。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 GPIO 初始化和读取条件。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "硬件电平定义错误会让逻辑整体反向。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立增加“未准备好时红灯常亮”。",
+        "evidence": "引脚表、串口或真机结果",
+        "automatedChecks": [],
+        "selfChecks": [
+          "断电重启后默认红灯",
+          "按钮释放后状态明确"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 复位阶段再次检查安全默认输出。"
+    },
+    {
+      "id": "debounce-state",
+      "title": "消除按钮抖动",
+      "goal": "用非阻塞状态机识别一次稳定按下。",
+      "concepts": [
+        "消抖",
+        "状态机",
+        "时间差"
+      ],
+      "guidedBuild": "替换阻塞延时，记录候选电平和稳定时间。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察一次按下产生了几次边沿。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查按钮状态与时间戳更新。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "只有电平稳定超过阈值才确认新状态。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "连续快速按压不会重复启动。",
+        "evidence": "串口时间戳与动作次数",
+        "automatedChecks": [],
+        "selfChecks": [
+          "短抖动不触发",
+          "稳定按下只触发一次"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "中断章节比较轮询消抖与中断通知。"
+    },
+    {
+      "id": "timer-interrupt",
+      "title": "用定时器驱动运行节拍",
+      "goal": "配置周期中断并保持中断处理短小。",
+      "concepts": [
+        "定时器",
+        "中断",
+        "volatile",
+        "共享状态"
+      ],
+      "guidedBuild": "中断只增加节拍并设置标志，主循环处理动画和状态转换。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察中断内是否包含打印或等待。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 ISR 和主循环之间共享的标志。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "中断耗时会阻塞其他实时事件。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立实现每 100 个节拍更新一次轿厢位置。",
+        "evidence": "节拍日志与中断代码",
+        "automatedChecks": [],
+        "selfChecks": [
+          "中断无阻塞调用",
+          "长时间运行节拍稳定"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 注入计数回绕，验证无符号时间差。"
+    },
+    {
+      "id": "uart-diagnostics",
+      "title": "让中控站会报告自己",
+      "goal": "设计可读且不会淹没串口的状态日志。",
+      "concepts": [
+        "UART",
+        "诊断日志",
+        "错误码"
+      ],
+      "guidedBuild": "只在状态变化时打印时间、旧状态、新状态和原因。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "观察主循环每轮打印是否造成大量重复。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查日志触发条件。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "状态变化事件比循环频率更适合日志。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "加入传感器错误码和一次性故障报告。",
+        "evidence": "正常与故障串口日志",
+        "automatedChecks": [],
+        "selfChecks": [
+          "日志含时间和原因",
+          "稳定状态不刷屏"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "ADC 章节通过同一日志报告越界值。"
+    },
+    {
+      "id": "sensor-bus",
+      "title": "接入高度与门锁传感器",
+      "goal": "读取 ADC，并通过 I²C 或 SPI 获取一个外设状态。",
+      "concepts": [
+        "ADC",
+        "采样",
+        "I²C/SPI",
+        "超时"
+      ],
+      "guidedBuild": "将原始值转换为可判断的高度和门锁状态。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先区分原始采样值、转换值和有效性。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查读取返回值和超时分支。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "通信成功与数据范围都要验证。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "断开传感器时中控进入故障态而非继续运行。",
+        "evidence": "正常值、边界值、断线结果",
+        "automatedChecks": [],
+        "selfChecks": [
+          "ADC 上下界",
+          "总线超时",
+          "无效值拒绝"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 同时注入门锁断线和按钮输入。"
+    },
+    {
+      "id": "safe-recovery",
+      "title": "完成安全恢复状态机",
+      "goal": "把启动条件、运行、停靠、故障和复位组合起来。",
+      "concepts": [
+        "分层状态机",
+        "超时",
+        "安全默认值"
+      ],
+      "guidedBuild": "实现 READY、RUNNING、PARKING、FAULT、RESETTING。",
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "逐个状态列出允许进入和离开的条件。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查故障能否从每个运行状态进入。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "安全事件的优先级必须高于普通控制事件。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "任何状态检测到门锁失效都立即停止并锁定故障。",
+        "evidence": "状态图、串口轨迹、真机自检",
+        "automatedChecks": [],
+        "selfChecks": [
+          "故障优先",
+          "复位需明确动作",
+          "重启默认安全"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "Boss 不再提示当前状态，只给传感器和日志。"
+    }
+  ],
+  "boss": {
+    "id": "ostrich-ferris-wheel-boss",
+    "title": "摩天轮雨夜安全演练",
+    "story": "按钮发生抖动、计时器接近回绕、门锁传感器中途断开，系统还会被突然复位。",
+    "phases": [
+      {
+        "id": "instrument",
+        "title": "建立可观察日志",
+        "successCriteria": [
+          "每次状态变化可追踪",
+          "中断不打印"
+        ]
+      },
+      {
+        "id": "fault-injection",
+        "title": "逐项注入故障",
+        "successCriteria": [
+          "抖动不重复启动",
+          "计时回绕不破坏超时",
+          "传感器断线进入 FAULT"
+        ]
+      },
+      {
+        "id": "power-recovery",
+        "title": "独立完成断电恢复",
+        "successCriteria": [
+          "复位后输出安全",
+          "需要明确操作才能重新启动"
+        ]
+      }
+    ],
+    "faultScenarios": [
+      "button-bounce",
+      "timer-wraparound",
+      "sensor-disconnect",
+      "unexpected-reset"
+    ],
+    "resumableByPhase": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "chapterXp": 35,
+    "independentCheckpointStar": 1,
+    "bossXp": 150,
+    "trophy": {
+      "id": "trophy-ferris-control-console",
+      "title": "摩天轮中控模型",
+      "wallCategory": "project-trophy"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "chapter",
+      "goal",
+      "coreContract",
+      "codeOrCommand",
+      "input",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers",
+      "recentAttempts"
+    ],
+    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+  },
+  "file": "levels/ostrich-ferris-wheel-project.json"
+}

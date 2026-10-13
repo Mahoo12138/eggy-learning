@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 2,
+  "id": "quail-fountain-sequence",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "quail",
+  "subrankId": "quail-iii",
+  "sequence": 1,
+  "title": "让中央喷泉按顺序亮起",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [],
+  "scene": {
+    "locationId": "central-fountain",
+    "propIds": [],
+    "intro": "开园前，三组喷泉必须依次点亮。每一行输出都会触发一组喷泉。",
+    "success": "喷泉按新编排完成开园灯光测试。"
+  },
+  "objectives": [
+    "理解 main 函数中的语句按顺序执行",
+    "把终端输出与场景动作对应起来"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "不运行代码，先把喷泉预计亮起的顺序排出来。",
+      "interaction": {
+        "kind": "reorder",
+        "items": [
+          "蓝色喷泉",
+          "黄色喷泉",
+          "粉色喷泉"
+        ]
+      },
+      "evaluator": {
+        "kind": "exact-order",
+        "expected": [
+          "蓝色喷泉",
+          "黄色喷泉",
+          "粉色喷泉"
+        ]
+      },
+      "feedback": {
+        "correct": "预测与语句顺序一致。接下来用真实运行确认。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "运行程序，观察终端每输出一行时喷泉如何响应。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+      },
+      "stdin": "",
+      "evaluator": {
+        "kind": "stdout-exact",
+        "expected": "蓝\n黄\n粉\n"
+      },
+      "visualizer": {
+        "kind": "stdout-sequence",
+        "target": "central-fountain",
+        "tokenMap": {
+          "蓝": "blue-jet",
+          "黄": "yellow-jet",
+          "粉": "pink-jet"
+        }
+      },
+      "observationPrompt": "实际顺序和预测哪里相同或不同？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "为什么三组喷泉不会同时亮起？",
+      "referencePoints": [
+        "每条 printf 是一条独立语句",
+        "程序按从上到下的顺序执行"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "只调整三条输出语句，让粉色喷泉最先亮起。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdout-exact",
+        "expected": "粉\n蓝\n黄\n"
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先看第一行实际输出了哪个颜色。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "只需要调整 main 中三条 printf 的次序。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "场景顺序完全由输出语句的先后决定。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "将三条输出依次写成“粉”“蓝”“黄”。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立完成新的灯光顺序。",
+      "runtimeId": "c17-console",
+      "variantSetId": "quail-fountain-order-v1",
+      "variants": [
+        {
+          "id": "greenless-yellow-pink-blue",
+          "prompt": "输出黄、粉、蓝。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "黄\n粉\n蓝\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"黄\\n\");\n  printf(\"粉\\n\");\n  printf(\"蓝\\n\");\n  return 0;\n}\n"
+        },
+        {
+          "id": "blue-pink-yellow",
+          "prompt": "输出蓝、粉、黄。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"粉\\n\");\n  printf(\"黄\\n\");\n  printf(\"蓝\\n\");\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "蓝\n粉\n黄\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"蓝\\n\");\n  printf(\"粉\\n\");\n  printf(\"黄\\n\");\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "逐行读出当前颜色。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "圈出三条 printf。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "先写目标顺序，再让代码与它一一对应。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "id": "chicken-rules-boss",
+  "version": 1,
+  "activityType": "rank-boss",
+  "rankId": "chicken",
+  "sequence": 4,
+  "title": "蛋仔公园道具挑战赛",
+  "estimatedMinutes": 24,
+  "prerequisiteLevelIds": [
+    "chicken-teleport-state",
+    "chicken-bomb-boundary",
+    "chicken-football-rounds"
+  ],
+  "scene": {
+    "locationId": "eggy-park",
+    "propIds": [
+      "teleport-ball",
+      "bomb",
+      "spring-board",
+      "bouncy-ball"
+    ],
+    "intro": "公园开放前要连续验证传送状态、炸弹边界和多轮计分。"
+  },
+  "resumePolicy": {
+    "checkpointed": true,
+    "resumeAtLastIncompleteCheckpoint": true
+  },
+  "checkpoints": [
+    {
+      "id": "predict-paths",
+      "kind": "prediction",
+      "title": "画出道具执行路径",
+      "prompt": "为传送球输入 0、1、2，分别选择将进入的分支。",
+      "evaluator": {
+        "kind": "mapping-exact",
+        "expected": {
+          "0": "放置",
+          "1": "传送",
+          "2": "错误"
+        }
+      }
+    },
+    {
+      "id": "repair-loop-boundary",
+      "kind": "code-repair",
+      "title": "修复少算一轮的记分牌",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int hit = 0;\n  for (int round = 0; round < 2; round++) {\n    int value; scanf(\"%d\", &value);\n    if (value >= 1) hit++;\n  }\n  printf(\"命中%d次\\n\", hit);\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "1\n0\n1\n",
+            "stdout": "命中2次\n"
+          },
+          {
+            "stdin": "1\n1\n1\n",
+            "stdout": "命中3次\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "程序只读了两个输入。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查循环终止条件。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "三轮从 0 开始应允许 round 为 0、1、2。"
+        }
+      ]
+    },
+    {
+      "id": "transfer-item-judge",
+      "kind": "independent-transfer",
+      "title": "独立设计弹簧绳判定",
+      "prompt": "编写 can_hook(distance)；距离 1–4 返回 1，其他返回 0。读取 4 个距离并输出可勾中次数。",
+      "runtimeId": "c17-console",
+      "grader": {
+        "kind": "stdin-stdout-cases",
+        "cases": [
+          {
+            "stdin": "0\n1\n4\n5\n",
+            "stdout": "可勾中2次\n"
+          },
+          {
+            "stdin": "2\n3\n4\n1\n",
+            "stdout": "可勾中4次\n"
+          }
+        ]
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先独立写出距离边界。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "函数处理一次判断，循环处理四次输入。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "把 can_hook 的 0 或 1 累加到计数。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "revealRequiresNewEquivalentCheckpoint": true
+      }
+    }
+  ],
+  "completionRule": {
+    "allCheckpointsRequired": true,
+    "finalCheckpointMustBeIndependent": true,
+    "managerApprovalRequired": false
+  },
+  "rewards": {
+    "xp": 80,
+    "rankPromotion": true,
+    "coreToken": {
+      "id": "token-golden-referee-whistle",
+      "title": "金色裁判哨",
+      "wallCategory": "ability-token"
+    },
+    "neverRevoke": true
+  },
+  "aiContext": {
+    "copyFields": [
+      "title",
+      "checkpoint",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "用问题引导学习者解释现象；不要替学习者完成最后的迁移检查点。"
+  }
+}

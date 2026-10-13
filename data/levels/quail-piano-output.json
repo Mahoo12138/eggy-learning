@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 2,
+  "id": "quail-piano-output",
+  "version": 1,
+  "activityType": "interactive-lesson",
+  "rankId": "quail",
+  "subrankId": "quail-ii",
+  "sequence": 2,
+  "title": "钢琴地毯的三声音阶",
+  "estimatedMinutes": 18,
+  "prerequisiteLevelIds": [
+    "quail-fountain-sequence"
+  ],
+  "scene": {
+    "locationId": "piano-carpet",
+    "propIds": [],
+    "intro": "钢琴地毯读取终端里的音名，一行对应踩下一块琴键。",
+    "success": "钢琴地毯完整播放了学习者编排的新旋律。"
+  },
+  "objectives": [
+    "认识字符串输出",
+    "理解换行如何分隔动作"
+  ],
+  "teachingLoop": [
+    "predict",
+    "run-observe",
+    "explain",
+    "short-edit",
+    "independent-variation"
+  ],
+  "steps": [
+    {
+      "id": "predict",
+      "type": "prediction",
+      "prompt": "代码运行后会依次听到哪三个音？",
+      "interaction": {
+        "kind": "single-choice",
+        "options": [
+          "Do、Re、Mi",
+          "DoReMi 同时响",
+          "Mi、Re、Do"
+        ]
+      },
+      "evaluator": {
+        "kind": "choice",
+        "expectedIndex": 0
+      },
+      "feedback": {
+        "correct": "三条输出和三个琴键一一对应。",
+        "incorrect": "先保留你的预测，再运行程序观察真实结果；预测错误不会扣除任何奖励。"
+      }
+    },
+    {
+      "id": "run-observe",
+      "type": "run-observe",
+      "runtimeId": "c17-console",
+      "prompt": "运行并观察换行如何让三个音依次出现。",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"Do\\n\");\n  printf(\"Re\\n\");\n  printf(\"Mi\\n\");\n  return 0;\n}\n"
+      },
+      "stdin": "",
+      "evaluator": {
+        "kind": "stdout-exact",
+        "expected": "Do\nRe\nMi\n"
+      },
+      "visualizer": {
+        "kind": "stdout-sequence",
+        "target": "piano-carpet",
+        "tokenMap": {
+          "Do": "key-do",
+          "Re": "key-re",
+          "Mi": "key-mi"
+        }
+      },
+      "observationPrompt": "每个 \\n 对画面节奏产生了什么影响？"
+    },
+    {
+      "id": "explain",
+      "type": "explanation",
+      "prompt": "如果删掉第一个 \\n，终端文字和琴键节奏会发生什么变化？",
+      "referencePoints": [
+        "文本会连在同一行",
+        "可视化按完整输出标记解析动作"
+      ],
+      "answerPolicy": {
+        "minimumCharacters": 8,
+        "managerVisible": true
+      }
+    },
+    {
+      "id": "short-edit",
+      "type": "code-edit",
+      "prompt": "把旋律改成 Do、Mi、Sol，每个音单独一行。",
+      "runtimeId": "c17-console",
+      "starterFiles": {
+        "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"Do\\n\");\n  printf(\"Re\\n\");\n  printf(\"Mi\\n\");\n  return 0;\n}\n"
+      },
+      "grader": {
+        "kind": "stdout-exact",
+        "expected": "Do\nMi\nSol\n"
+      },
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先对比目标旋律与当前第二、第三行。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "修改两个 printf 字符串。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "保持每个字符串末尾的 \\n。"
+        }
+      ],
+      "fullSolution": {
+        "availableAfterTier": 3,
+        "text": "第二行输出 Mi，第三行输出 Sol。",
+        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+      }
+    },
+    {
+      "id": "independent-variation",
+      "type": "independent-variation",
+      "prompt": "独立编排另一段三声音阶。",
+      "runtimeId": "c17-console",
+      "variantSetId": "quail-piano-melody-v1",
+      "variants": [
+        {
+          "id": "sol-mi-do",
+          "prompt": "播放 Sol、Mi、Do。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"Do\\n\");\n  printf(\"Re\\n\");\n  printf(\"Mi\\n\");\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "Sol\nMi\nDo\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"Sol\\n\");\n  printf(\"Mi\\n\");\n  printf(\"Do\\n\");\n  return 0;\n}\n"
+        },
+        {
+          "id": "re-sol-do",
+          "prompt": "播放 Re、Sol、Do。",
+          "starterFiles": {
+            "main.c": "#include <stdio.h>\nint main(void) {\n  printf(\"Do\\n\");\n  printf(\"Mi\\n\");\n  printf(\"Sol\\n\");\n  return 0;\n}\n"
+          },
+          "grader": {
+            "kind": "stdout-exact",
+            "expected": "Re\nSol\nDo\n"
+          },
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  printf(\"Re\\n\");\n  printf(\"Sol\\n\");\n  printf(\"Do\\n\");\n  return 0;\n}\n"
+        }
+      ],
+      "hints": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先逐行念出目标音名。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "只编辑三个字符串的内容。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "一个音对应一条带换行的输出。"
+        }
+      ],
+      "fullSolutionPolicy": {
+        "availableAfterTier": 3,
+        "revealedSolutionDisablesStarForCurrentVariant": true,
+        "assignUnusedEquivalentVariant": true
+      },
+      "starPolicy": {
+        "award": 1,
+        "firstIndependentClearOnly": true,
+        "neverRevoke": true
+      }
+    }
+  ],
+  "rewards": {
+    "xp": {
+      "firstMeaningfulAttempt": 10,
+      "firstClear": 20,
+      "repeatDailyCap": 5
+    },
+    "star": {
+      "sourceStepId": "independent-variation",
+      "amount": 1
+    }
+  },
+  "aiContext": {
+    "copyFields": [
+      "rankId",
+      "title",
+      "objectives",
+      "currentStep",
+      "prompt",
+      "code",
+      "stdin",
+      "expectedBehavior",
+      "actualResult",
+      "attemptSummary",
+      "viewedHintTiers"
+    ],
+    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+  }
+}
