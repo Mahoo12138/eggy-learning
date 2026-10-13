@@ -1,0 +1,2107 @@
+{
+  "asOf": "2026-10-12",
+  "methodology": {
+    "baseSchema": "jd-skills-data.json",
+    "skillDefinitions": "沿用主JSON现有16类定义；R/D/P按正文归纳编码。",
+    "countRule": "同JD同技能同类型最多一次，类型不混合；confirmed:false为已读正文但状态待核草稿，不可并入有效样本。",
+    "selection": "新增完整描述以expansion-edge-jd-evidence.md为唯一编码来源；未从职位标签或公司行业推断技能。",
+    "categoryNotes": [
+      "CPU体系结构组包括明确的计算机组成原理；平台名或一般平台使用经验不自动计入。",
+      "MCU/外设为宽组，包括Linux设备的明确外设驱动，不能把该组计数当纯MCU岗位数。",
+      "仅了解AI框架知识优先等未被16类完整覆盖的专项留unmappedSkills；AI集成计数不代表所有AI知识要求。",
+      "JD55按接受应届归entry；日薪与短期出勤安排没有明确实习字样，岗位身份待核。"
+    ]
+  },
+  "jobs": [
+    {
+      "id": "JD27",
+      "company": "零零科技",
+      "title": "嵌入式软件实习生",
+      "companySize": "500–999人",
+      "city": "深圳南山",
+      "education": "本科在校，计算机/电子/自动化等相关",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/05893146d156fe470nJ529m6FVBY.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情已补核招聘中，全文与面板一致；每周5天、6个月；GUI为设备应用而非纯桌面。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列面向对象及常用设计模式。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux应用层。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列多线程、事件驱动、消息机制及内存管理。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列基本调试和分析工具定位问题。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责是无人机Linux GUI应用开发维护。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责包含设备GUI应用及驱动/中间件/上层接口设计。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责包含通信协议解析。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含接口联调、现场调试及异常分析。"
+        },
+        {
+          "skill": "linux",
+          "type": "bonus",
+          "evidence": "嵌入式Linux应用经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "P：glib/Boost/gstreamer/grpc/protobuf系统库框架；Qt/QML/LVGL/GTK至少一种。未把GUI工具归成纯桌面方向。"
+      ],
+      "sourceSection": "JD27"
+    },
+    {
+      "id": "JD28",
+      "company": "魔力信息技术",
+      "title": "嵌入式软件（实习生）",
+      "companySize": "20–99人",
+      "city": "深圳南山",
+      "education": "本科，计算机相关",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "mcu",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/53264a6ae3e804a103Fz2961FVJZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情已补核招聘中，全文与面板一致；每周5天、6个月以上，一个月内到岗。STM32/ESP32是优先项。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++基础及独立编程。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列常用数据结构。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "requirement",
+          "evidence": "任职列嵌入式软硬件体系及原理图阅读。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列操作系统原理。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列嵌入式软件设计流程和基本软件工程。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责为软件模块设计开发。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "bonus",
+          "evidence": "STM32或ESP32开发经验优先。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "BLE或WiFi经历优先。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "bonus",
+          "evidence": "uCOS经历优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "独立阅读英文资料为任职；CET4为优先，未纳入技术图。",
+        "R：ARM平台及开发工具；未把平台使用扩大为CPU体系结构知识。"
+      ],
+      "sourceSection": "JD28"
+    },
+    {
+      "id": "JD29",
+      "company": "深圳市溯简科技",
+      "title": "嵌入式软件实习生【提供转正机会】",
+      "companySize": "20–99人",
+      "city": "深圳宝安",
+      "education": "电子/通信/自动化/计算机相关在读硕士或优秀本科",
+      "graduation": "未限定届别",
+      "stage": "intern",
+      "routes": [
+        "linux",
+        "system",
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/2dff78529bab33270nN62d20ElpQ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；本科可接受，但能力要求较高；每周5天、3个月。公司介绍的985团队背景不是职位院校硬门槛。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列熟练C及嵌入式编程习惯。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职要求了解Python或Shell用于自动化测试，并列嵌入式编程习惯。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职为Linux驱动模型或RTOS机制；Linux是二选一方向之一。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职为Linux驱动模型或RTOS机制；RTOS是二选一方向之一。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列I2C/SPI/UART/USB及TCP/IP、WiFi/蓝牙基础。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "requirement",
+          "evidence": "任职列基本硬件电路和原理图阅读。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列团队协作定位系统问题。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责包含GPIO/I2C/SPI/UART外设驱动。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责包含接口驱动、WiFi/BT配置及连接问题分析。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含功能测试、Camera/Lidar性能与压力测试、自动化测试脚本。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含断连丢包分析、板级联调及信号时序分析。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "duty",
+          "evidence": "职责明确仪器信号及时序分析。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责含Linux或RTOS驱动维护、内核编译和根文件系统裁剪。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "duty",
+          "evidence": "职责包含RTOS驱动维护这一分支，不与Linux分支强制同时要求。"
+        },
+        {
+          "skill": "version_build",
+          "type": "duty",
+          "evidence": "职责明确内核编译及根文件系统裁剪。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "bonus",
+          "evidence": "焊接或基础仪器经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Python或Shell自动化测试，任选限定保留；公司AI方向不计AI任职。"
+      ],
+      "sourceSection": "JD29"
+    },
+    {
+      "id": "JD30",
+      "company": "佑驾创新",
+      "title": "28届-C++开发实习生(MJ000883)",
+      "companySize": "1000–9999人",
+      "city": "深圳",
+      "education": "本科以上，计算机/电子工程/自动化等相关",
+      "graduation": "2028届",
+      "stage": "intern",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/46cfa50c4c1d40810nJ82di4FVpR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中，28届与画像一致；每周5天、6个月；高阶实习，精通不等于只会语法。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职使用精通C++表述。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux系统开发。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列GDB/Perf、火焰图定位性能热点及内存优化。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列多线程调度。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列CI/CD流程及Gitlab。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责包含规划算法软件工程设计和高性能模块设计。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "duty",
+          "evidence": "职责面向低延迟、高并发的算法模块。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含内存/计算资源优化及上线问题处理。"
+        },
+        {
+          "skill": "version_build",
+          "type": "duty",
+          "evidence": "职责含版本集成和CI/CD。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含静态扫描和单元测试。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "bonus",
+          "evidence": "编程竞赛经验优先。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "duty",
+          "evidence": "职责为规划算法的软件工程设计与高性能计算模块；不推成所有实习生算法研究门槛。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Python。规划算法工程不自动记为AI模型训练；通用内存优化未擅自推成RAII或智能指针要求。"
+      ],
+      "sourceSection": "JD30"
+    },
+    {
+      "id": "JD31",
+      "company": "普渡机器人",
+      "title": "（可转正）C++实习生",
+      "companySize": "1000–9999人",
+      "city": "深圳",
+      "education": "本科以上，计算机/机器人/自动化等相关",
+      "graduation": "2027届",
+      "stage": "intern",
+      "routes": [
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/88c512f1169235600nJ53N2_GVdR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；2027届，2028当前不匹配，只作跨届技能参照；每周5天、4个月。机器人专项，不是普遍C++实习门槛。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C++。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列ROS2底层通信。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列简单仿真验证与代码规范。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "requirement",
+          "evidence": "任职列Lidar/IMU/力控/视觉等传感器原理。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列模块化设计和接口意识。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责面向人形机器人实时模块化系统。"
+        },
+        {
+          "skill": "version_build",
+          "type": "duty",
+          "evidence": "职责包含ROS2协同部署。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "duty",
+          "evidence": "职责列多传感器高并发采集、处理、传输。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责含跨板通信及低延迟同步。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含算法与执行器联调。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含功能验证。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：ROS2，接触MoveIt2/Nav2/ROS2 Control之一；MuJoCo/Gazebo基本使用；运动学动力学。P：机器人课程/竞赛、行为树、Sim-to-Real等。对强化学习/WBC感兴趣不是熟练模型训练条件。",
+        "P：传感器采集接口课程实践未点名MCU或具体协议，不额外增加MCU/通信频次。"
+      ],
+      "sourceSection": "JD31"
+    },
+    {
+      "id": "JD32",
+      "company": "天贝物联",
+      "title": "【实习】Linux软件开发工程师",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科以上，计算机/电子/通信/自动化等相关",
+      "graduation": "2027届",
+      "stage": "intern",
+      "routes": [
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/3f63e31fc1f96abd1Hx_2tS5EldV.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；2028当前不匹配。卡片每周5天11个月，正文全勤10个月以上；C或Lua任选，高级网络条目属于优先。",
+      "mentions": [
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux基础操作及开发，了解OpenWrt相关组件。"
+        },
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职为C或Lua任选，能够独立简单编码。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列简单代码调试。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职要求了解OpenWrt SDK/menuconfig等列举项；不改写为必须精通全部组件。"
+        },
+        {
+          "skill": "ai_assisted",
+          "type": "requirement",
+          "evidence": "任职表达愿借AI工具提升编码效率与质量；是工具使用意愿，不夸大为熟练要求。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含网络/边缘设备产品预研和方案设计。"
+        },
+        {
+          "skill": "debugging",
+          "type": "bonus",
+          "evidence": "路由器开发调试经历优先。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "网络协议/管理与IEEE802.11等列为优先项，任一加分即可。"
+        },
+        {
+          "skill": "linux",
+          "type": "bonus",
+          "evidence": "OpenWrt/LEDE/Padavan/梅林/QSDK等经验优先。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "bonus",
+          "evidence": "ACM或数学建模获奖为可选加分项。"
+        }
+      ],
+      "unmappedSkills": [
+        "任职还列UCI/LuCI/netifd/firewall/dnsmasq/hostapd/uhttpd/procd/opkg/feeds等组件；不由组件名自行扩展出全部协议硬要求。"
+      ],
+      "sourceSection": "JD32"
+    },
+    {
+      "id": "JD33",
+      "company": "融航智能",
+      "title": "C++开发实习生",
+      "companySize": "0–20人",
+      "city": "深圳",
+      "education": "本科以上，自动化/通信/计算机/软件等",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/b678fcc0ab77a5b003R_39m_GFZR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD33",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中，招聘者半年前活跃，不保证实际响应；每周5天、3个月。保留嵌入式Linux分支，不把Qt认定为纯桌面。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C++。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列面向对象。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列嵌入式Linux。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责含嵌入式Linux分支；另有上位机分支。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：STL、Qt、良好编程习惯；没有从STL单独推出现代C++资源管理条件。P：机器人/ROS/无人驾驶经历。"
+      ]
+    },
+    {
+      "id": "JD34",
+      "company": "灵游互娱",
+      "title": "C++游戏服务端开发",
+      "companySize": "100–499人",
+      "city": "深圳南山",
+      "education": "本科以上，计算机相关",
+      "graduation": "未见届别；1–3年经验",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/bdc9e948c18c86e103V-0tm_FVBY.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD34",
+      "confirmed": true,
+      "fitNote": "Edge从移动页到桌面详情，桌面明确招聘中；未来经验目标。不由服务器标题补Linux/Socket任职条件。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列熟练C++及相关项目。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "requirement",
+          "evidence": "任职列MySQL、存储过程及SQL。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列需求分析及解决方案能力。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含服务端逻辑设计及服务器架构。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含服务端测试维护。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含线上故障、突发事件处理与性能调优。"
+        }
+      ],
+      "unmappedSkills": [
+        "P：Lua；在校比赛获奖或游戏项目，不将未指定的比赛自动计作算法竞赛。"
+      ]
+    },
+    {
+      "id": "JD35",
+      "company": "深圳惠尔顿",
+      "title": "Linux C网络开发",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科以上，计算机科学/数学/电子/通讯毕业",
+      "graduation": "已毕业并有一年工作经历",
+      "stage": "entry",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/672fe290137e23631H152tS-FVs~.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD35",
+      "confirmed": true,
+      "fitNote": "招聘中，招聘者半年前活跃。卡片1年以内归entry，正文一年工作经历；不是当前在校可投。D/P未分列，不从标题补协议。",
+      "mentions": [
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列常用数据结构。"
+        },
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列独立系统分析、设计及开发。"
+        }
+      ],
+      "unmappedSkills": [
+        "有基本测试题属于招聘考核安排，不是软件测试技术要求。"
+      ]
+    },
+    {
+      "id": "JD36",
+      "company": "谷探科技",
+      "title": "Linux网络/应用工程师",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科卡片；正文未见专业硬限定",
+      "graduation": "正文至少1年相关开发",
+      "stage": "experienced",
+      "routes": [
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/2bb9d2f875c324c61HF_39W4EVBR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD36",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；1–3年，未来经验参照。设备应用方向，高级工业协议及GUI是优先；招聘者4月内活跃。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列熟练C及了解C++面向对象。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列了解C++面向对象。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux系统/常用命令及了解Shell。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列Linux网络编程。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列独立定位排查和准确描述问题。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责含RS485与网络设备控制协议接入。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含设备维护调试及实施支持。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含模块详细设计。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责明确单元测试。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责为Linux应用开发。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "工业Modbus/PLC接入及IoT/MQTT优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "P：Qt/C#/MFC GUI经验，不把C#改写为主语言。"
+      ]
+    },
+    {
+      "id": "JD37",
+      "company": "深圳星域蔚蓝科技",
+      "title": "嵌入式软件实习生",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科以上在读，电子/自动化/计算机等",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/c98f59fd04ba8e2d0nZ_0t-_FldU.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD37",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；每周5天、3个月。C明确必须；工程竞赛为偏好。保留STM32/ESP32名称，不沿用原文将ESP32列作ARM的错误分类。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职明确必须有扎实C语言。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列代码规范。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职要求至少一种主流MCU，例举STM32/ESP32。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责含MCU外设驱动及功能实现。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含外设调试及板级联调。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含压力/姿态采集的算法验证及测试报告。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "bonus",
+          "evidence": "FreeRTOS/RTT经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "D/P：LVGL、AR GUI交互；GUI优先不改成必备。P：机器人/无人机DIY及RoboMaster/RC/飞思卡尔工程竞赛，不自动算算法竞赛。"
+      ]
+    },
+    {
+      "id": "JD38",
+      "company": "智安信息",
+      "title": "Linux C开发实习生",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科，计算机相关",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "linux",
+        "system",
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/f66b2844e25043411XB509y9GFFZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD38",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中，招聘者半年未活跃；每周5天、10个月。C或C++/C#保持语言备选关系，免费培训不是任职门槛。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "原文为熟练C，或者C++/C#，保留备选关系，不要求全部。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列数据结构与算法。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列网络协议。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux和Windows。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含网络安全产品模块设计。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责明确MCU驱动。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "bonus",
+          "evidence": "非对称/AES128/国密算法列为优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Qt、Windows。P：嵌入式软件经历；未由泛嵌入式经验补记MCU/Linux优先。"
+      ]
+    },
+    {
+      "id": "JD39",
+      "company": "自变量机器人",
+      "title": "嵌入式软件实习生(A185207)",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "本科以上，自动化/计算机等",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "mcu",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/cd2805aca18d57080nB42d-0E1FX.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD39",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；每周5天、3个月。本科专业适配但电机控制专项门槛高，公司AI行业不计AI工具任职。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职对C/C++使用精通表述。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职对RTOS使用精通表述。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列USART/SPI/CAN/EtherCAT。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列嵌入式编译工具方法及代码管理工具。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列TI/先楫/GD电机控制芯片开发场景。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列Python或自动化测试框架，保持备选关系。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责含电机嵌入式系统、外设配置维护及低功耗。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责明确开发调试。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责明确测试。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责含CAN/EtherCAT协议及多关节同步。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：关节模组软件模块；Python或自动化测试框架。P：Robocon/RoboMaster、关节模组嵌入式或伺服控制经历；不把工程竞赛自动算算法竞赛。"
+      ]
+    },
+    {
+      "id": "JD40",
+      "company": "迎凯",
+      "title": "嵌入式实习生（实习期提供住宿）",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "本科以上，计算机或理工科",
+      "graduation": "未见限定届别",
+      "stage": "intern",
+      "routes": [
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/14dde6865c1cf53e1HN52tm8FVFQ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD40",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；每周5天、6个月。精通STM32和实时OS是优先，不改成所有实习必须。",
+      "mentions": [
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列单片机原理及外设驱动。"
+        },
+        {
+          "skill": "cpu_architecture",
+          "type": "requirement",
+          "evidence": "任职明确ARM体系架构。"
+        },
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列扎实C语言。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列代码风格。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列数据结构算法。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列Keil等工具及调试方法。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含系统设计、概要/详细设计文档及功能模块。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "bonus",
+          "evidence": "精通STM32优先。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "bonus",
+          "evidence": "精通实时操作系统优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：英文阅读；P：医疗软件项目。Keil作为开发调试工具不单独补成构建系统要求。"
+      ]
+    },
+    {
+      "id": "JD41",
+      "company": "烽航",
+      "title": "初级嵌入式软件工程师",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科卡片；电子/自动化/计算机等专业优先",
+      "graduation": "未限毕业年；1年以内",
+      "stage": "entry",
+      "routes": [
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/a586faf7e5c243e41XB72NW5E1VU.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD41",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；基础初级样本。基本OS不升格为精通RTOS，单片机基础不扩成全部总线要求。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列扎实C。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列基本OS知识。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列单片机基础。"
+        }
+      ],
+      "unmappedSkills": [
+        "D：客户软件定制维护；没有凭此补细分技能。P：相关专业、电子设计竞赛、动手及实践作品，不是算法竞赛硬门槛。"
+      ]
+    },
+    {
+      "id": "JD42",
+      "company": "卓普数字",
+      "title": "嵌入式软件开发工程师",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "统招本科，计算机/通讯/电子；在校或应届",
+      "graduation": "2024–2025届，截止2026-10-31",
+      "stage": "entry",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/62269a81857a7f6f1Xd93N61GFJZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD42",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；2028跨届，仅技能参照。正文未明确MCU平台，不因RTOS或安防行业给MCU方向标签。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C语言。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列OS原理、内存管理、多进程多线程及RTOS开发。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux开发及嵌入式Linux工具。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列Linux/RTOS开发调试及Linux调试工具。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "bonus",
+          "evidence": "熟悉图像识别算法优先；不推定框架或模型训练。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：OS原理中的编译概念，未推成具体构建工具使用能力。D：指导下维护低功耗安防业务和应用；P：在校嵌入式项目。"
+      ]
+    },
+    {
+      "id": "JD43",
+      "company": "质点能源",
+      "title": "嵌入式软件工程师（应届）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科以上，计算机/自动化/电气/电子信息等",
+      "graduation": "2026届，截止2027-06-30",
+      "stage": "entry",
+      "routes": [
+        "linux",
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/54502e97af665fd00nd62tm7GVdQ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD43",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；2028当前跨届。后台指设备本地CGI，不扩大为互联网高并发岗位。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列代码规范。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux基础操作、日志及开发。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列Linux编译。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列Linux调试。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列网络/串口/CAN/TCP/IP基础。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责为储能微电网Linux设备开发维护。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责含RS485/CAN/Modbus/TCP/IP/MQTT接入。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含设备接入调试、前后端联调、日志排查和问题修复。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含实验室及现场测试。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：HTML/CSS/JS基础。D：本地CGI后端接口、采集监控与告警。P：CGI/轻量Web服务、项目/课程设计/竞赛。"
+      ]
+    },
+    {
+      "id": "JD44",
+      "company": "佑驾创新",
+      "title": "27届嵌入式开发工程师BSP(MJ000929)",
+      "companySize": "1000–9999人",
+      "city": "深圳",
+      "education": "本科以上，计算机/自动化/电子信息等",
+      "graduation": "2027届，截止2027-06-30",
+      "stage": "entry",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/348f07de7dd4bcfb0nN50tq_GVpX.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD44",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；跨届参照。与JD30同企业不同岗位，企业去重；正文未点名C，不补语言要求。",
+      "mentions": [
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列GPIO/UART/I2C/SPI/CAN接口及总线协议。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列GPIO等外设接口；不声称明确要求某MCU型号。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职要求了解Linux内核及设备驱动。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责含硬件平台外设接口驱动。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含接口驱动设计及全生命周期需求设计。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含驱动调试及系统实时性/可靠性/可用性/安全性优化。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责明确包含测试。"
+        }
+      ],
+      "unmappedSkills": [
+        "P未分列。没有由Linux/BSP标题推定C语言，实时性优化也不直接等于RTOS经验。"
+      ]
+    },
+    {
+      "id": "JD45",
+      "company": "极限网络",
+      "title": "信息安全后端研发C#/C/C++/Golang",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科卡片；未见专业硬限制",
+      "graduation": "正文2年以上对应环境开发",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/fdbc37d72583cb431HV50t29ElZV.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD45",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中，卡片1–3年，正文2年以上。语言任选；Windows/Linux环境不强制同时；AI框架为优先，不是AI编程工具。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "C/C++/C#/Go精通一门即可，C/C++为可选语言。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "Windows/Linux环境经验备选，Linux不是唯一必选环境。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列多线程程序研发。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列网络通信程序研发。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列架构思维、独立系统架构及文档。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：编码习惯，未将泛习惯扩大成测试方法要求。P：大型网络后端/安全/云服务；整条Python脚本及AI框架/算法/应用（TensorFlow/Keras/PyTorch/ML.net等）优先。仅了解框架，不硬归AI产品集成，也不是AI辅助编码。"
+      ]
+    },
+    {
+      "id": "JD46",
+      "company": "腾讯",
+      "title": "GO/C++后台开发工程师（云智服）",
+      "companySize": "10000人以上",
+      "city": "深圳",
+      "education": "本科，计算机相关",
+      "graduation": "卡片1–3年，正文2年以上",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/4549036ac678996f1HJ_3dm0FFJR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD46",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；招聘者半年未活跃，仅确认采集页面状态。无学校硬门槛不等于录用概率。语言原文关系不擅自改写。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职精通GO、C++等开发语言；不改成只需一种或必须两种。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列数据结构算法。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列TCP/HTTP/WebSocket。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux原理工具。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "requirement",
+          "evidence": "任职列MySQL/Redis实操。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含客服后台系统/架构设计实现。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含系统优化、现网定位和修复。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "bonus",
+          "evidence": "算法经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Shell/Python。D：后台研发运维；未把未指明的运维自动变成K8s或部署工具要求。"
+      ]
+    },
+    {
+      "id": "JD47",
+      "company": "绰瑞资产",
+      "title": "C++开发工程师（量化交易系统）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科以上，计算机科学/金融相关",
+      "graduation": "正文常规2年以上C++，优秀应届可考虑",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/ed068f9b47a9852d1XV629W4FlRW.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD47",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；卡片经验不限，但按正文2年以上常规门槛归experienced。优秀应届是年限例外，其他能力仍需满足；高性能系统专项。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C++及模板元编程。"
+        },
+        {
+          "skill": "modern_cpp_resources",
+          "type": "requirement",
+          "evidence": "任职列C++11/14及模板元编程、Boost。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux开发及Bash必须。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列Linux调试、代码优化及技术故障排除。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列TCP/IP/UDP。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列多线程。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列设计模式。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列代码质量。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含低延迟交易系统软件设计及后台服务。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含系统优化升级维护和技术攻关。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Bash必须；Perl/Python/sed/awk/JS等任选其一；英文读写。P：金融行业经验；不将金融业务变成学生先学交易策略要求。"
+      ]
+    },
+    {
+      "id": "JD48",
+      "company": "宇视科技",
+      "title": "分布式存储软件开发工程师(RD17)",
+      "companySize": "1000–9999人",
+      "city": "深圳",
+      "education": "本科，计算机相关毕业；英语四级以上",
+      "graduation": "1–3年",
+      "stage": "experienced",
+      "routes": [
+        "backend",
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/e5ed9972aabdea7503Bz3NW8FVJW.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD48",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；未见学校硬限制。任职要求开发成果和性能优化，作为1–3年目标，不是基础实习入口。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C++功底。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "requirement",
+          "evidence": "任职列分布式存储特性开发、存储底层基础。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职要求有效性能优化经验。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux内核基础。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "duty",
+          "evidence": "职责为分布式存储模块研发维护。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责明确存储模块设计。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：线上系统运维经验；未具体构建/部署工具，不由运维一词补工具条件。"
+      ]
+    },
+    {
+      "id": "JD49",
+      "company": "Shopee",
+      "title": "物流平台后台工程师",
+      "companySize": "1000–9999人",
+      "city": "深圳",
+      "education": "本科毕业",
+      "graduation": "1–3年卡片；正文互联网开发1年以上",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/8e76a0ff7a40588c1nFy0t6_FVFW.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD49",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中，招聘者半年未活跃；四种语言至少一种。Linux/多线程/分布式只有标签，不计正文要求。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "Go/Python/Java/C++至少一门；C++为可选语言，不是四种全会。"
+        }
+      ],
+      "unmappedSkills": [
+        "D：物流平台后台开发，未额外描述协议/系统架构细项。P：物流背景。逻辑思维和合作不作技术图技能。"
+      ]
+    },
+    {
+      "id": "JD50",
+      "company": "字节跳动",
+      "title": "混合云存储开发工程师",
+      "companySize": "10000人以上",
+      "city": "深圳",
+      "education": "本科卡片，正文未另限专业",
+      "graduation": "1–3年",
+      "stage": "experienced",
+      "routes": [
+        "backend",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/a3276cf1badddf081HF829S7FVBV.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD50",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；C++/Go标签与存储后台职责支持方向识别，但正文未明示语言/Linux，不加入这两类频数。",
+      "mentions": [
+        {
+          "skill": "cpu_architecture",
+          "type": "requirement",
+          "evidence": "任职明确计算机体系结构基础。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职明确操作系统基础。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "requirement",
+          "evidence": "任职列分布式/存储开发或运维系统开发经验；保留方向备选，不都改成存储必选。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "duty",
+          "evidence": "职责为混合云存储核心研发运维。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含高性能、低成本、高可靠和可运维架构的工程落地。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "用户态协议栈及RDMA经验优先。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "bonus",
+          "evidence": "SPDK经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：代码功底，未指定语言；D的性能目标不自动改成性能剖析工具要求。页面C++/Golang标签仅用于方向识别。"
+      ]
+    },
+    {
+      "id": "JD51",
+      "company": "中量投",
+      "title": "量化交易系统开发工程师（深圳）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科，计算机/通信/自动化等",
+      "graduation": "1–3年卡片；正文1年以上研发",
+      "stage": "experienced",
+      "routes": [
+        "backend"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/3cb930f9b94c38711XF92N2_FVtX.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD51",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；后台基础设施和应用样本。优先原句末为有限考虑，按语义归优先；金融不是通用必须。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列数据结构。"
+        },
+        {
+          "skill": "software_design",
+          "type": "requirement",
+          "evidence": "任职列OOP、系统分析设计及文档。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职列代码质量。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux基础。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列Linux网络编程。"
+        },
+        {
+          "skill": "database_storage",
+          "type": "requirement",
+          "evidence": "任职列Mongo/MySQL。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含量化交易模块及应用软件开发设计。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：Shell/Python、RabbitMQ消息中间件原理使用、代码性能。P：金融行业及海量/高性能/分布式经验。未将消息中间件自动算OS并发或特定数据库，未把性能一词全部改成调试方法。"
+      ]
+    },
+    {
+      "id": "JD52",
+      "company": "高巨创新",
+      "title": "C++软件开发",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "本科，未限专业",
+      "graduation": "1–3年",
+      "stage": "experienced",
+      "routes": [
+        "backend",
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/c83822f379dd238f0nV43Nq1F1U~.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD52",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；教育产品的后端及网络通信，不扩大为大型分布式后台，也不由公司属性推MCU。",
+      "mentions": [
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列TCP/IP、UDP和串口。"
+        },
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++及程序经验。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列多线程。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux指令开发。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含需求、架构/代码设计评审及后端方案实现。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：代码习惯和文档。P：机器人程序、Python或Qt经验。"
+      ]
+    },
+    {
+      "id": "JD53",
+      "company": "恒控",
+      "title": "初级嵌入式软件工程师（MCU）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科，计算机/电子/机电/自动化/通信",
+      "graduation": "1–3年卡片；正文1年以上",
+      "stage": "experienced",
+      "routes": [
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/34d551400c6a0b7803d439S0FlBY.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD53",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；初级标题不覆盖实际年限。32位MCU、RTOS经验是优先，不能变硬要求。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列Keil编程及调试。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "bonus",
+          "evidence": "32位MCU经验优先。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "bonus",
+          "evidence": "Cortex-M实时OS，如uCOSII/FreeRTOS经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：良好编程习惯。D：已有产品功能开发维护。P：工业自动化；平台名不直接等于CPU体系结构知识。"
+      ]
+    },
+    {
+      "id": "JD54",
+      "company": "创必得",
+      "title": "初级嵌入式应用开发工程师",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "本科；未见专门硬件专业门槛",
+      "graduation": "1–3年卡片；正文1年以上嵌入式应用",
+      "stage": "experienced",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/4b58833423fb84f71HN_39u6EFtV.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD54",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；固件一词不推定STM32、FreeRTOS或具体外设。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++语法语言特性；未明示现代C++资源管理。"
+        },
+        {
+          "skill": "cpu_architecture",
+          "type": "requirement",
+          "evidence": "任职列计算机组成原理，不自行扩展具体CPU细节。"
+        },
+        {
+          "skill": "os_concurrency_rtos",
+          "type": "requirement",
+          "evidence": "任职列OS基础并可应用。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列网络基础并可应用。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列常见数据结构算法并可应用。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列熟练嵌入式Linux开发。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含方案设计评审、实现和改进。"
+        },
+        {
+          "skill": "testing",
+          "type": "duty",
+          "evidence": "职责含固件单元测试代码及测试方案评审。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：离散数学。D：研发工具/环境建设，但未明示构建部署工具；不从泛环境补具体工具。"
+      ]
+    },
+    {
+      "id": "JD55",
+      "company": "迈进科技",
+      "title": "嵌入式Linux软件工程师（接受应届生）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科；未明示专业限制",
+      "graduation": "未限定毕业年，标题接受应届",
+      "stage": "entry",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/c61eddea6fc18d711n1639i7FltZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD55",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；标题接受应届，按entry归组。卡片仅日薪、每周5天3个月，未明确写实习，短期计薪形式不等于已确认实习，岗位身份需投递前核。Linux驱动专项；不由单片机标签推MCU。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "data_algorithms",
+          "type": "requirement",
+          "evidence": "任职列数据结构算法。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Linux工具、内核、文件系统及驱动。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列内核裁剪编译、Makefile及Flash/U-Boot烧写。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列UART/I2C/SPI和网口。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列UART/I2C/SPI/Flash等外设驱动，属于Linux场景；不是由标签推定MCU开发。"
+        }
+      ],
+      "unmappedSkills": [
+        "D：视频通信/多媒体/智能硬件嵌入式软件，未单列某协议设计职责。P：图像及音视频编解码基础；这不是流媒体协议要求，未硬塞通信组。"
+      ]
+    },
+    {
+      "id": "JD56",
+      "company": "松诺技术",
+      "title": "初级嵌入式软件工程师（zigbee方向）",
+      "companySize": "500–999人",
+      "city": "深圳",
+      "education": "本科，电子/通讯/计算机/自控相关",
+      "graduation": "1–3年卡片，正文2年以上嵌入式",
+      "stage": "experienced",
+      "routes": [
+        "mcu"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/3787c5e8a443db1d03153t68E1tW.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD56",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；标签RTOS但正文未提，不计RTOS任职。无线项目加分，不把全部无线栈变硬门槛。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职明确代码规范。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "requirement",
+          "evidence": "任职列单片机基础及独立32位/8位项目。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "requirement",
+          "evidence": "任职列外围电路搭建及应用认识。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责为智能家居Zigbee软件。"
+        },
+        {
+          "skill": "software_design",
+          "type": "duty",
+          "evidence": "职责含Zigbee需求和设计。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含调试修复及平台维护优化。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "Zigbee经验及Zigbee/BLE/WiFi项目为优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：在校成绩优秀；P：竞赛获奖，未明确算法竞赛。"
+      ]
+    },
+    {
+      "id": "JD57",
+      "company": "慧源创新",
+      "title": "嵌入式linux开发工程师（GUI方向）",
+      "companySize": "20–99人",
+      "city": "深圳",
+      "education": "本科，电子/计算机/自动化相关",
+      "graduation": "1–3年卡片；正文2年以上Linux",
+      "stage": "experienced",
+      "routes": [
+        "linux"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/db12a4c83117e7200nd43tS6GFJT.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD57",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；设备GUI在范围内。LVGL/Qt前条优先、后条至少1年强度不同，按后条明确条件保留专项，不降低为只有加分。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C/C++。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列嵌入式Linux。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列交叉编译及Makefile/CMake。"
+        },
+        {
+          "skill": "communication",
+          "type": "requirement",
+          "evidence": "任职列TCP/IP和串口。"
+        },
+        {
+          "skill": "debugging",
+          "type": "requirement",
+          "evidence": "任职列GDB/strace/串口调试及独立定位性能稳定性问题。"
+        },
+        {
+          "skill": "testing",
+          "type": "requirement",
+          "evidence": "任职明确代码规范。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责为遥控器Linux GUI应用。"
+        },
+        {
+          "skill": "communication",
+          "type": "duty",
+          "evidence": "职责含Mavlink/串口/WiFi通信集成。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责含CPU/内存/帧率优化、泄漏定位和整机硬件联调。"
+        },
+        {
+          "skill": "mcu_peripherals",
+          "type": "duty",
+          "evidence": "职责含外设驱动对接；这是Linux设备场景，不暗示必须MCU开发。"
+        },
+        {
+          "skill": "communication",
+          "type": "bonus",
+          "evidence": "Mavlink及图传经验优先。"
+        },
+        {
+          "skill": "linux",
+          "type": "bonus",
+          "evidence": "内核裁剪、文件系统和驱动经验优先。"
+        }
+      ],
+      "unmappedSkills": [
+        "R：LVGL/Qt至少一种1年以上、组件/事件驱动/内存管理；不据一般内存管理推现代C++智能指针或RAII。P：遥控器/手持/HMI GUI。前后GUI条款强度冲突按明确至少1年的要求保留。"
+      ]
+    },
+    {
+      "id": "JD58",
+      "company": "众鸿科技",
+      "title": "Android/Linux驱动工程师",
+      "companySize": "100–499人",
+      "city": "深圳",
+      "education": "本科；未见专业限制",
+      "graduation": "卡片1–3年；正文1-3年以上措辞含混",
+      "stage": "experienced",
+      "routes": [
+        "linux",
+        "system"
+      ],
+      "sourceUrl": "https://www.zhipin.com/job_detail/0d076ca495a981e63nd609i9E1c~.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "sourceSection": "JD58",
+      "confirmed": true,
+      "fitNote": "独立详情招聘中；保留正文1-3年以上Android/Linux驱动经验的含混表述，不擅改为必须3年以上；精确年限及平台组合需投递前核。平台经验优先不推CPU架构或MCU要求。",
+      "mentions": [
+        {
+          "skill": "c_cpp",
+          "type": "requirement",
+          "evidence": "任职列C语言。"
+        },
+        {
+          "skill": "linux",
+          "type": "requirement",
+          "evidence": "任职列Android/Linux系统、内核架构及驱动框架；不擅自解释为两套平台都须精通。"
+        },
+        {
+          "skill": "circuits_instruments",
+          "type": "requirement",
+          "evidence": "任职列硬件电路原理。"
+        },
+        {
+          "skill": "version_build",
+          "type": "requirement",
+          "evidence": "任职列Shell/Makefile。"
+        },
+        {
+          "skill": "linux",
+          "type": "duty",
+          "evidence": "职责包含Android及Linux汽车电子驱动研发维护。"
+        },
+        {
+          "skill": "debugging",
+          "type": "duty",
+          "evidence": "职责明确驱动调试。"
+        }
+      ],
+      "unmappedSkills": [
+        "P：i.MX6/i.MX8、R-Car、NXP4330、AC8015/8127、高通等车载平台经验；没有将平台例举推成CPU体系结构或MCU知识。D：驱动集成与文档，未补具体部署工具。"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "EX01",
+      "company": "速腾聚创",
+      "title": "嵌入式软件工程师实习",
+      "sourceUrl": "https://www.zhipin.com/job_detail/9c108baa9aaad4530nZ53dW8E1dZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "硕士及以上硬门槛；采集时深圳招聘中，1000–9999人。"
+    },
+    {
+      "id": "EX02",
+      "company": "一泓微电子",
+      "title": "嵌入式开发实习生",
+      "sourceUrl": "https://www.zhipin.com/job_detail/39a3eabb32b4352f03d42di9FFBX.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "硕士在读硬门槛；985/211只是优先，不以学校优先项作为排除理由。深圳招聘中，100–499人。"
+    },
+    {
+      "id": "EX03",
+      "company": "强瑞技术",
+      "title": "C++实习",
+      "sourceUrl": "https://www.zhipin.com/job_detail/cd0e41d864f049030nJ42tq7ElNR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "正文工作对象未明确后台或嵌入式，只有C++/调试/文档等；不依据3D/Qt标签或自动化行业推断方向。学校专业不是排除原因。"
+    },
+    {
+      "id": "EX04",
+      "company": "遥指科技",
+      "title": "C++服务端",
+      "sourceUrl": "https://www.zhipin.com/job_detail/9cf0f743243ff0971HJ52NW-E1tZ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "独立详情明确关闭；1–3年卡片，正文2年以上，按当前状态排除。"
+    },
+    {
+      "id": "EX05",
+      "company": "深圳曦华科技",
+      "title": "嵌入式实习",
+      "sourceUrl": "https://www.zhipin.com/job_detail/aef99c491e33fd280nB52tu4FFFS.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "正文须一本及以上院校，学校与招生批次的对应未经招聘方确认，暂排主口径；不将普通本科直接等同二本，不断言用户必不满足。"
+    },
+    {
+      "id": "EX06",
+      "company": "Seeed",
+      "title": "嵌入式AI Linux应用",
+      "sourceUrl": "https://www.zhipin.com/job_detail/6b8432a01139e9c10nBy2d61EVVR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "顶部招聘中但正文截止2026-07-31已过，采集日2026-10-12；状态与截止冲突，暂排。AI内容只留过期参照。"
+    },
+    {
+      "id": "EX07",
+      "company": "腾讯",
+      "title": "互动视频后台",
+      "sourceUrl": "https://www.zhipin.com/job_detail/e40eecffd2f8febd0XB83tS_Fw~~.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "已读且页面招聘中，作为未纳入50的备选；优先同企业云智服以减少重复权重。不是已失效的判断。"
+    },
+    {
+      "id": "EX08",
+      "company": "腾讯控股",
+      "title": "C/C++分布式存储",
+      "sourceUrl": "https://www.zhipin.com/job_detail/5491ef42b37c69d003d-2ty5FVNW.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "顶部招聘中但截止2025-06-30已过，且缺少正文技能要求；毕业2024–2025，暂不计有效。"
+    },
+    {
+      "id": "EX09",
+      "company": "金九天视",
+      "title": "初级Linux",
+      "sourceUrl": "https://www.zhipin.com/job_detail/022947368d1d915103N_2t60FlBR.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "独立详情已关闭；深圳本科1–3年100–499人，排除当前统计。"
+    },
+    {
+      "id": "EX10",
+      "company": "英汉思动力",
+      "title": "初级嵌入式预研",
+      "sourceUrl": "https://www.zhipin.com/job_detail/8f8cd2bb6972a61b0nN50ty0GVBU.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "独立详情已关闭；深圳本科1–3年，正文1年以上MCU，优秀26届例外不改变已关闭状态。"
+    },
+    {
+      "id": "EX11",
+      "company": "人可时代",
+      "title": "嵌入式Linux",
+      "sourceUrl": "https://www.zhipin.com/job_detail/61c3cd9bb7697d0f1Hx43Nu1EVdX.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "独立详情已关闭；深圳本科1–3年，完整已读但不计当前统计。"
+    },
+    {
+      "id": "EX12",
+      "company": "华馥科技",
+      "title": "嵌入式软件",
+      "sourceUrl": "https://www.zhipin.com/job_detail/18ac6a48af0ed6731Hxy09W4EFBQ.html",
+      "sourceEvidence": "expansion-edge-jd-evidence.md",
+      "confirmed": true,
+      "reason": "独立详情已关闭；深圳大专1–3年，正文2年以上，完整已读不计当前样本。"
+    }
+  ]
+}

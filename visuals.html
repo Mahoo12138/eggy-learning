@@ -1,0 +1,302 @@
+<!-- Offline visual module. Insert after inline ECharts and window.JD_SKILLS_DATA. -->
+<style>
+.lv{--lv-blue:var(--blue);--lv-teal:var(--teal);--lv-ink:var(--ink);--lv-muted:var(--muted);--lv-line:var(--line);--lv-soft:var(--page);color:var(--lv-ink);font-family:inherit;margin:28px 0 36px}.lv *{box-sizing:border-box}.lv [hidden]{display:none!important}.lv h2{font-size:24px;line-height:1.45;letter-spacing:-.025em;margin:0}.lv h3{font-size:17px;line-height:1.55;margin:0 0 7px}.lv p{margin:7px 0;font-size:13px;line-height:1.8}.lv a{color:var(--lv-blue);text-underline-offset:3px}.lv button,.lv select{font:inherit;font-size:12px}.lv button{cursor:pointer}.lv :is(button,a,select,canvas):focus-visible{outline:3px solid var(--focus);outline-offset:3px}.lv-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}.lv-badge{border:1px solid var(--lv-line);border-radius:4px;padding:2px 7px;font-size:11px;color:var(--lv-muted)}.lv-intro{color:var(--lv-muted);max-width:850px}.lv-toolbar{display:flex;flex-wrap:wrap;align-items:end;gap:12px;background:var(--blue-pale);border:1px solid var(--line);border-radius:7px;padding:14px 16px;margin:18px 0}.lv-field{display:grid;gap:5px;min-width:135px}.lv-field label{font-size:11px;color:var(--lv-muted);font-weight:600}.lv select{height:37px;padding:5px 10px;color:var(--lv-ink);background:var(--paper);border:1px solid var(--control-border,var(--line));border-radius:4px;max-width:100%}.lv-sample{margin-left:auto;font-size:12px;color:var(--lv-muted);padding:5px 0}.lv-sample strong{font-size:23px;color:var(--lv-blue);font-variant-numeric:tabular-nums;margin:0 5px}.lv-grid{display:grid;grid-template-columns:1.07fr 1fr;gap:18px}.lv-panel{background:var(--paper);border:1px solid var(--lv-line);border-radius:8px;padding:21px;min-width:0}.lv-caption{font-size:11px!important;color:var(--lv-muted);line-height:1.65!important}.lv-chart{width:100%;height:390px;min-width:0}.lv-bar{height:430px}.lv-donut{height:260px}.lv-bottom{display:grid;grid-template-columns:minmax(240px,.7fr) minmax(350px,1.3fr);gap:18px;margin-top:18px}.lv-evidence{max-height:350px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}.lv-evidence-list{list-style:none;margin:13px 0 0;padding:0}.lv-evidence-list>li{padding:11px 0;border-top:1px solid var(--line)}.lv-evidence-list p{font-size:12px;line-height:1.7}.lv-evidence-list a{font-size:13px;font-weight:600}.lv-evidence-meta{color:var(--lv-muted);font-size:11px!important}.lv-quote{border-left:3px solid var(--line);padding-left:10px;color:var(--ink)}.lv-empty{font-size:13px;color:var(--lv-muted);padding:20px 5px}.lv-details{margin-top:15px;border:1px solid var(--lv-line);border-radius:6px;background:var(--paper);padding:11px 15px}.lv-details summary{cursor:pointer;font-size:12px;font-weight:600}.lv-table-wrap{overflow-x:auto;margin-top:12px}.lv table{border-collapse:collapse;width:100%;min-width:450px;font-size:12px;text-align:left;line-height:1.65}.lv th,.lv td{border:1px solid var(--lv-line);padding:8px 10px;vertical-align:top}.lv th{background:var(--blue-pale)}.lv-note{font-size:11px!important;color:var(--lv-muted)}.lv-button{border:1px solid var(--control-border,var(--line));border-radius:4px;color:var(--lv-ink);background:var(--paper);padding:7px 11px;line-height:1.5}.lv-button:hover{border-color:var(--lv-blue);color:var(--lv-blue);background:var(--blue-pale)}.lv-map-layout{display:grid;grid-template-columns:minmax(0,1fr) 275px;gap:17px}.lv-canvas-shell{border:1px solid var(--lv-line);border-radius:8px;overflow:hidden;background:var(--soft);min-width:0}.lv-map-tools{padding:9px 11px;border-bottom:1px solid var(--lv-line);display:flex;flex-wrap:wrap;align-items:center;gap:7px;background:var(--paper)}.lv-map-tools .lv-button{padding:5px 10px;min-height:32px}.lv-zoom-label{font-size:11px;color:var(--lv-muted);margin-left:auto;min-width:35px;text-align:right}.lv-canvas{display:block;width:100%;height:510px;touch-action:none;cursor:grab}.lv-canvas.is-dragging{cursor:grabbing}.lv-map-help{padding:8px 12px;background:var(--paper);border-top:1px solid var(--lv-line);font-size:10px!important;color:var(--lv-muted);margin:0!important}.lv-node-panel{border:1px solid var(--lv-line);border-radius:8px;padding:19px;background:var(--paper);min-width:0}.lv-node-period{font-size:11px!important;color:var(--lv-blue);font-weight:600}.lv-node-panel h3{font-size:19px;margin:7px 0 13px}.lv-node-panel h4{font-size:12px;margin:18px 0 7px}.lv-node-panel ul{padding-left:19px;margin:7px 0;font-size:12px;line-height:1.8}.lv-node-panel li{margin:5px 0}.lv-node-panel a{font-size:11px}.lv-node-list{list-style:none;padding:0;margin:12px 0 2px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.lv-node-list button{width:100%;display:flex;align-items:center;gap:7px;text-align:left;border:1px solid var(--lv-line);border-radius:5px;background:var(--paper);color:var(--lv-ink);padding:9px 10px;line-height:1.5;min-height:43px}.lv-node-list button[aria-pressed="true"]{border-color:var(--lv-blue);background:var(--blue-pale)}.lv-node-list button span:first-child{flex:1}.lv-warning{padding:11px 14px;border:1px solid var(--warning-line,var(--line));background:var(--warning-bg,#fff9ec);border-radius:5px;font-size:12px;color:var(--warning-text,#69552d)}.lv-loading{background:var(--paper);border:1px dashed var(--lv-line);border-radius:6px;padding:18px}.lv-print-map{display:block}.lv-svg-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);margin-right:7px}
+@media(max-width:1150px){.lv-grid,.lv-bottom{grid-template-columns:1fr}.lv-chart{height:380px}.lv-bar{height:415px}.lv-map-layout{grid-template-columns:1fr}.lv-node-panel{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}.lv-node-panel>header,.lv-node-panel>.lv-node-disclaimer{grid-column:1/-1}.lv-node-panel h4{margin-top:7px}.lv-canvas{height:470px}.lv-node-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.lv h2{font-size:21px}.lv-panel{padding:17px 13px}.lv-toolbar{gap:10px;padding:12px}.lv-field{min-width:120px;flex:1}.lv-field select{width:100%}.lv-sample{margin-left:0;width:100%}.lv-bottom{grid-template-columns:1fr}.lv-chart{height:360px}.lv-bar{height:410px}.lv-donut{height:245px}.lv-node-panel{display:block;padding:17px}.lv-node-panel h4{margin-top:16px}.lv-node-list{grid-template-columns:repeat(2,minmax(0,1fr))}.lv-canvas{height:410px}.lv-map-tools{gap:5px}.lv-map-tools .lv-button{font-size:11px;padding:5px 8px}.lv-grid{gap:13px}.lv-bottom{gap:13px}.lv-zoom-label{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){.lv *{scroll-behavior:auto!important}}
+@media print{.lv{break-before:page;margin:15px 0}.lv-toolbar,.lv-map-tools,.lv-canvas,.lv-node-panel,.lv-node-list,.lv-map-help,.lv-evidence,.lv-interactive-only{display:none!important}.lv-grid,.lv-bottom{display:block}.lv-panel{break-inside:avoid;margin-bottom:14px;padding:12px;border-color:#c0cddd}.lv-chart{height:330px}.lv-bar{height:390px}.lv-donut{height:240px}.lv-details{display:block;border:0;padding:0}.lv-details>summary{display:none}.lv-details>*:not(summary){display:block!important}.lv table{min-width:0;font-size:8pt;table-layout:fixed}.lv th,.lv td{padding:5px;overflow-wrap:anywhere}.lv-map-layout{display:block}.lv-canvas-shell{border:0;background:var(--paper)}.lv-print-map{display:block!important}.lv-print-map li{font-size:9pt;line-height:1.7;margin:7px 0}.lv-evidence-panel{display:none}.lv p{font-size:9pt}.lv h2{font-size:17pt}.lv-chart-fallback{display:block!important}}
+
+.lv-map-tools .lv-icon-button{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;padding:6px}.lv-icon-button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7}.lv-zoom-label{margin-left:0;min-width:78px;white-space:nowrap;font-variant-numeric:tabular-nums}.lv-map-tools .lv-map-expand{margin-left:auto}.lv-map-layout:fullscreen{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;padding:20px;width:100%;height:100%;background:var(--page);overflow:hidden}.lv-map-layout:fullscreen .lv-canvas-shell{display:flex;flex-direction:column;min-height:0}.lv-map-layout:fullscreen .lv-canvas{height:0;min-height:0;flex:1}.lv-map-layout:fullscreen .lv-node-panel{display:block;overflow:auto}.lv-map-layout:fullscreen .lv-map-tools,.lv-map-layout:fullscreen .lv-map-help{flex:none}.lv-map-message{min-height:1.5em}.lv-node-list button span:first-child{flex:1}
+@media(max-width:750px){.lv-map-layout:fullscreen{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(100px,28vh);padding:10px;gap:10px}.lv-map-layout:fullscreen .lv-node-panel{padding:12px}.lv-map-tools .lv-map-expand{margin-left:0}.lv-zoom-label{margin-left:auto}}
+</style>
+
+<section class="lv" id="jd-charts" aria-labelledby="lv-charts-title">
+  <div class="lv-head"><h2 id="lv-charts-title">把 JD 中的要求看清楚</h2><span class="lv-badge">已核验样本统计</span></div>
+  <p class="lv-intro">统计基于 @@JD_COUNT@@ 条技术参照，含跨届校招与 1–3 年进阶岗，不能全部视为当前可投岗位。一条职位在同一字段提到同一技能，只计一次；任职、职责、优先项分别查看，不相加，数量不代表深圳市场比例。</p>
+  <div class="lv-toolbar lv-interactive-only" id="lv-chart-controls" hidden>
+    <div class="lv-field"><label for="lv-type">统计哪个字段</label><select id="lv-type"><option value="requirement">明确任职提及</option><option value="duty">工作职责</option><option value="bonus">优先 / 加分项</option></select></div>
+    <div class="lv-field"><label for="lv-route">岗位方向</label><select id="lv-route"><option value="all">全部方向</option><option value="mcu">MCU / 单片机</option><option value="linux">嵌入式 Linux</option><option value="backend">C++ 后台</option><option value="system">系统 / 驱动 / 内核</option></select></div>
+    <div class="lv-field"><label for="lv-stage">条形图阶段</label><select id="lv-stage"><option value="all">全部阶段</option><option value="intern">实习</option><option value="entry">校招 / 应届 / 1年以内</option><option value="experienced">1–3 年</option></select></div>
+    <div class="lv-sample" id="lv-sample-size" role="status" aria-live="polite"></div>
+  </div>
+  <p class="lv-note" id="lv-scope-note">阶段选择仅影响条形图；矩阵与构成图保留各阶段用于比较。方向筛选保留通用参照。任职提及可能是任选语言，不代表必须全部掌握；点击图形查看要求摘要与边界。</p>
+  <div id="lv-chart-runtime-note" class="lv-loading">图表下方保留数据表。交互启用后，可按方向、阶段和证据字段查看。</div>
+  <div class="lv-grid lv-js-chart" id="lv-chart-grid" hidden>
+    <section class="lv-panel" aria-labelledby="lv-bar-title"><h3 id="lv-bar-title">技术栈提及岗位数</h3><p class="lv-caption" id="lv-bar-caption">点击条形查看哪些职位贡献了这次计数。</p><div id="lv-skill-bar" class="lv-chart lv-bar" role="img" aria-label="技术栈在职位样本中出现次数的横向条形图"></div></section>
+    <section class="lv-panel" aria-labelledby="lv-matrix-title"><h3 id="lv-matrix-title">技能与阶段对照</h3><p class="lv-caption">格内为“出现次数 / 本阶段样本数”。随方向与字段切换，保留各阶段用于比较；不随左侧阶段选择。</p><div id="lv-skill-matrix" class="lv-chart" role="img" aria-label="技能与阶段的计数矩阵"></div></section>
+  </div>
+  <div class="lv-bottom" id="lv-chart-bottom" hidden>
+    <section class="lv-panel lv-js-chart" aria-labelledby="lv-stage-title"><h3 id="lv-stage-title">这批样本来自哪些阶段</h3><p class="lv-caption">按方向筛选后的样本构成，数量不是市场占比。</p><div id="lv-stage-donut" class="lv-chart lv-donut" role="img" aria-label="当前方向的样本阶段构成"></div></section>
+    <section class="lv-panel lv-evidence-panel" aria-labelledby="lv-evidence-title"><h3 id="lv-evidence-title">回到贡献计数的原始职位</h3><p class="lv-caption" id="lv-evidence-summary">点击条形或矩阵，查看已编码的要求摘要、来源及适配边界。</p><div class="lv-evidence" id="lv-evidence"><p class="lv-empty">先选择一项技能。</p></div></section>
+  </div>
+  <details class="lv-details lv-chart-fallback" id="lv-statistics-table" open><summary>查看完整计数表与样本口径</summary><p class="lv-note">统计定义与边界：<a href="技术栈统计口径.md">技术栈统计口径.md</a> · <a href="jd-skills-data.json">jd-skills-data.json</a>。无交互时，下表显示固定 @@JD_COUNT@@ 条全样本。</p><div id="lv-statistics-table-body"><!-- VISUALS_STATIC_TABLE --><p class="lv-note">完整原始 JD 和技能对应关系仍可从报告正文与证据附件查阅。</p></div></details>
+  <!-- VISUALS_ROSTER -->
+</section>
+
+<section class="lv" id="canvas-roadmap" aria-labelledby="lv-roadmap-title">
+  <div class="lv-head"><h2 id="lv-roadmap-title">学习路线总览</h2><span class="lv-badge">训练建议，不是求职资格评定</span></div>
+  <p class="lv-intro">先补 C 基础，再依次完成 whatforeating、终端迷宫、反应力游戏盒。共 32 个训练单元，每单元 4 次、每次 2–3 小时，可按课业顺延；三个项目依次推进。点击节点查看训练目标；实际计划、证据和复测在<a href="学习计划与进度-2028届.html">学习计划与进度</a>中管理。</p>
+  <div class="lv-map-layout lv-interactive-only" id="lv-map-interactive" hidden>
+    <div class="lv-canvas-shell">
+      <div class="lv-map-tools"><button class="lv-button" id="lv-zoom-out" type="button" aria-label="缩小路线图">−</button><button class="lv-button" id="lv-zoom-in" type="button" aria-label="放大路线图">＋</button><button class="lv-button" id="lv-map-fit" type="button">适配整图</button><button class="lv-button" id="lv-map-focus" type="button">定位当前节点</button><button class="lv-button lv-icon-button lv-map-expand" id="lv-map-fullscreen" type="button" aria-label="全屏查看路线图" title="全屏查看路线图"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg></button><span class="lv-zoom-label" id="lv-zoom-label" aria-label="路线图缩放比例"></span></div>
+      <canvas class="lv-canvas" id="lv-roadmap-canvas" tabindex="0" role="img" aria-label="可平移缩放的学习路线图。下方节点列表提供完整键盘操作替代。" aria-describedby="lv-map-help"></canvas>
+      <p class="lv-map-help" id="lv-map-help">拖动平移；Ctrl / ⌘＋滚轮缩放。聚焦画布后可用方向键平移、＋/−缩放、0适配。实线是三个项目的训练顺序，虚线是交付后按需选择的深化方向。蓝色边框表示当前查看的节点；下方列表可直接选择节点。</p>
+    </div>
+    <aside class="lv-node-panel" id="lv-node-panel" aria-label="当前学习节点的任务与验收"></aside>
+  </div>
+  <details class="lv-details lv-interactive-only" id="lv-node-alternative" open hidden><summary>节点列表（键盘与小屏幕替代）</summary><ol class="lv-node-list" id="lv-node-list"></ol></details>
+  <p class="lv-note lv-map-message" id="lv-map-message" role="status" aria-live="polite"></p>
+  <div class="lv-print-map" id="lv-roadmap-static">
+    <ol>
+      <li><strong>单元 1–4，C 基础验收与补缺：</strong>输入、函数、数组、指针、字符串、固定容量记录与调试；通过的能力用证据确认，未通过才补练。</li>
+      <li><strong>单元 5–12，whatforeating 今天吃什么：</strong>C + TUI，在 Windows / CLion 中从固定菜品表和基础随机练习开始，再做“换一个 / 确认”、本地结果文件与终端界面；正式随机策略尚未确定，训练实现不代表最终产品方案。</li>
+      <li><strong>单元 13–20，C++ / Linux 终端迷宫：</strong>用现代 C++ 表达地图与游戏状态，完成移动、碰撞、存档与恢复，在 Linux 独立构建和调试。</li>
+      <li><strong>单元 21–28，MCU 反应力游戏盒：</strong>同一块板、单 LED 与按钮，练非阻塞状态机、消抖、计时与串口记录；真机与仿真证据分开标注。</li>
+      <li><strong>单元 29–32，复测与交付：</strong>按“任务 → 实际记录 → 证据 → 验收 → 延后复测”追溯；补独立变式、复现步骤和已知限制。</li>
+      <li><strong>交付后才选深化：</strong>依据项目体验和目标 JD，选择 MCU 外设 / RTOS，或 Linux 设备应用 / C++ 后台；不把三个入门项目变成三条长期并行主线。</li>
+    </ol>
+  </div>
+  <noscript><p class="lv-warning">下面与正文中的文字路线可以直接阅读。启用 JavaScript 后，可使用可缩放路线图；训练记录在独立学习管理页中保存。</p></noscript>
+</section>
+
+<script>
+(() => {
+  'use strict';
+  const STAGES = [{id:'intern',label:'实习'},{id:'entry',label:'校招 / 应届 / 1年以内'},{id:'experienced',label:'1–3 年'}];
+  const TYPES = {requirement:'明确任职提及',duty:'工作职责',bonus:'优先 / 加分项'};
+  function uniqueJobs(jobs) {
+    const byId = new Map();
+    (Array.isArray(jobs) ? jobs : []).forEach(job => {
+      if (!job || typeof job.id !== 'string' || !job.id) return;
+      const old = byId.get(job.id);
+      if (old) {
+        byId.set(job.id,{...old,routes:[...new Set([...(old.routes||[]),...(job.routes||[])])],mentions:[...(old.mentions||[]),...(job.mentions||[])]});
+      } else byId.set(job.id,{...job,routes:[...(job.routes||[])],mentions:[...(job.mentions||[])]});
+    });
+    return [...byId.values()];
+  }
+  function selectJobs(jobs, filters={}) {
+    const stage=filters.stage||'all', route=filters.route||'all';
+    return uniqueJobs(jobs).filter(job => (stage==='all'||job.stage===stage) && (route==='all'||job.routes.includes(route)||job.routes.includes('common')));
+  }
+  function hasMention(job, skill, type) {
+    return (job.mentions||[]).some(mention => mention && mention.skill===skill && mention.type===type);
+  }
+  function countSkills(jobs, skills, type='requirement') {
+    const unique=uniqueJobs(jobs);
+    return (Array.isArray(skills)?skills:[]).map(skill => {
+      const jobIds=unique.filter(job=>hasMention(job,skill.id,type)).map(job=>job.id);
+      return {id:skill.id,label:skill.label||skill.id,count:jobIds.length,jobIds};
+    });
+  }
+  function stageCounts(jobs) {
+    const unique=uniqueJobs(jobs);
+    return STAGES.map(stage=>({...stage,count:unique.filter(job=>job.stage===stage.id).length}));
+  }
+  function matrixCounts(jobs, skills, type='requirement') {
+    const unique=uniqueJobs(jobs), totals=stageCounts(unique);
+    const rows=(skills||[]).map(skill=>({id:skill.id,label:skill.label||skill.id,cells:totals.map(stage=>{
+      const jobIds=unique.filter(job=>job.stage===stage.id&&hasMention(job,skill.id,type)).map(job=>job.id);
+      return {stage:stage.id,count:jobIds.length,n:stage.count,jobIds};
+    })}));
+    return {stages:totals,rows};
+  }
+  function fitMapView(nodes,width,height,padding=18) {
+    const left=Math.min(...nodes.map(n=>n.x)),top=Math.min(...nodes.map(n=>n.y));
+    const right=Math.max(...nodes.map(n=>n.x+172)),bottom=Math.max(...nodes.map(n=>n.y+78));
+    const scale=Math.max(.01,Math.min(1.25,Math.max(1,width-padding*2)/(right-left),Math.max(1,height-padding*2)/(bottom-top)));
+    return {scale,x:(width-(right-left)*scale)/2-left*scale,y:(height-(bottom-top)*scale)/2-top*scale};
+  }
+  const exported={selectJobs,countSkills,matrixCounts,stageCounts,fitMapView};
+  (typeof window!=='undefined'?window:globalThis).JD_VISUALS_TEST=exported;
+  if(typeof document==='undefined') return;
+
+  const $=id=>document.getElementById(id);
+  const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeHref=value=>/^https?:\/\//i.test(String(value||''))?String(value):'#';
+  let initialized=false;
+  function initialize() {
+    if(initialized||!$('jd-charts')||!$('canvas-roadmap'))return;
+    initialized=true;
+    const data=window.JD_SKILLS_DATA||{};
+    initializeMap(Array.isArray(data.jobs)?data.jobs:[]);
+    if(!Array.isArray(data.jobs)||!Array.isArray(data.skills)) {
+      $('lv-chart-runtime-note').textContent='统计数据尚未载入。请查看下方静态表及报告正文；学习路线图仍可使用。';
+      return;
+    }
+    initializeCharts(data);
+  }
+  window.initializeLearningVisuals=initialize;
+
+  let printing=false;
+  function visualPalette() {
+    const css=getComputedStyle(document.documentElement);
+    const defaults={ink:'#182c46',muted:'#52637b',blue:'#245ac8',teal:'#117c75',paper:'#ffffff',soft:'#f7f9fc',line:'#d8e1ed','blue-pale':'#eaf0ff','teal-pale':'#e7f5f2','chart-grid':'#e5ebf3','chart-heat-low':'#f0f4fa','chart-heat-mid':'#afc8ef','chart-heat-high':'#245ac8','node-border':'#cbd7e6','map-grid':'#e2e8f1','chart-secondary':'#8b9dbc'};
+    return Object.fromEntries(Object.entries(defaults).map(([key,value])=>[key,printing?value:(css.getPropertyValue('--'+key).trim()||value)]));
+  }
+  window.addEventListener('beforeprint',()=>{printing=true;window.dispatchEvent(new Event('report-theme-change'));});
+  window.addEventListener('afterprint',()=>{printing=false;window.dispatchEvent(new Event('report-theme-change'));});
+
+  function initializeCharts(data) {
+    const type=$('lv-type'),route=$('lv-route'),stage=$('lv-stage');
+    const skills=data.skills.filter(skill=>skill&&typeof skill.id==='string');
+    let charts=null,chosen=null;
+    $('lv-chart-controls').hidden=false;
+    $('lv-chart-bottom').hidden=false;
+    if(window.echarts&&typeof window.echarts.init==='function') {
+      $('lv-chart-grid').hidden=false;
+      $('lv-chart-runtime-note').hidden=true;
+      $('lv-statistics-table').open=false;
+      charts={bar:window.echarts.init($('lv-skill-bar'),null,{renderer:'svg'}),matrix:window.echarts.init($('lv-skill-matrix'),null,{renderer:'svg'}),donut:window.echarts.init($('lv-stage-donut'),null,{renderer:'svg'})};
+    } else {
+      $('lv-chart-runtime-note').textContent='图形引擎未能启动，当前显示同口径计数表。可继续切换字段、阶段与方向查看数据。';
+      document.querySelectorAll('#jd-charts .lv-js-chart').forEach(el=>el.hidden=true);
+    }
+    const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const base={animation:!reduced,animationDuration:260,textStyle:{fontFamily:'"PingFang SC","Microsoft YaHei",sans-serif',color:'#182c46'},aria:{enabled:true},backgroundColor:'transparent'};
+    function evidence(skillId,jobs,stageLabel='当前筛选') {
+      chosen={skillId,jobs,stageLabel};
+      const skill=skills.find(item=>item.id===skillId);
+      const contributors=uniqueJobs(jobs).filter(job=>hasMention(job,skillId,type.value));
+      $('lv-evidence-title').textContent=`${skill?.label||skillId}：来自哪些职位`;
+      $('lv-evidence-summary').textContent=`${stageLabel}中，${contributors.length} / ${uniqueJobs(jobs).length} 条 JD 在“${TYPES[type.value]}”中提及。任选、职责与优先限定请结合要求摘要核对。`;
+      const list=document.createElement('ul');list.className='lv-evidence-list';
+      contributors.forEach(job=>{
+        const li=document.createElement('li'),a=document.createElement('a');
+        a.href=safeHref(job.sourceUrl);a.target='_blank';a.rel='noopener noreferrer';a.textContent=`${job.id} ${job.company||''}`;li.append(a);
+        const meta=document.createElement('p');meta.className='lv-evidence-meta';meta.textContent=(STAGES.find(s=>s.id===job.stage)?.label||job.stage)+'；'+(job.fitNote||'适配边界见完整职位');li.append(meta);
+        [...new Set((job.mentions||[]).filter(m=>m.skill===skillId&&m.type===type.value).map(m=>String(m.evidence||'详见该职位原文')))].forEach(text=>{const p=document.createElement('p');p.className='lv-quote';p.textContent=text;li.append(p);});
+        list.append(li);
+      });
+      $('lv-evidence').replaceChildren(list);
+      if(!contributors.length){const p=document.createElement('p');p.className='lv-empty';p.textContent='本次筛选中没有该字段的明确编码；这不代表工作或面试完全不涉及此技能。';$('lv-evidence').append(p);}
+    }
+    function update(keepEvidence=false) {
+      const c=visualPalette();base.textStyle.color=c.ink;
+      const tooltipStyle={backgroundColor:c.paper,borderColor:c.line,textStyle:{color:c.ink}};
+      const directionJobs=selectJobs(data.jobs,{route:route.value});
+      const selectedJobs=selectJobs(directionJobs,{stage:stage.value});
+      const counts=countSkills(selectedJobs,skills,type.value).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'zh-CN'));
+      const top=counts.filter(item=>item.count>0).slice(0,12);
+      const matrixRank=countSkills(directionJobs,skills,type.value).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'zh-CN')).filter(s=>s.count>0).slice(0,10);
+      const matrix=matrixCounts(directionJobs,matrixRank,type.value);
+      $('lv-sample-size').innerHTML=`条形图当前样本 <strong>${selectedJobs.length}</strong> 条 JD`;
+      $('lv-bar-caption').textContent=`${TYPES[type.value]}；显示出现次数最高的最多 12 项。完整项目见下方数据表，点击条形回查来源。`;
+      const table=document.createElement('div');table.className='lv-table-wrap';
+      table.innerHTML=`<table><caption>${escapeHTML(TYPES[type.value])}，条形图筛选样本 n=${selectedJobs.length}；矩阵各阶段样本数按方向筛选</caption><thead><tr><th scope="col">技能</th><th scope="col">当前条形图次数</th>${STAGES.map(s=>`<th scope="col">${escapeHTML(s.label)} 次数 / n</th>`).join('')}</tr></thead><tbody>${counts.map(skill=>{
+        const cells=matrixCounts(directionJobs,[skill],type.value).rows[0].cells;
+        return `<tr><th scope="row"><button class="lv-button" type="button" data-lv-skill="${escapeHTML(skill.id)}">${escapeHTML(skill.label)}</button></th><td>${selectedJobs.length?skill.count+' / '+selectedJobs.length:'—（无样本）'}</td>${cells.map(c=>`<td>${c.n?c.count+' / '+c.n:'—（无样本）'}</td>`).join('')}</tr>`;
+      }).join('')}</tbody></table>`;
+      const note=document.createElement('p');note.className='lv-note';note.textContent='计数0表示本批编码在所选字段中未明确提到，不表示企业不需要。技能可重叠，各项次数不可相加为岗位总数。';
+      $('lv-statistics-table-body').replaceChildren(table,note);
+      table.querySelectorAll('[data-lv-skill]').forEach(button=>button.addEventListener('click',()=>evidence(button.dataset.lvSkill,selectedJobs)));
+      if(charts) {
+        charts.bar.setOption({...base,grid:{left:135,right:32,top:12,bottom:34,containLabel:false},tooltip:{...tooltipStyle,trigger:'axis',axisPointer:{type:'shadow'},formatter:params=>params.length?`${escapeHTML(params[0].name)}<br>${params[0].value} / ${selectedJobs.length} 条JD<br>提及可能是任选条件，非必须全部掌握<br>点击查看要求摘要与来源`:''},xAxis:{type:'value',min:0,max:Math.max(1,selectedJobs.length),minInterval:1,axisLabel:{fontSize:10,color:c.muted},splitLine:{lineStyle:{color:c['chart-grid']}},name:'JD 次数',nameLocation:'center',nameGap:24,nameTextStyle:{fontSize:10,color:c.muted}},yAxis:{type:'category',inverse:true,data:top.map(s=>s.label),axisTick:{show:false},axisLine:{show:false},axisLabel:{fontSize:11,color:c.ink,width:125,overflow:'truncate'}},series:[{type:'bar',data:top.map(s=>({value:s.count,skillId:s.id})),barMaxWidth:18,itemStyle:{color:c.blue,borderRadius:[0,3,3,0]},label:{show:true,position:'right',color:c.blue,fontSize:11},emphasis:{itemStyle:{color:c.teal}}}],graphic:top.length?[]:[{type:'text',left:'center',top:'middle',style:{text:'当前筛选没有明确提及项',fill:c.muted,fontSize:13}}]},true);
+        const cells=[];matrix.rows.forEach((row,y)=>row.cells.forEach((cell,x)=>cells.push({value:[x,y,cell.count],skillId:row.id,stageId:cell.stage,n:cell.n})));
+        const cellMax=Math.max(1,...cells.map(c=>c.value[2]));cells.forEach(cell=>cell.label={color:cell.value[2]>=cellMax*.6?'#fff':c.ink});
+        charts.matrix.setOption({...base,grid:{left:130,right:14,top:42,bottom:54},tooltip:{...tooltipStyle,position:'top',formatter:params=>`${escapeHTML(matrix.rows[params.value[1]]?.label||'')}<br>${escapeHTML(STAGES[params.value[0]].label)}：${params.data.n?params.value[2]+' / '+params.data.n+' 条JD':'无样本'}<br>点击查看贡献来源`},xAxis:{type:'category',position:'top',data:matrix.stages.map(s=>`${s.id==='entry'?'校招/应届':s.label}\nn=${s.count}`),splitArea:{show:false},axisTick:{show:false},axisLine:{show:false},axisLabel:{color:c.muted,fontSize:10,lineHeight:16,interval:0}},yAxis:{type:'category',inverse:true,data:matrix.rows.map(s=>s.label),axisTick:{show:false},axisLine:{show:false},axisLabel:{color:c.muted,fontSize:10,width:120,overflow:'truncate'}},visualMap:{min:0,max:Math.max(1,...cells.map(c=>c.value[2])),calculable:false,orient:'horizontal',left:'center',bottom:5,itemWidth:10,itemHeight:90,text:['较多','0次'],textStyle:{fontSize:10,color:c.muted},inRange:{color:[c['chart-heat-low'],c['chart-heat-mid'],c['chart-heat-high']]}},series:[{type:'heatmap',data:cells,itemStyle:{borderColor:c.paper,borderWidth:3},label:{show:true,fontSize:10,formatter:p=>p.data.n?p.value[2]+'/'+p.data.n:'—'},emphasis:{itemStyle:{borderColor:c.teal,borderWidth:2}}}],graphic:cells.length?[]:[{type:'text',left:'center',top:'middle',style:{text:'当前字段无明确提及项',fill:c.muted,fontSize:13}}]},true);
+        const stages=stageCounts(directionJobs).filter(s=>s.count>0);
+        charts.donut.setOption({...base,color:[c.blue,c.teal,c['chart-secondary']],tooltip:{...tooltipStyle,trigger:'item',formatter:p=>`${escapeHTML(p.name)}：${p.value} 条JD<br>当前方向共 ${directionJobs.length} 条；不是市场比例`},legend:{bottom:0,left:'center',textStyle:{fontSize:11,color:c.muted},itemWidth:9,itemHeight:9},series:[{type:'pie',radius:['42%','63%'],center:['50%','42%'],avoidLabelOverlap:true,data:stages.map(s=>({name:s.label,value:s.count})),itemStyle:{borderColor:c.paper,borderWidth:3},label:{show:true,color:c.ink,fontSize:11,formatter:'{b}\n{c} 条'},labelLine:{length:9,length2:5},emphasis:{scale:false}}],graphic:[{type:'text',left:'center',top:'35%',style:{text:String(directionJobs.length),fill:c.ink,fontSize:25,fontWeight:650,textAlign:'center'}},{type:'text',left:'center',top:'48%',style:{text:'样本 JD',fill:c.muted,fontSize:10,textAlign:'center'}}]},true);
+        charts.bar.off('click');charts.bar.on('click',p=>{if(p.data?.skillId)evidence(p.data.skillId,selectedJobs);});
+        charts.matrix.off('click');charts.matrix.on('click',p=>{if(p.data?.skillId)evidence(p.data.skillId,selectJobs(directionJobs,{stage:p.data.stageId}),STAGES.find(s=>s.id===p.data.stageId)?.label||'该阶段');});
+      }
+      if(keepEvidence&&chosen)evidence(chosen.skillId,chosen.jobs,chosen.stageLabel);else if(top.length)evidence(top[0].id,selectedJobs);else if(skills.length)evidence(skills[0].id,selectedJobs);
+    }
+    [type,route,stage].forEach(control=>control.addEventListener('change',()=>update()));update();
+    window.addEventListener('report-theme-change',()=>update(true));
+    if(charts) {
+      const resize=()=>Object.values(charts).forEach(chart=>chart.resize());
+      if('ResizeObserver' in window){const observer=new ResizeObserver(resize);[$('lv-chart-grid'),$('lv-chart-bottom')].forEach(el=>observer.observe(el));}else window.addEventListener('resize',resize);
+    }
+  }
+
+  function initializeMap(jobs) {
+    const nodes=[
+      {id:'start',x:18,y:22,title:'C 基础验收',period:'单元 1–2 · 先查缺口',route:'common',tasks:['用现有 Windows / CLion 环境验证函数、数组和输入处理，不先换工具链。','先独立预测结果，再运行；通过的概念保留证据，未通过的补练。'],checks:['能解释数组边界、整数除法与输入失败。','改动一个小需求后，能说明影响并重跑反例。'],jds:['JD01','JD18']},
+      {id:'basics',x:247,y:22,title:'C 指针与记录',period:'单元 3–4 · 项目准备',route:'common',tasks:['用指针与调试器理解变量如何被修改，再用结构体数组保存编号和名字。','练字符串长度、固定容量记录和查找；建立 Git 保存点与故障记录。'],checks:['空、满、重复编号和过长名称均有明确行为。','能解释函数怎样修改记录，并定位一次内存或边界错误。'],jds:['JD01','JD19','JD26']},
+      {id:'food-core',x:476,y:22,title:'① 菜品与选择',period:'单元 5–8 · whatforeating',route:'common',tasks:['建立固定容量菜品表，先做基础随机练习，再实现候选、换一个、确认与简单本地结果文件。','随机对象是菜品；正式随机策略尚未确定。训练不做交互编辑菜品、条件筛选或历史降权。'],checks:['结果来自有效菜品表；展示候选与确认结果分清，空表不假造结果。','检查文件失败及状态变化，保存预期、实际结果和代码版本。'],jds:['JD01','JD18','JD26']},
+      {id:'food-ui',x:705,y:22,title:'① C TUI 交付',period:'单元 9–12 · whatforeating',route:'common',tasks:['用 C 实现清晰的终端交互，不引入第三方 TUI 框架；终端呈现与菜品逻辑分开。','接续稳定业务和结果文件，处理键盘、中文、窗口缩小与可靠退出，保留最小说明和已知限制。'],checks:['按固定操作清单验证返回、输入失败、保存失败与重启。','自己解释核心代码，并完成一次无生成式 AI 的小修改。'],jds:['JD19','JD26']},
+      {id:'maze-core',x:705,y:177,title:'② C++ 终端迷宫',period:'单元 13–16 · 游戏核心',route:'linux',tasks:['学习 string、vector、引用、对象生命周期与 RAII，把地图和玩家状态分开表达。','先做固定地图、移动、碰撞和胜利条件；暂不加入网络或复杂引擎。'],checks:['墙壁、边界、重复输入和到达终点都有确定结果。','能画出一次输入怎样改变状态，并独立增加小规则。'],jds:['JD01','JD03','JD19']},
+      {id:'maze-save',x:476,y:177,title:'② Linux 与存档',period:'单元 17–20 · 迷宫交付',route:'linux',tasks:['在 Linux 完成命令行构建、运行与调试；加入存档、读档和格式验证。','记录一次路径、构建或状态恢复错误，说明资源何时获得与释放。'],checks:['读档后状态一致；缺失、截断和非法存档不破坏当前有效状态。','新终端按文档能复现；无生成式 AI 完成一次小变式。'],jds:['JD03','JD08','JD26']},
+      {id:'mcu-core',x:247,y:177,title:'③ 按钮与 LED',period:'单元 21–24 · 游戏状态',route:'mcu',tasks:['使用同一块板、单 LED 和按钮，认识 GPIO、主循环与计时来源。','以等待、亮灯、响应等状态组织游戏，加入消抖；不靠长时间阻塞延时串起流程。'],checks:['长按、连按、提前按和复位都有明确状态变化。','能区分接线、配置和程序逻辑问题；记录真机或仿真环境。'],jds:['JD07','JD20','JD21']},
+      {id:'mcu-game',x:18,y:177,title:'③ 反应力游戏盒',period:'单元 25–28 · 计时与记录',route:'mcu',tasks:['完成反应时间、超时与下一局流程，用串口输出事件和测量记录。','检查计时边界与异常操作，解释测量条件和精度限制；本轮不加 RTOS。'],checks:['提前按、超时、连续多局与复位均能重复检查。','真机测量与仿真结果分别标注，保留一次完整故障与回归证据。'],jds:['JD07','JD20','JD21']},
+      {id:'portfolio',x:18,y:332,title:'复测与作品交付',period:'单元 29–32 · 缓冲与复测',route:'common',tasks:['按任务、实际记录、证据、验收、延后复测串联三个项目，补最薄弱的一项。','整理构建运行、异常用例与已知限制，再根据当前 JD 选择后续主线。'],checks:['他人可按说明复现；自己能解释一个故障并完成陌生小改动。','辅助完成与独立验收分开记录，未完成或未验证的部分明确标出。'],jds:['JD01','JD03','JD19','JD26']},
+      {id:'systems',x:247,y:332,title:'系统方向再深化',period:'交付后可选 · 按目标 JD',route:'backend',tasks:['在 Linux 设备应用与 C++ 后台中选一个目标；分别从设备输入或 TCP 消息边界开始。','线程、SQL、Qt、视觉和部署只随实际需求逐个加入。'],checks:['设备方向能说明断连与恢复；后台方向能复现半条消息、超时和重启。','结论有日志、测试或测量支持，不只正常演示。'],jds:['JD03','JD08','JD09','JD12','JD23']},
+      {id:'hardware',x:247,y:487,title:'MCU 方向再深化',period:'交付后可选 · 按项目需要',route:'mcu',tasks:['在同一平台上加入一种 UART / I2C / SPI 外设并实际测量。','确有多任务需求时再学 RTOS 的任务、队列和同步，不同时加多个专项。'],checks:['能处理读失败与超时，解释手册配置与实际波形或日志。','使用 RTOS 时再检查队列满、消费者变慢和共享资源冲突。'],jds:['JD07','JD13','JD20','JD21']}
+    ];
+    const edges=[['start','basics'],['basics','food-core'],['food-core','food-ui'],['food-ui','maze-core'],['maze-core','maze-save'],['maze-save','mcu-core'],['mcu-core','mcu-game'],['mcu-game','portfolio'],['portfolio','systems','optional'],['portfolio','hardware','optional']];
+    const byId=new Map(nodes.map(node=>[node.id,node])),sourceMap=new Map(jobs.map(job=>[job.id,job]));
+    const canvas=$('lv-roadmap-canvas'),ctx=canvas.getContext('2d');
+    if(!ctx){$('lv-map-message').textContent='当前环境未能绘制Canvas，下面的文字路线仍可阅读。';return;}
+    $('lv-map-interactive').hidden=false;$('lv-node-alternative').hidden=false;
+    $('lv-roadmap-static').style.display='none';
+    let selected='start',width=700,height=510,dpr=1,view={scale:1,x:18,y:18},drag=null,viewFitted=true;
+    const layout=$('lv-map-interactive'),fullscreenButton=$('lv-map-fullscreen');
+    function rounded(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+    function point(node,side){return{x:node.x+(side==='left'?0:side==='right'?172:86),y:node.y+(side==='top'?0:side==='bottom'?78:39)};}
+    function draw(){
+      const c=visualPalette();
+      ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.fillStyle=c.soft;ctx.fillRect(0,0,width,height);
+      ctx.save();ctx.translate(view.x,view.y);ctx.scale(view.scale,view.scale);
+      ctx.strokeStyle=c['map-grid'];ctx.lineWidth=1/view.scale;ctx.setLineDash([1/view.scale,6/view.scale]);
+      for(let x=0;x<910;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,590);ctx.stroke();}ctx.setLineDash([]);
+      edges.forEach(([from,to,kind])=>{
+        const a=byId.get(from),b=byId.get(to),horizontal=Math.abs(b.x-a.x)>Math.abs(b.y-a.y);
+        const p=point(a,horizontal?(b.x>a.x?'right':'left'):(b.y>a.y?'bottom':'top'));
+        const q=point(b,horizontal?(b.x>a.x?'left':'right'):(b.y>a.y?'top':'bottom'));
+        const dx=horizontal?Math.sign(q.x-p.x)*45:0,dy=horizontal?0:Math.sign(q.y-p.y)*45;
+        ctx.setLineDash(kind==='optional'?[5,4]:[]);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.bezierCurveTo(p.x+dx,p.y+dy,q.x-dx,q.y-dy,q.x,q.y);ctx.strokeStyle=c.muted;ctx.lineWidth=1.4;ctx.stroke();
+        ctx.setLineDash([]);const angle=horizontal?(q.x>=p.x?0:Math.PI):(q.y>=p.y?Math.PI/2:-Math.PI/2);ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x-8*Math.cos(angle-.45),q.y-8*Math.sin(angle-.45));ctx.lineTo(q.x-8*Math.cos(angle+.45),q.y-8*Math.sin(angle+.45));ctx.closePath();ctx.fillStyle=ctx.strokeStyle;ctx.fill();
+      });
+      nodes.forEach(node=>{
+        const active=node.id===selected;
+        rounded(node.x,node.y,172,78,7);ctx.fillStyle=active?c['blue-pale']:c.paper;ctx.fill();ctx.strokeStyle=active?c.blue:c['node-border'];ctx.lineWidth=active?2.5:1.2;ctx.stroke();
+        ctx.fillStyle=c.muted;ctx.font='10px "PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(node.period,node.x+12,node.y+18,150);
+        ctx.fillStyle=c.ink;ctx.font='600 14px "PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(node.title,node.x+12,node.y+41,149);
+        ctx.fillStyle=c.muted;ctx.font='10px "PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(node.id==='portfolio'?'项目成果':(['systems','hardware'].includes(node.id)?'按需可选':node.id.startsWith('food-')?'C / TUI 项目':({common:'共同基础',mcu:'MCU 项目',linux:'C++ / Linux 项目',backend:'C++ 后台'})[node.route]),node.x+12,node.y+65);
+      });ctx.restore();$('lv-zoom-label').textContent='缩放 '+Math.round(view.scale*100)+'%';
+    }
+    function zoom(mult,x=width/2,y=height/2){viewFitted=false;const next=Math.max(.1,Math.min(2,view.scale*mult)),wx=(x-view.x)/view.scale,wy=(y-view.y)/view.scale;view.x=x-wx*next;view.y=y-wy*next;view.scale=next;draw();}
+    function fit(){viewFitted=true;view=fitMapView(nodes,width,height);draw();}
+    function focusNode(){viewFitted=false;const n=byId.get(selected);view.scale=Math.max(.8,view.scale);view.x=width/2-(n.x+86)*view.scale;view.y=height/2-(n.y+39)*view.scale;draw();}
+    function resize(){const rect=canvas.getBoundingClientRect();const oldWidth=width,oldHeight=height;width=Math.max(1,rect.width);height=Math.max(1,rect.height);dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);if(viewFitted)fit();else{view.x+=(width-oldWidth)/2;view.y+=(height-oldHeight)/2;draw();}}
+    function ensureVisible(){const n=byId.get(selected),pad=18,l=n.x*view.scale+view.x,r=(n.x+172)*view.scale+view.x,t=n.y*view.scale+view.y,b=(n.y+78)*view.scale+view.y;if(l<pad)view.x+=pad-l;else if(r>width-pad)view.x-=r-width+pad;if(t<pad)view.y+=pad-t;else if(b>height-pad)view.y-=b-height+pad;draw();}
+    function select(id,focus=false){
+      selected=id;const n=byId.get(id);
+      $('lv-node-panel').innerHTML=`<header><p class="lv-node-period">${escapeHTML(n.period)}</p><h3>${escapeHTML(n.title)}</h3></header><div><h4>本节点做什么</h4><ul>${n.tasks.map(t=>`<li>${escapeHTML(t)}</li>`).join('')}</ul></div><div><h4>怎样验收</h4><ul>${n.checks.map(t=>`<li>${escapeHTML(t)}</li>`).join('')}</ul></div><div><h4>关联岗位证据</h4><p>${n.jds.map(id=>{const job=sourceMap.get(id);return job?`<a href="${escapeHTML(safeHref(job.sourceUrl))}" target="_blank" rel="noopener noreferrer">${escapeHTML(id+' '+job.company)}</a>`:escapeHTML(id+'（见正文）');}).join('、')}</p></div><p class="lv-note lv-node-disclaimer">任务与验收是训练建议。关联JD只提供长期技能依据，不表示必须在本单元掌握企业全部要求。</p>`;
+      document.querySelectorAll('#lv-node-list button').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.node===id)));
+      if(focus)ensureVisible();else draw();
+    }
+    function updateList(){
+      const list=$('lv-node-list');list.replaceChildren();
+      nodes.forEach(n=>{const li=document.createElement('li'),button=document.createElement('button');button.type='button';button.dataset.node=n.id;button.setAttribute('aria-pressed',String(n.id===selected));button.innerHTML=`<span>${escapeHTML(n.title)}</span>`;button.addEventListener('click',()=>select(n.id,true));li.append(button);list.append(li);});
+    }
+    function hit(x,y){const wx=(x-view.x)/view.scale,wy=(y-view.y)/view.scale;return nodes.find(n=>wx>=n.x&&wx<=n.x+172&&wy>=n.y&&wy<=n.y+78);}
+    canvas.addEventListener('pointerdown',event=>{if(event.button!==0)return;const rect=canvas.getBoundingClientRect();drag={id:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);canvas.classList.add('is-dragging');});
+    canvas.addEventListener('pointermove',event=>{if(!drag||drag.id!==event.pointerId)return;const dx=event.clientX-drag.x,dy=event.clientY-drag.y;if(Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)>4)drag.moved=true;if(drag.moved){viewFitted=false;view.x+=dx;view.y+=dy;draw();}drag.x=event.clientX;drag.y=event.clientY;});
+    canvas.addEventListener('pointerup',event=>{if(!drag||drag.id!==event.pointerId)return;if(!drag.moved){const r=canvas.getBoundingClientRect(),node=hit(event.clientX-r.left,event.clientY-r.top);if(node)select(node.id);}drag=null;canvas.classList.remove('is-dragging');});
+    canvas.addEventListener('pointercancel',()=>{drag=null;canvas.classList.remove('is-dragging');});
+    canvas.addEventListener('wheel',event=>{if(!event.ctrlKey&&!event.metaKey)return;event.preventDefault();const r=canvas.getBoundingClientRect();zoom(event.deltaY<0?1.12:1/1.12,event.clientX-r.left,event.clientY-r.top);},{passive:false});
+    canvas.addEventListener('keydown',event=>{const keys=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0'];if(!keys.includes(event.key))return;event.preventDefault();if(event.key==='0')fit();else if(event.key==='+'||event.key==='=')zoom(1.2);else if(event.key==='-')zoom(1/1.2);else{viewFitted=false;view.x+=event.key==='ArrowLeft'?35:event.key==='ArrowRight'?-35:0;view.y+=event.key==='ArrowUp'?35:event.key==='ArrowDown'?-35:0;draw();}});
+    $('lv-zoom-in').addEventListener('click',()=>zoom(1.2));$('lv-zoom-out').addEventListener('click',()=>zoom(1/1.2));$('lv-map-fit').addEventListener('click',fit);$('lv-map-focus').addEventListener('click',focusNode);
+    fullscreenButton.addEventListener('click',async()=>{
+      try {
+        if(document.fullscreenElement===layout)await document.exitFullscreen();
+        else if(layout.requestFullscreen)await layout.requestFullscreen();
+        else $('lv-map-message').textContent='此浏览器暂不支持页面全屏，可使用缩放与适配整图查看。';
+      } catch (_) { $('lv-map-message').textContent='浏览器未允许全屏，可继续缩放或适配整图查看。'; }
+    });
+    document.addEventListener('fullscreenchange',()=>{
+      const expanded=document.fullscreenElement===layout;
+      $('lv-map-message').textContent='';
+      fullscreenButton.setAttribute('aria-label',expanded?'退出全屏':'全屏查看路线图');fullscreenButton.title=expanded?'退出全屏（Esc）':'全屏查看路线图';
+      fullscreenButton.innerHTML=expanded?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg>';
+      viewFitted=true;requestAnimationFrame(()=>{resize();if(!expanded)fullscreenButton.focus({preventScroll:true});});
+    });
+    window.addEventListener('report-theme-change',draw);
+    updateList();resize();select(selected);
+    if('ResizeObserver' in window){const observer=new ResizeObserver(()=>resize());observer.observe(canvas);}else window.addEventListener('resize',()=>resize());
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize,{once:true});else initialize();
+})();
+</script>

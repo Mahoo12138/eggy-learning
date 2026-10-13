@@ -1,0 +1,40 @@
+{
+  "_notes": "只需填写需覆盖的字段，未填写字段沿用脚本默认。companies 是真实JD案例；skillPriorities 是注明依据的学习建议。请勿填市场占比或企业难度分数。此示例没有虚构公司数据。",
+  "title": "深圳嵌入式与 C++ 技能训练手册",
+  "subtitle": "面向2028届软件工程本科生，从新手练习走向可以解释、调试和交付的项目。",
+  "profile": "2028 届 · 软件工程 · 每周 8–12 小时",
+  "schedule_note": "每周4天，每天2–3小时。先完成8小时基础安排，剩余时间用于补实验、阅读与复盘。",
+  "days": [
+    {"label": "第1天", "task": "概念与小练习", "base": 2, "optional": 1},
+    {"label": "第2天", "task": "复现与调试", "base": 2, "optional": 1},
+    {"label": "第3天", "task": "项目中的小功能", "base": 2, "optional": 1},
+    {"label": "第4天", "task": "验证与复盘", "base": 2, "optional": 1}
+  ],
+  "timeline": [
+    {"date": "2026年秋冬", "title": "从小练习开始", "body": "建立C/C++、构建、Git与调试的可重复学习流程。"},
+    {"date": "2027年上半年", "title": "选主线做项目", "body": "集中一条路线，保留运行、错误定位与修复证据。"},
+    {"date": "2027年下半年", "title": "对照真实岗位", "body": "跟踪2028届招聘窗口；按JD和自身条件补缺项。"},
+    {"date": "2028年", "title": "毕业与交付衔接", "body": "持续维护项目与面试练习，以实际毕业和招聘窗口为准。"}
+  ],
+  "companies": [],
+  "_companySchema": {
+    "company": "真实公司名或公司+职位",
+    "size": "BOSS页面规模，例如100–499人；未知直接写未核",
+    "tier": "large / medium / small / service（元数据，不会转换为分数）",
+    "route": "mcu / linux / backend / system / common",
+    "stage": "原JD阶段，如实习、2028届校招、1–3年；勿推断",
+    "learningLevel": "根据JD的能力描述，如C++与OS基础；不得按公司大小推断",
+    "skills": ["明确要求：…", "优先项：…"],
+    "sourceUrl": "https://www.zhipin.com/job_detail/实际已核实链接.html",
+    "fitNote": "在读、专业、届别、出勤、状态等边界"
+  },
+  "skillPriorities": [],
+  "_skillPrioritySchema": {
+    "route": "mcu / linux / backend / system / common",
+    "skill": "技能名",
+    "priority": "学习顺序建议，如第一月基础 / 主线阶段 / 方向选修",
+    "evidence": "JD编号及简短依据",
+    "sourceUrl": "已核实来源URL（可选）",
+    "practice": "可验证的小练习或项目成果，不设市场分数"
+  }
+}

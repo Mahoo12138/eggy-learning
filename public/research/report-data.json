@@ -1,0 +1,390 @@
+{
+  "title": "深圳嵌入式与 C++ 技能训练手册",
+  "subtitle": "从基础 C/C++ 和数据结构课程出发，用真实 JD 确定下一步，练出能够解释、修改和查错的能力。",
+  "profile": "南昌航空大学 · 软件工程 · 大二 / 2028届 · 每周8–12小时",
+  "schedule_note": "32 个训练单元，每单元 4 次、每次 2–3 小时，共 256–384 小时。按每周一个单元推进时约 32 周；考试、卡点和设备准备可顺延，三个项目依次完成。",
+  "companies": [
+    {
+      "company": "影石 JD01",
+      "size": "1000–9999",
+      "tier": "large",
+      "route": "linux",
+      "stage": "实习；28届优先",
+      "learningLevel": "语言与系统基础",
+      "skills": "C/C++、数据结构算法、多线程、英文资料；分支职责不同",
+      "fitNote": "每周5天、6个月；届别匹配不等于当前能力和出勤已满足",
+      "sourceUrl": "https://www.zhipin.com/job_detail/c81c3593e859e3f10nd82Ni1E1NS.html"
+    },
+    {
+      "company": "卓驭 JD19",
+      "size": "1000–9999",
+      "tier": "large",
+      "route": "common",
+      "stage": "C++实习",
+      "learningLevel": "基础到方向实践",
+      "skills": "C++、常见中间件/OS基础；职责含单测、静态检查；项目和MISRA/AUTOSAR为优先",
+      "fitNote": "5天/周、6个月；未写毕业年份，仍须核接收年级；原文未明确具体平台，按嵌入式通用能力参照",
+      "sourceUrl": "https://www.zhipin.com/job_detail/a5fce8be0c09b95503x42ti1E1pR.html"
+    },
+    {
+      "company": "usmile JD13",
+      "size": "1000–9999",
+      "tier": "large",
+      "route": "mcu",
+      "stage": "2027校招",
+      "learningLevel": "MCU与RTOS实践",
+      "skills": "C、MCU、RTOS、仪器；明确AI辅助编码/调试/研究",
+      "fitNote": "毕业窗口不含2028；仅未来技能参照",
+      "sourceUrl": "https://www.zhipin.com/job_detail/db6f5e70e568b9c70nN80t67FlpU.html"
+    },
+    {
+      "company": "优必选 JD25",
+      "size": "1000–9999",
+      "tier": "large",
+      "route": "system",
+      "stage": "2027校招；Linux BSP",
+      "learningLevel": "底层专项",
+      "skills": "C/ARM、外设与总线驱动、Linux驱动模型、仪器；设备树/字符设备经验优先",
+      "fitNote": "跨届；BSP不等于Linux应用的入门清单",
+      "sourceUrl": "https://www.zhipin.com/job_detail/64405845a1cc0bfc0nN729m-EVRS.html"
+    },
+    {
+      "company": "新凯来 JD24",
+      "size": "1000–9999",
+      "tier": "large",
+      "route": "common",
+      "stage": "2026–27在校/应届",
+      "learningLevel": "设备软件职责参照",
+      "skills": "页面只列设计、开发、测试、性能和维护职责；未列任职要求",
+      "fitNote": "跨届；不能把职责及C++/Linux/Python标签全部写成入职硬条件",
+      "sourceUrl": "https://www.zhipin.com/job_detail/d38792b18cfed66c0nF-2ti4EFJS.html"
+    },
+    {
+      "company": "其域 JD03",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "linux",
+      "stage": "Linux设备实习",
+      "learningLevel": "现代C++与方向实践",
+      "skills": "现代C++、Linux、自主排错；职责含单测、交叉编译和真机联调",
+      "fitNote": "5天/周、5个月；职责不全等于事先熟练",
+      "sourceUrl": "https://www.zhipin.com/job_detail/ff97d795e7b4ca3d0nN809W1FVtW.html"
+    },
+    {
+      "company": "Leuze JD18",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "common",
+      "stage": "嵌入式实习",
+      "learningLevel": "语言基础与测试",
+      "skills": "C/C++、学习协作；职责含产品测试/用例/文档；项目/省赛获奖优先",
+      "fitNote": "计算机等相关专业本科；3天/周、6个月；未写届别；原文未明确具体平台，按嵌入式通用能力参照",
+      "sourceUrl": "https://www.zhipin.com/job_detail/8de53d2dc65d39b80nJ80tm8FFtQ.html"
+    },
+    {
+      "company": "飞轮 JD06",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "system",
+      "stage": "C++内核实习",
+      "learningLevel": "深度系统专项",
+      "skills": "内存池/零拷贝、epoll、CAS、B+树/LSM等较深系统要求",
+      "fitNote": "不是通用实习最低线；需完成基础后另设专项",
+      "sourceUrl": "https://www.zhipin.com/job_detail/b04db27f008aeaa50nB63dy4GVFS.html"
+    },
+    {
+      "company": "追一 JD12",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "backend",
+      "stage": "Go后台实习；接受C++基础",
+      "learningLevel": "后台基础",
+      "skills": "数据结构、OS/线程/网络；做AI产品组件",
+      "fitNote": "这是Go岗位；2026届转正福利有时效问题",
+      "sourceUrl": "https://www.zhipin.com/job_detail/c9d2b683644bd34c03163N61EFZT.html"
+    },
+    {
+      "company": "微雪 JD07",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "mcu",
+      "stage": "1–3年",
+      "learningLevel": "联调与维护",
+      "skills": "C/Python、多平台/协议、仪器与电路；售后问题定位",
+      "fitNote": "软件/计算机相关；多平台要求不前移为首月任务",
+      "sourceUrl": "https://www.zhipin.com/job_detail/b7cd39c7efe44fba03F_0t-_FldU.html"
+    },
+    {
+      "company": "艾讯 JD08",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "linux",
+      "stage": "1–3年；Qt设备应用",
+      "learningLevel": "独立问题处理",
+      "skills": "C++/RAII、Qt、Linux、状态流程；定位卡顿/内存等问题",
+      "fitNote": "软件专业；Qt/视觉是该岗业务专项",
+      "sourceUrl": "https://www.zhipin.com/job_detail/3d42b583f734d1500nZ_2Nm0GFRY.html"
+    },
+    {
+      "company": "辉芒 JD14",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "mcu",
+      "stage": "1–3年",
+      "learningLevel": "资源与实时约束",
+      "skills": "C/汇编、8/32位架构、开发工具/版本控制、仪器",
+      "fitNote": "至少1年相关经验；不当作当前实习门槛",
+      "sourceUrl": "https://www.zhipin.com/job_detail/dc958e8abef1cb860nd_2Ni-EFZV.html"
+    },
+    {
+      "company": "爱玩 JD23",
+      "size": "100–499",
+      "tier": "medium",
+      "route": "backend",
+      "stage": "1年以内；2025/26毕业",
+      "learningLevel": "后台与AI工具",
+      "skills": "C/C++等一种、TCP/IP、数据结构、数据库；AI工具品牌明确；项目/竞赛优先",
+      "fitNote": "跨届；C++游戏与Go方向分开，不要求全部语言",
+      "sourceUrl": "https://www.zhipin.com/job_detail/3b881d99facd2f580nN63927EVNT.html"
+    },
+    {
+      "company": "云松鼠 JD26",
+      "size": "0–20",
+      "tier": "small",
+      "route": "linux",
+      "stage": "Linux实习",
+      "learningLevel": "系统操作与代码核验",
+      "skills": "Linux基本操作、Python或C/C++一种、Git、实际作品；会用并验证AI生成代码",
+      "fitNote": "在读计算机等专业；5天/周、6个月；与MCU岗JD02条件不同",
+      "sourceUrl": "https://www.zhipin.com/job_detail/0e7a015daf46b9fb0nx629y8FFtY.html"
+    },
+    {
+      "company": "卓芯微 JD20",
+      "size": "20–99",
+      "tier": "small",
+      "route": "mcu",
+      "stage": "1–3年",
+      "learningLevel": "独立模块交付",
+      "skills": "C、C51/ARM等8/32位MCU；独立设计/调试/优化，负责进度质量",
+      "fitNote": "计算机等相关专业；目标是入职后完整模块责任",
+      "sourceUrl": "https://www.zhipin.com/job_detail/38455d0fdbe86e5d0nZ_09q1E1NS.html"
+    },
+    {
+      "company": "声韵佳 JD21",
+      "size": "0–20",
+      "tier": "small",
+      "route": "mcu",
+      "stage": "1–3年",
+      "learningLevel": "软硬件综合联调",
+      "skills": "C、中断/DMA/时钟树、协议、工具仪器、电路阅读；独立集成",
+      "fitNote": "职责很宽；不把所有协议和RTOS都塞进新手第一阶段",
+      "sourceUrl": "https://www.zhipin.com/job_detail/bb1cfb7bd6b46a5a0nNz3tu9FVRY.html"
+    },
+    {
+      "company": "瑞德创新 JD16",
+      "size": "20–99",
+      "tier": "small",
+      "route": "mcu",
+      "stage": "实习/应届标题；1年以内",
+      "learningLevel": "电机控制专项",
+      "skills": "电子类、全国性电子竞赛、C/C++和MCU、FOC与电路；STM32 FOC经验优先",
+      "fitNote": "额外专业/竞赛门槛；剔除核心目标，保留专项对照",
+      "sourceUrl": "https://www.zhipin.com/job_detail/4316a10df544d6db1XZ_09q5GFRZ.html"
+    },
+    {
+      "company": "轻量智造 JD17",
+      "size": "20–99",
+      "tier": "small",
+      "route": "mcu",
+      "stage": "实习标题；应届条件",
+      "learningLevel": "行业固件实践",
+      "skills": "C/C++、Python了解、Linux/RTOS概念、外设/电路；MCU项目优先",
+      "fitNote": "应届身份不符当前大二；软件工程是否算相关专业待核；仅对照",
+      "sourceUrl": "https://www.zhipin.com/job_detail/7c35a6f73b61e2680nN629i1FFtR.html"
+    },
+    {
+      "company": "博彦 JD09",
+      "size": "10000+；技术服务",
+      "tier": "service",
+      "route": "backend",
+      "stage": "1–3年；游戏服务",
+      "learningLevel": "线上业务与维护",
+      "skills": "C++、Linux、SQL、游戏服务器经验、AI工具；云/容器/分布式为加分",
+      "fitNote": "招聘主体是博彦；办公地址不能解释为腾讯直接招聘",
+      "sourceUrl": "https://www.zhipin.com/job_detail/70fdd743466b06e30nN60tu9EFNW.html"
+    },
+    {
+      "company": "OPPO",
+      "size": "品牌/平台；规模见官方证据",
+      "tier": "official",
+      "route": "system",
+      "stage": "2027系统工程师",
+      "learningLevel": "语言与系统；AI工程化",
+      "skills": "语言三选一、数据结构/项目；AI原理/API和功能落地；系统优化为加分",
+      "fitNote": "跨届；官方ATS收录正文，实时申请未核",
+      "sourceUrl": "https://careers.oppo.com/university/oppo/campus/post/1828?recruitType=Graduate"
+    },
+    {
+      "company": "小米",
+      "size": "品牌/平台；人数未核",
+      "tier": "official",
+      "route": "system",
+      "stage": "2027软件开发",
+      "learningLevel": "系统通信",
+      "skills": "C/C++/Java一种、Linux Socket、TCP/UDP/IP、数据结构；跨系统通信职责",
+      "fitNote": "含深圳；学历专业正文未列；不是纯后台；官方ATS收录正文",
+      "sourceUrl": "https://xiaomi.jobs.f.mioffice.cn/campus/position/7670885775600503046/detail"
+    },
+    {
+      "company": "安克创新",
+      "size": "硬件产品；规模见官方证据",
+      "tier": "official",
+      "route": "linux",
+      "stage": "2027嵌入式Linux",
+      "learningLevel": "完整项目与软硬件联调",
+      "skills": "Linux、C/C++、独立小项目、电路与示波器；实习/竞赛/开源优先",
+      "fitNote": "跨届；官方ATS收录正文；不把原文代码行数机械转为训练指标",
+      "sourceUrl": "https://anker-in.jobs.feishu.cn/campushirecn/position/7672304958369204507/detail"
+    },
+    {
+      "company": "M5Stack / 乐鑫",
+      "size": "母子公司；不合并推定人数",
+      "tier": "official",
+      "route": "mcu",
+      "stage": "深圳校招；未列毕业年",
+      "learningLevel": "MCU到系统集成",
+      "skills": "C/C++、ESP32/RTOS、外设、Linux/Git等；开源/ESP-IDF优先",
+      "fitNote": "直接官方正文；不能断言2028校招已开放；母子公司算一集团",
+      "sourceUrl": "https://www.espressif.com/zh-hans/job-detail/all"
+    }
+  ],
+  "days": [
+    {
+      "label": "第1次",
+      "task": "理解一个概念",
+      "base": 2,
+      "optional": 1
+    },
+    {
+      "label": "第2次",
+      "task": "实现一个小功能",
+      "base": 2,
+      "optional": 1
+    },
+    {
+      "label": "第3次",
+      "task": "定位并修复错误",
+      "base": 2,
+      "optional": 1
+    },
+    {
+      "label": "第4次",
+      "task": "独立验收与复盘",
+      "base": 2,
+      "optional": 1
+    }
+  ],
+  "timeline": [
+    {
+      "date": "单元 1–4",
+      "title": "C 基础验收与补缺",
+      "body": "输入、函数、数组、指针、字符串、固定容量记录与调试；已有能力先验收。"
+    },
+    {
+      "date": "单元 5–12",
+      "title": "whatforeating · C TUI",
+      "body": "Windows / CLion：固定菜品表、基础随机、换一个与确认、结果文件，再做 TUI；正式随机策略未定。"
+    },
+    {
+      "date": "单元 13–20",
+      "title": "C++ / Linux 终端迷宫",
+      "body": "地图、状态、移动与碰撞；再补存档恢复、Linux 构建调试和资源管理。"
+    },
+    {
+      "date": "单元 21–28",
+      "title": "MCU 反应力游戏盒",
+      "body": "同一块板、单 LED 与按钮；非阻塞状态机、消抖、计时和串口记录。"
+    },
+    {
+      "date": "单元 29–32",
+      "title": "复测、缓冲与交付",
+      "body": "三个项目依次复测，补独立变式与复现证据；随后只选一条长期主线。"
+    },
+    {
+      "date": "2027 下半年至 2028 毕业前",
+      "title": "核对 2028 届岗位",
+      "body": "按届别、到岗条件与当前能力准备实习和校招，不靠追赶单元编号代替验收。"
+    },
+    {
+      "date": "2028 毕业后 1–3 年",
+      "title": "承担模块与维护",
+      "body": "按业务积累资源、性能、兼容和现场 / 线上问题经验。"
+    }
+  ],
+  "skillPriorities": [
+    {
+      "route": "common",
+      "skill": "函数、数组、结构体、数据结构",
+      "priority": "单元1–4：先验收与补缺",
+      "evidence": "JD01/18：语言、数据结构与项目",
+      "sourceUrl": "https://www.zhipin.com/job_detail/c81c3593e859e3f10nd82Ni1E1NS.html",
+      "practice": "成绩/记录程序；数组空满、重复编号；能独立改一个功能"
+    },
+    {
+      "route": "common",
+      "skill": "构建、调试、Git、说明与测试",
+      "priority": "从单元1起，贯穿三个项目",
+      "evidence": "JD03/19/26：排错、测试、版本协作",
+      "sourceUrl": "https://www.zhipin.com/job_detail/0e7a015daf46b9fb0nx629y8FFtY.html",
+      "practice": "保存一次失败输入→观察→根因→修复→回归"
+    },
+    {
+      "route": "common",
+      "skill": "AI辅助与人工核验",
+      "priority": "每单元第4次独立验收",
+      "evidence": "JD26：明确理解、调试、验证生成代码",
+      "sourceUrl": "https://www.zhipin.com/job_detail/0e7a015daf46b9fb0nx629y8FFtY.html",
+      "practice": "先要提示；采纳代码后运行反例，再独立做一次变式"
+    },
+    {
+      "route": "mcu",
+      "skill": "外设、手册和测量",
+      "priority": "单元21–28：反应力游戏盒；后续再加外设",
+      "evidence": "JD07/20/21：MCU、驱动、联调",
+      "sourceUrl": "https://www.zhipin.com/job_detail/38455d0fdbe86e5d0nZ_09q1E1NS.html",
+      "practice": "按钮/LED稳定后，增加一种通信接口和真实故障记录"
+    },
+    {
+      "route": "mcu",
+      "skill": "RTOS、资源与实时性",
+      "priority": "三个项目交付后，按多任务需求选学",
+      "evidence": "JD13：MCU/RTOS；JD14：资源与仪器",
+      "sourceUrl": "https://www.zhipin.com/job_detail/db6f5e70e568b9c70nN80t67FlpU.html",
+      "practice": "有多任务需要时引入队列，构造消费者变慢或队列满"
+    },
+    {
+      "route": "linux",
+      "skill": "现代C++、Linux、系统调试",
+      "priority": "单元13–20：C++ / Linux迷宫项目",
+      "evidence": "JD03/26；JD08为1–3年目标",
+      "sourceUrl": "https://www.zhipin.com/job_detail/ff97d795e7b4ca3d0nN809W1FVtW.html",
+      "practice": "先编译已有程序，再练生命周期、日志和输入失败"
+    },
+    {
+      "route": "backend",
+      "skill": "TCP/Socket、消息边界、SQL",
+      "priority": "三个项目交付后，选择后台再深入",
+      "evidence": "JD09/23后台；JD12是Go邻近方向",
+      "sourceUrl": "https://www.zhipin.com/job_detail/70fdd743466b06e30nN60tu9EFNW.html",
+      "practice": "单服务处理半条消息、断连、超时和保存失败"
+    },
+    {
+      "route": "system",
+      "skill": "驱动/BSP或存储内核",
+      "priority": "目标岗位专项，当前暂缓",
+      "evidence": "JD25与JD06；分别对应不同专项",
+      "sourceUrl": "https://www.zhipin.com/job_detail/64405845a1cc0bfc0nN729m-EVRS.html",
+      "practice": "完成普通方向项目后，只选驱动或内核中的一个专项"
+    }
+  ]
+}
