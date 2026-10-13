@@ -384,7 +384,7 @@ button, .park-button { touch-action: manipulation; }
   overflow: hidden;
   border: 5px solid #fff;
   border-radius: 33% 33% 26% 26%;
-  background: url('/assets/park/island-hero.png') 52% 48% / 380% auto;
+  background: url('/assets/park/island-axis-hero.png') 52% 48% / 380% auto;
   box-shadow: 0 11px 25px rgba(29, 105, 151, .21), 0 0 0 1px var(--line);
 }
 .window-shine { position: absolute; inset: 0; background: linear-gradient(130deg, rgba(255,255,255,.45), transparent 35%); }
