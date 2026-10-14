@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "courseId": "eggy-programming-park",
-  "publishedRevision": 3,
+  "publishedRevision": 4,
   "title": "蛋仔编程乐园",
   "subtitle": "从第一行代码，玩到自己的作品",
   "terminology": {
@@ -337,7 +337,7 @@
       "id": "goose",
       "order": 4,
       "title": "鹅蛋",
-      "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
+      "technologyTheme": "Windows C17、终端渲染、事件输入、数据建模、推荐算法、持久化与系统化调试",
       "languageIds": [
         "c"
       ],
@@ -352,28 +352,28 @@
       "subdivisions": [
         {
           "id": "goose-v",
-          "title": "菜单数据"
+          "title": "终端画布"
         },
         {
           "id": "goose-iv",
-          "title": "结构与内存"
+          "title": "状态与数据"
         },
         {
           "id": "goose-iii",
-          "title": "安全字符串"
+          "title": "推荐核心"
         },
         {
           "id": "goose-ii",
-          "title": "文件存档"
+          "title": "管理与历史"
         },
         {
           "id": "goose-i",
-          "title": "系统调试"
+          "title": "发布验收"
         }
       ],
       "promotion": {
         "metric": "stars",
-        "requiredStars": 6,
+        "requiredStars": 15,
         "bossActivityId": "goose-food-street-project#goose-food-street-boss",
         "promotesTo": "ostrich"
       }
@@ -779,11 +779,11 @@
     {
       "schemaVersion": 2,
       "id": "goose-food-street-project",
-      "version": 1,
+      "version": 2,
       "activityType": "rank-project",
       "rankId": "goose",
       "title": "蛋仔食堂·今天吃什么",
-      "technologyTheme": "C 数组、字符串、结构体、指针、内存、文件与系统化调试",
+      "technologyTheme": "Windows C17、终端渲染、事件输入、数据建模、推荐算法、持久化与系统化调试",
       "languages": [
         "c"
       ],
@@ -793,323 +793,1813 @@
       ],
       "propIds": [],
       "estimatedSessions": {
-        "minimum": 18,
-        "typical": 24
+        "minimum": 60,
+        "typical": 64
       },
       "prerequisiteActivityIds": [
         "chicken-rules-boss"
       ],
-      "story": "蛋仔食堂每天从苹果派雪雪烘焙店和淘气丸子奶茶店收集菜单。学习者要把菜名、分类、库存与选择记录组织起来，让“今天吃什么”可以查询、筛选、随机推荐并在重启后保留数据。",
+      "story": "苹果派雪雪烘焙店与淘气丸子奶茶店把每日菜单交给蛋仔食堂。学习者将在同一个代码库里逐章写出完整 Windows 终端应用：管理是输入，历史是依据，最终都服务于‘今天吃什么’的推荐体验。",
       "oneProjectRule": {
         "allChaptersModifySameArtifact": true,
         "chapterExercisesAreNotSeparateProjects": true
       },
+      "guidancePolicy": {
+        "mode": "guided-complete-build",
+        "guidedLessonsPerChapter": 3,
+        "independentCheckpointPerChapter": true,
+        "cumulativeArtifact": true,
+        "chapterSnapshotRequired": true,
+        "fullSolutionScope": "每个引导步骤提供完整函数或文件差异、修改原因、编译命令、操作步骤和可观察结果；章末保留可运行 solution snapshot。",
+        "learnerFreedomBoundary": "15 个章节只做已经完整教过的有界变式；不要求学习者自由设计新功能。自由发挥只属于最终独立项目。"
+      },
+      "environment": {
+        "platform": "Windows 10/11 真实控制台",
+        "languageStandard": "C17",
+        "toolchain": "MSVC x64",
+        "buildSystem": "CMake",
+        "outputBackend": "逻辑 Frame → VT 序列编码 → 单次 WriteConsoleW 整帧提交",
+        "inputBackend": "WaitForSingleObject + ReadConsoleInputW 经典事件输入",
+        "requirements": [
+          "Windows Terminal 或传统 conhost",
+          "Visual Studio Build Tools 2022",
+          "CMake 3.25+",
+          "不使用第三方运行库"
+        ],
+        "supportedHosts": [
+          "Windows Terminal",
+          "传统 Windows Console Host"
+        ]
+      },
       "artifact": {
-        "kind": "terminal-application",
+        "kind": "windows-terminal-application",
         "workingTitle": "今天吃什么",
         "entryFile": "src/main.c",
         "persistentFiles": [
-          "data/menu.txt",
-          "data/history.txt"
+          "data/canteen.tsv"
         ],
-        "runTarget": "native-c17"
+        "runTarget": "windows-msvc-c17-x64",
+        "components": [
+          {
+            "id": "terminal-platform",
+            "language": "c",
+            "entryFile": "src/platform/terminal_win32.c"
+          },
+          {
+            "id": "frame-ui",
+            "language": "c",
+            "entryFile": "src/ui/frame.c"
+          },
+          {
+            "id": "recommend-core",
+            "language": "c",
+            "entryFile": "src/core/recommend.c"
+          },
+          {
+            "id": "persistence",
+            "language": "c",
+            "entryFile": "src/persistence/codec.c"
+          },
+          {
+            "id": "application",
+            "language": "c",
+            "entryFile": "src/app.c"
+          }
+        ],
+        "requiredDeliverables": [
+          "完整可构建源码与 CMake 工程",
+          "单一版本化 data/canteen.tsv 快照",
+          "推荐、持久化、渲染、输入和应用流程测试",
+          "Debug 与 Release 构建说明",
+          "Windows Terminal 与传统控制台人工验收记录"
+        ]
       },
       "coreContract": [
-        "加载并显示有效菜品",
-        "随机给出候选、允许换一个并确认",
-        "空菜单、超长名称和损坏文件不会造成越界或伪结果",
-        "确认结果可保存并在下次启动读取"
+        "一键从全部菜品或分类、标签组合范围推荐，筛选为空时给出明确原因",
+        "抽奖动画逐渐减速但不决定业务结果；最终定格才记录 RECOMMENDED，Enter 才记录 ACCEPTED",
+        "Esc 原地重抽，f 收藏；动画时长可选且不改变固定随机源下的最终结果",
+        "菜品、分类和标签可以增删改查，删除关联项后不存在悬空引用",
+        "历史记录推荐、接受、查看、新增和编辑，并保留已删除菜品的名称快照",
+        "支持排除最近抽到/最近接受、按查询去重轮次和可解释的整数加权推荐",
+        "启动加载完整快照，修改后通过替换式崩溃保护立即保存；保存失败不造成内存与磁盘静默分叉",
+        "方向键、Enter、Esc、f、Q、resize 和 Ctrl+C 均有明确行为，任何退出路径都恢复控制台",
+        "不做多用户、网络、云同步、图片附件、营养计算和复杂报表"
       ],
       "chapterTeachingLoop": [
-        "experience",
-        "predict",
-        "concise-explanation",
-        "guided-build",
-        "immediate-feedback",
-        "independent-change",
-        "later-reencounter"
+        "先运行本章 starter snapshot，观察当前缺口",
+        "跟随三个引导步骤逐个完成真实代码增量，每步立刻编译运行",
+        "对照预期结果与常见失败定位问题",
+        "完成一个 10 到 40 行左右的受限独立变式并留下证据",
+        "获得星星后把同一能力带入后续章节重复使用"
       ],
       "chapters": [
         {
-          "id": "menu-array",
-          "title": "把菜单放进数组",
-          "goal": "从固定菜单中安全读取和显示菜品。",
+          "id": "win-console-lifecycle",
+          "title": "安全进入和离开食堂终端",
+          "phase": "终端画布",
+          "estimatedSessions": 4,
+          "goal": "建立 Windows C17 工程，并保证正常退出、Ctrl+C 与初始化中途失败都能恢复原控制台。",
           "concepts": [
-            "数组容量",
-            "下标",
-            "边界"
+            "CMake",
+            "Windows 控制台句柄",
+            "输入输出模式",
+            "统一清理路径"
           ],
-          "guidedBuild": "建立固定容量菜单并打印全部有效项。",
+          "guidedBuild": "从空工程写出 TuiSession 生命周期。完整接入 VT 输出能力、备用屏、光标隐藏和经典事件输入所需模式，并让所有退出路径汇合到同一个清理点。",
+          "milestone": "应用能安全占用并归还终端",
+          "filesTouched": [
+            "CMakeLists.txt",
+            "src/main.c",
+            "src/app.c",
+            "src/app.h",
+            "src/platform/terminal_win32.c",
+            "src/platform/terminal_win32.h"
+          ],
+          "guidedSteps": [
+            {
+              "id": "console-01",
+              "title": "建起可警告即错误的 C17 工程",
+              "targetFiles": [
+                "CMakeLists.txt",
+                "src/main.c",
+                "src/app.c",
+                "src/app.h"
+              ],
+              "instruction": "创建 Debug/Release x64 目标、/W4 警告级别和 app_run 入口；main 只负责把退出码返回给系统。",
+              "verify": "Debug 与 Release 均能构建，空应用返回 0，main.c 不包含业务或绘制代码。"
+            },
+            {
+              "id": "console-02",
+              "title": "保存并切换控制台状态",
+              "targetFiles": [
+                "src/platform/terminal_win32.c",
+                "src/platform/terminal_win32.h"
+              ],
+              "instruction": "实现 TuiSession：保存原输入/输出模式；输出开启 processed output 与 VT；输入开启 extended/window input，关闭 quick edit、line、echo 和 processed input，不开启 VT input。",
+              "verify": "在 Windows Terminal 中启动后鼠标点击不会冻结输入，GetConsoleMode 失败时能给出可读错误。"
+            },
+            {
+              "id": "console-03",
+              "title": "让每条路径都可靠还原",
+              "targetFiles": [
+                "src/main.c",
+                "src/app.c",
+                "src/platform/terminal_win32.c"
+              ],
+              "instruction": "发送进入备用屏、隐藏光标与样式复位序列；建立幂等 terminal_restore，并让普通退出、Ctrl+C 和逐点故障注入都走同一清理路径。",
+              "verify": "退出后回到原屏幕，光标可见，原输入输出模式逐位恢复；重复 restore 不产生副作用。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug"
+            ],
+            "runActions": [
+              "运行 eggy_canteen.exe，按 Q 退出。",
+              "再次运行并按 Ctrl+C。",
+              "依次打开三处初始化失败开关后重复启动。"
+            ],
+            "expectedResults": [
+              "三类退出都恢复原控制台。",
+              "初始化失败不会遗留隐藏光标或备用屏。",
+              "程序在非控制台宿主中明确提示应使用 Windows Terminal 或真实控制台。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "观察有效数量与数组容量是否混用。"
+              "text": "先比较程序前后的光标与输入模式。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查遍历菜单的循环边界。"
+              "text": "检查 terminal_open 每成功一步记录了哪些可逆状态。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "循环只能访问 0 到 count-1。"
+              "text": "清理函数必须根据已完成步骤反向恢复，而不是假设初始化全部成功。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "加入空菜单和满容量菜单用例。",
-            "evidence": "终端输出与边界用例表",
+            "task": "独立补上‘进入备用屏之后失败’的故障注入点，并证明 restore 可重复调用且状态仍完整恢复。",
+            "evidence": "三次终端前后状态快照、故障注入输出和关键函数差异",
             "automatedChecks": [
-              "empty-menu",
-              "one-item",
-              "full-capacity"
+              "console-normal-exit",
+              "console-ctrl-c-exit",
+              "console-partial-init-restore",
+              "console-restore-idempotent"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有用 exit() 绕过清理路径",
+              "只在 terminal_win32 模块包含 windows.h"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "随机选择章节再次使用有效数量而非容量。"
+          "laterReencounter": "第 15 章会把终端恢复放进长时间运行和分配失败组合测试。"
         },
         {
-          "id": "dish-struct",
-          "title": "用结构体描述一道菜",
-          "goal": "把名称、类别和是否售罄组合为一个 Dish。",
+          "id": "frame-buffer",
+          "title": "把终端变成不闪烁的字符画布",
+          "phase": "终端画布",
+          "estimatedSessions": 4,
+          "goal": "建立与平台无关的逻辑 Frame，并通过 VT 编码后一次性提交完整帧。",
           "concepts": [
-            "struct",
-            "字段",
-            "结构体数组"
+            "Cell",
+            "二维缓冲区",
+            "边界检查",
+            "VT 帧编码",
+            "整帧提交"
           ],
-          "guidedBuild": "将字符串数组迁移为 Dish 数组，并按售罄状态显示。",
+          "guidedBuild": "实现 Frame 的创建、重建、清空和安全写格；把逻辑格编码成一个连续 VT/UTF-16 输出缓冲，最终只调用一次 WriteConsoleW 覆盖整帧。",
+          "milestone": "稳定显示彩色食堂布局骨架",
+          "filesTouched": [
+            "src/ui/frame.c",
+            "src/ui/frame.h",
+            "src/platform/terminal_win32.c",
+            "tests/test_frame.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "frame-01",
+              "title": "建立逻辑 Cell 与 Frame",
+              "targetFiles": [
+                "src/ui/frame.c",
+                "src/ui/frame.h"
+              ],
+              "instruction": "定义 codepoint、style、width、continuation 字段及 rows/cols/cells；完成带乘法溢出检查的 create、resize、destroy。",
+              "verify": "0×0、最小尺寸、正常尺寸和极大尺寸请求都返回明确结果，失败不破坏旧 Frame。"
+            },
+            {
+              "id": "frame-02",
+              "title": "封装所有安全绘制入口",
+              "targetFiles": [
+                "src/ui/frame.c",
+                "tests/test_frame.c"
+              ],
+              "instruction": "实现 frame_fill 与 frame_put_cell；每个入口统一处理负坐标、越界、零尺寸和覆盖 continuation 的情况。",
+              "verify": "边界表驱动测试通过；任何绘制函数都不直接计算未经检查的 cells 下标。"
+            },
+            {
+              "id": "frame-03",
+              "title": "编码并一次提交整帧",
+              "targetFiles": [
+                "src/platform/terminal_win32.c",
+                "src/ui/frame.c"
+              ],
+              "instruction": "从左上角定位，把样式变化合并为最少 VT 序列，把完整 Frame 编码到连续缓冲后一次 WriteConsoleW；每帧覆盖，不先清屏。",
+              "verify": "彩色标题、内容区、状态栏持续刷新时没有逐行清屏闪烁；提交次数计数器每帧为 1。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R frame"
+            ],
+            "runActions": [
+              "启动画布演示并观察 10 秒连续刷新。",
+              "把窗口缩到最小再放大。",
+              "运行 frame 边界测试。"
+            ],
+            "expectedResults": [
+              "三块区域颜色稳定。",
+              "resize 后缓冲尺寸与可见窗口一致。",
+              "越界输入被裁剪或拒绝，不发生内存访问错误。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "比较一行菜品的三个字段是否保持配对。"
+              "text": "先看失败用例落在哪一条边界。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查 Dish 定义和初始化表。"
+              "text": "检查 frame_put_cell 与 resize 的乘法和索引计算。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "相关数据放入同一结构体，排序或复制时才不会错位。"
+              "text": "所有坐标裁剪集中在 Frame 层，平台提交层只消费已验证的格。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "独立增加饮品类别并正确过滤售罄项。",
-            "evidence": "Dish 定义和运行输出",
+            "task": "独立实现 frame_fill_rect，并覆盖负起点、部分可见、完全不可见和零宽高四组边界。",
+            "evidence": "frame_fill_rect 的测试表、运行结果和画布截图说明",
             "automatedChecks": [
-              "sold-out-filter",
-              "category-preserved"
+              "fill-rect-negative-origin",
+              "fill-rect-partial-clip",
+              "fill-rect-outside",
+              "frame-single-submit"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有在 ui/frame.c 中包含 windows.h",
+              "resize 分配失败仍保留旧 Frame"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "文件加载章节继续填充同一 Dish 结构。"
+          "laterReencounter": "第 3、10 和 15 章会持续用同一个 Frame 验证宽字符、动画与压力 resize。"
         },
         {
-          "id": "pointer-functions",
-          "title": "让函数修改候选状态",
-          "goal": "用指针和清楚的所有权边界拆分选择流程。",
+          "id": "wide-text-primitives",
+          "title": "正确画出中文、边框和推荐大字",
+          "phase": "终端画布",
+          "estimatedSessions": 4,
+          "goal": "在明确的字符范围内正确处理单宽、双宽、续格、右边缘裁剪和颜色样式。",
           "concepts": [
-            "指针参数",
-            "const",
-            "返回值",
-            "生命周期"
+            "UTF-16",
+            "显示宽度",
+            "双宽续格",
+            "裁剪",
+            "绘制原语"
           ],
-          "guidedBuild": "实现 pick_candidate、replace_candidate 和 confirm_candidate。",
+          "guidedBuild": "集中实现 display_width、draw_text、draw_box 与 draw_centered。课程支持 ASCII、常用 BMP 汉字、全角标点和框线字符；代理对、组合字符与 emoji 统一替换，不宣称完整 Unicode。",
+          "milestone": "完整显示静态中文推荐结果卡",
+          "filesTouched": [
+            "src/ui/text.c",
+            "src/ui/text.h",
+            "src/ui/frame.c",
+            "tests/test_text.c",
+            "src/app.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "text-01",
+              "title": "把代码单元翻译成终端宽度",
+              "targetFiles": [
+                "src/ui/text.c",
+                "src/ui/text.h",
+                "tests/test_text.c"
+              ],
+              "instruction": "实现受支持字符表和 display_width；孤立代理项、组合标记与不支持字符返回替代符策略。",
+              "verify": "ASCII 为 1 格、常用汉字为 2 格；不支持序列不会被误当成一个普通汉字。"
+            },
+            {
+              "id": "text-02",
+              "title": "维护双宽字符的两个格",
+              "targetFiles": [
+                "src/ui/frame.c",
+                "src/ui/text.c",
+                "tests/test_text.c"
+              ],
+              "instruction": "draw_text 写入首格和 continuation；覆盖任意半格时先清理成对单元；双宽字符落在最后一列时裁剪或替换。",
+              "verify": "覆盖首格、续格和右边缘的回归测试均通过，下一行不被污染。"
+            },
+            {
+              "id": "text-03",
+              "title": "组合食堂界面绘制原语",
+              "targetFiles": [
+                "src/ui/text.c",
+                "src/app.c"
+              ],
+              "instruction": "实现返回结束列的 draw_text、可带标题的 draw_box、基于显示宽度的 draw_centered，并用语义 style 常量画静态推荐卡。",
+              "verify": "‘宫保鸡丁 / 川菜 / 下饭’在推荐卡中视觉居中，边框连续，状态栏不被覆盖。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R text"
+            ],
+            "runActions": [
+              "运行静态推荐卡。",
+              "依次把中英文混合菜名放到右边缘。",
+              "运行双宽覆盖测试。"
+            ],
+            "expectedResults": [
+              "文本居中按显示格数计算。",
+              "右边缘没有半个汉字。",
+              "覆盖双宽字符后没有幽灵续格。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "先确认哪个函数只读菜单，哪个函数会修改当前候选。"
+              "text": "观察异常字符前后的两个 Cell。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查函数参数中的指针和 const。"
+              "text": "检查 draw_text 对 width=2 和 continuation 的写入与清理。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "调用者持有状态，修改函数通过有效指针写回。"
+              "text": "终端格宽度必须由 display_width 决定，不能用 wcslen 直接居中。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "新增“换一个”且不得重复当前候选。",
-            "evidence": "函数接口与重复候选测试",
+            "task": "独立加入‘最小窗口提示卡’，在宽度不足时只显示居中提示且不尝试正常布局。",
+            "evidence": "三种窗口宽度的输出、边缘用例结果和 display_width 解释",
             "automatedChecks": [
-              "no-immediate-repeat",
-              "empty-source-safe"
+              "cjk-right-edge",
+              "overwrite-wide-leading",
+              "overwrite-wide-continuation",
+              "minimum-window-card"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有把 wchar_t 直接等同于显示格",
+              "界面未使用 emoji 作为必须显示的字符"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 中通过同一接口处理读取失败后的内存菜单。"
+          "laterReencounter": "第 11 章表单会复用显示宽度和安全裁剪处理长菜名。"
         },
         {
-          "id": "safe-strings",
-          "title": "让菜名安全进入内存",
-          "goal": "处理长度、终止符和非法文本。",
+          "id": "input-events",
+          "title": "把按键、超时和窗口变化统一成事件",
+          "phase": "终端画布",
+          "estimatedSessions": 4,
+          "goal": "将 Windows INPUT_RECORD 翻译成平台无关事件，并为动画提供可靠的超时唤醒。",
           "concepts": [
-            "字符数组",
-            "字符串终止",
-            "长度检查"
+            "ReadConsoleInputW",
+            "WaitForSingleObject",
+            "按键枚举",
+            "重复计数",
+            "resize"
           ],
-          "guidedBuild": "限制菜名长度并拒绝无法完整保存的输入。",
+          "guidedBuild": "写出 InputEvent 和 input_wait：处理 KeyDown、方向键、Enter、Esc、字符、Ctrl+C、超时与 WINDOW_BUFFER_SIZE_EVENT，同时消费无关事件避免忙循环。",
+          "milestone": "方向键、字符、超时和 resize 都进入同一主循环",
+          "filesTouched": [
+            "src/platform/input_win32.c",
+            "src/platform/input_win32.h",
+            "src/core/event.h",
+            "src/app.c",
+            "tests/test_input_translate.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "input-01",
+              "title": "定义应用自己的输入语言",
+              "targetFiles": [
+                "src/core/event.h",
+                "src/platform/input_win32.h"
+              ],
+              "instruction": "定义 EVENT_KEY/EVENT_TIMEOUT/EVENT_RESIZE/EVENT_QUIT 及 KeyCode、字符和修饰键；上层不暴露虚拟键码。",
+              "verify": "app.c 只依赖 Event，不引用 INPUT_RECORD 或 Windows VK 常量。"
+            },
+            {
+              "id": "input-02",
+              "title": "翻译真实控制台事件",
+              "targetFiles": [
+                "src/platform/input_win32.c",
+                "tests/test_input_translate.c"
+              ],
+              "instruction": "只接收 KeyDown；明确展开 wRepeatCount；翻译方向键、Enter、Esc、f、Q 和 Ctrl+C；焦点、菜单与不用的鼠标事件被消费。",
+              "verify": "KeyUp 不触发动作，长按有确定次数，只有无关事件时不会形成 CPU 忙循环。"
+            },
+            {
+              "id": "input-03",
+              "title": "用等待超时驱动未来动画",
+              "targetFiles": [
+                "src/platform/input_win32.c",
+                "src/app.c"
+              ],
+              "instruction": "使用 WaitForSingleObject 等待输入句柄，超时产生 EVENT_TIMEOUT；resize 事件重新查询可见尺寸并安全重建 Frame。",
+              "verify": "50ms 超时稳定出现；快速 resize 期间应用继续响应 Esc 与 Q。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R input"
+            ],
+            "runActions": [
+              "在事件观察器依次按方向键、Enter、Esc、f 和 Ctrl+C。",
+              "长按方向键后 resize。",
+              "停止输入观察超时计数。"
+            ],
+            "expectedResults": [
+              "事件名称和修饰键正确。",
+              "resize 只报告新尺寸，不访问已释放 Frame。",
+              "鼠标点选不会暂停程序。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "观察最大长度输入后的最后一个字符。"
+              "text": "先看原始事件类型和 bKeyDown。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查读取上限与目标数组容量。"
+              "text": "检查 translate_record 与等待循环是否把过滤和阻塞混为一处。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "字符数组必须为结尾的 \\0 留出空间。"
+              "text": "无关事件要消费后继续等待；超时预算要扣除已花时间。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "验证空名称、恰好上限和超过上限三种输入。",
-            "evidence": "三类字符串边界结果",
+            "task": "独立加入 Shift+方向键事件，并证明 KeyUp、焦点事件与鼠标事件仍不会误触发它。",
+            "evidence": "事件追踪日志、翻译测试和一次 resize 录屏说明",
             "automatedChecks": [
-              "empty-name",
-              "exact-limit",
-              "over-limit-rejected"
+              "input-keydown-only",
+              "input-repeat-count",
+              "input-timeout",
+              "resize-event",
+              "irrelevant-events-consumed"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有开启 ENABLE_VIRTUAL_TERMINAL_INPUT",
+              "Ctrl+C 由应用事件处理且仍能恢复控制台"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "文件加载时复用相同校验，不能信任磁盘内容。"
+          "laterReencounter": "第 10 章会用同一 timeout 事件推进抽奖状态机。"
         },
         {
-          "id": "file-history",
-          "title": "保存并恢复最近选择",
-          "goal": "以明确格式读写菜单和历史。",
+          "id": "view-stack",
+          "title": "用视图栈组织可返回的食堂界面",
+          "phase": "状态与数据",
+          "estimatedSessions": 4,
+          "goal": "建立 draw/handle 接口、视图栈和非阻塞模态视图，让导航、焦点和 resize 仍由单一主循环控制。",
           "concepts": [
-            "文件指针",
-            "返回值检查",
-            "持久化格式"
+            "函数指针",
+            "状态机",
+            "视图栈",
+            "模态视图",
+            "焦点"
           ],
-          "guidedBuild": "实现历史追加、启动读取和文件失败提示。",
+          "guidedBuild": "实现主页、假菜品列表、详情和删除确认视图。底层可继续绘制，栈顶独占输入；确认框也是普通 View，不开启嵌套 y/n 循环。",
+          "milestone": "可用键盘完整浏览假菜单",
+          "filesTouched": [
+            "src/ui/view.h",
+            "src/ui/view_stack.c",
+            "src/ui/view_stack.h",
+            "src/ui/view_home.c",
+            "src/ui/view_dishes.c",
+            "src/ui/view_dialog.c",
+            "src/app.c",
+            "tests/test_view_stack.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "view-01",
+              "title": "定义视图契约与栈",
+              "targetFiles": [
+                "src/ui/view.h",
+                "src/ui/view_stack.c",
+                "src/ui/view_stack.h",
+                "tests/test_view_stack.c"
+              ],
+              "instruction": "定义 draw、handle、destroy 回调和 owned state；完成 push/pop/top 的容量、空栈和销毁规则。",
+              "verify": "连续 push/pop 后析构次数准确，栈扩容失败时原视图仍在。"
+            },
+            {
+              "id": "view-02",
+              "title": "接通主页、列表和详情",
+              "targetFiles": [
+                "src/ui/view_home.c",
+                "src/ui/view_dishes.c",
+                "src/app.c"
+              ],
+              "instruction": "用五道假菜建立主页→列表→详情；方向键只改选择索引，Enter push，Esc pop，标题栏和状态栏从栈顶上下文生成。",
+              "verify": "连续浏览、返回后列表位置保持，底部快捷键与当前视图一致。"
+            },
+            {
+              "id": "view-03",
+              "title": "把确认框做成可恢复模态视图",
+              "targetFiles": [
+                "src/ui/view_dialog.c",
+                "src/app.c",
+                "tests/test_view_stack.c"
+              ],
+              "instruction": "对话框覆盖绘制但不阻塞主循环，只接受确认/取消；resize、Q 和终端恢复仍由主循环处理。",
+              "verify": "列表→详情→确认框→取消→返回的栈深和焦点完全可预测。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R view_stack"
+            ],
+            "runActions": [
+              "浏览假菜单并进入第三项详情。",
+              "打开删除确认后 resize，再取消。",
+              "重复十次进入和返回。"
+            ],
+            "expectedResults": [
+              "选择位置保持。",
+              "模态出现时下层不接收输入。",
+              "所有视图销毁后分配数回到初始值。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "先观察 fopen 失败时程序是否仍继续读写。"
+              "text": "先记录每一步前后的栈顶和选择索引。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查打开、读取、写入和关闭四个阶段。"
+              "text": "检查事件是否只分发给 view_stack_top。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "每个文件操作都可能失败，失败后不能使用无效 FILE 指针。"
+              "text": "模态视图只改变栈，不应另起输入循环。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "让只读目录和损坏历史文件都能安全退出或回退。",
-            "evidence": "文件失败输出和恢复结果",
+            "task": "独立加入‘快捷键帮助’模态视图，并验证从主页、列表、详情打开时都能正确返回原焦点。",
+            "evidence": "导航路径表、栈深日志、resize 后界面和析构计数",
             "automatedChecks": [
-              "missing-file",
-              "malformed-line",
-              "write-failure"
+              "view-lifo",
+              "modal-exclusive-input",
+              "modal-resize",
+              "view-destroy-on-pop"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有任何视图自己读取控制台",
+              "没有嵌套阻塞消息循环"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 在中途写入失败后要求保持原历史可读。"
+          "laterReencounter": "第 10 至 13 章会在同一栈上加入推荐、表单、分类标签和历史视图。"
         },
         {
-          "id": "debug-memory",
-          "title": "用调试器找到越界根因",
-          "goal": "通过断点、变量观察和最小复现定位内存错误。",
+          "id": "vec-and-memory",
+          "title": "让菜单容量增长而不丢数据",
+          "phase": "状态与数据",
+          "estimatedSessions": 4,
+          "goal": "实现类型化动态数组和可故障注入的内存封装，为真实数据模型提供稳定容器。",
           "concepts": [
-            "断点",
-            "调用栈",
-            "越界",
-            "最小复现"
+            "动态数组",
+            "realloc",
+            "溢出",
+            "所有权",
+            "泄漏跟踪"
           ],
-          "guidedBuild": "修复一个仅在菜单满容量时出现的越界错误。",
+          "guidedBuild": "先为 DishVec 写出具体实现，再提炼 VEC_DECLARE 宏供分类、标签和历史复用；xmalloc/xrealloc/xfree 记录 Debug 分配并支持 fail-after-N。",
+          "milestone": "菜单可增长到 100 道且退出无泄漏",
+          "filesTouched": [
+            "src/core/mem.c",
+            "src/core/mem.h",
+            "src/core/vec.h",
+            "tests/test_vec.c",
+            "src/ui/view_dishes.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "vec-01",
+              "title": "正确封装分配与失败",
+              "targetFiles": [
+                "src/core/mem.c",
+                "src/core/mem.h"
+              ],
+              "instruction": "记录活动分配、字节数与调用序号；实现 fail-after-N；xrealloc 失败时保留旧指针，不用默认退出掩盖错误。",
+              "verify": "正常路径分配计数归零，逐个失败点都有错误码且旧内存可继续释放。"
+            },
+            {
+              "id": "vec-02",
+              "title": "写出一个可验证的 DishVec",
+              "targetFiles": [
+                "src/core/vec.h",
+                "tests/test_vec.c"
+              ],
+              "instruction": "实现 init/reserve/push/remove/destroy；扩容前检查 capacity*element_size 溢出，临时指针成功后才提交。",
+              "verify": "0、1、初始容量边界、两次扩容和删除首中尾均保持元素顺序。"
+            },
+            {
+              "id": "vec-03",
+              "title": "提炼并替换假菜单容器",
+              "targetFiles": [
+                "src/core/vec.h",
+                "src/ui/view_dishes.c",
+                "tests/test_vec.c"
+              ],
+              "instruction": "在具体实现通过后提炼类型化宏，生成 DishVec/IdVec；将假菜单迁移到向量并在视图销毁时释放。",
+              "verify": "100 道假菜可浏览；在每个扩容分配点失败时旧菜单仍可读且无泄漏。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R vec"
+            ],
+            "runActions": [
+              "运行向量表驱动测试。",
+              "设置 fail-after-N 遍历所有分配点。",
+              "启动 100 道菜列表并退出。"
+            ],
+            "expectedResults": [
+              "扩容失败不覆盖旧指针。",
+              "删除后元素连续且 count 正确。",
+              "Debug 退出时活动分配为 0。"
+            ]
+          },
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "先找第一次出现异常的输入规模。"
+              "text": "先找第一次发生扩容的 push。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "观察循环末尾下标和 count。"
+              "text": "检查新容量计算和临时 realloc 指针。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "满容量时错误的 <= 会访问数组外。"
+              "text": "只有分配成功后才能同时更新 data 与 capacity。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "提交修复前后的复现步骤和一条防回归用例。",
-            "evidence": "复现说明、修复差异、回归输出",
+            "task": "独立为 HistoryVec 加入固定上限 push：超过上限时只淘汰最旧一条，并覆盖 0、1、N、N+1。",
+            "evidence": "故障注入表、内存报告和 HistoryVec 边界测试",
             "automatedChecks": [
-              "capacity-boundary-regression"
+              "vec-growth",
+              "vec-overflow-rejected",
+              "realloc-old-pointer-preserved",
+              "history-capacity-rollover"
             ],
-            "selfChecks": [],
+            "selfChecks": [
+              "没有用 void* 元素访问绕过类型",
+              "测试验证失败后的状态而不只验证返回码"
+            ],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 把越界与损坏文件组合起来，不提前提示错误位置。"
+          "laterReencounter": "第 13 章会用同一 HistoryVec 实现最近 N 条滚动记录。"
+        },
+        {
+          "id": "recommendation-model",
+          "title": "建立为推荐服务的真实数据模型",
+          "phase": "状态与数据",
+          "estimatedSessions": 4,
+          "goal": "用稳定 ID 表达菜品、分类、标签和历史，并固定推荐与接受的不同语义。",
+          "concepts": [
+            "结构体",
+            "稳定 ID",
+            "引用完整性",
+            "历史快照",
+            "业务动作"
+          ],
+          "guidedBuild": "定义 AppState、Dish、Category、Tag、HistoryEntry 与 Settings。Dish 同时保存 lastRecommendedAt/recommendCount 和 lastAcceptedAt/acceptCount；History 保存稳定 ID 与名称快照。",
+          "milestone": "假菜单升级为可校验的完整食堂数据",
+          "filesTouched": [
+            "src/core/model.c",
+            "src/core/model.h",
+            "src/core/command.h",
+            "tests/test_model.c",
+            "src/ui/view_dishes.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "model-01",
+              "title": "定义实体和稳定 ID",
+              "targetFiles": [
+                "src/core/model.h"
+              ],
+              "instruction": "定义 DishId/CategoryId/TagId；Dish 包含名称、分类、标签、备注、收藏、评分和推荐/接受统计；数组移动不能改变 ID。",
+              "verify": "编译期类型和运行期查找均区分不同 ID；列表不再保存元素指针。"
+            },
+            {
+              "id": "model-02",
+              "title": "建立生命周期与查找接口",
+              "targetFiles": [
+                "src/core/model.c",
+                "tests/test_model.c"
+              ],
+              "instruction": "实现 AppState init/destroy、按 ID 查找、唯一 ID 分配和实体复制；所有失败路径清理已拥有字段。",
+              "verify": "超过初始容量后旧 ID 仍找到同一实体；复制中途失败不泄漏。"
+            },
+            {
+              "id": "model-03",
+              "title": "固定历史与删除后的含义",
+              "targetFiles": [
+                "src/core/model.c",
+                "src/core/command.h",
+                "tests/test_model.c",
+                "src/ui/view_dishes.c"
+              ],
+              "instruction": "定义 RECOMMENDED/ACCEPTED/VIEWED/CREATED/UPDATED；历史存 dish_id+name_snapshot+query_snapshot；删除后历史仍可显示但不可错误跳转。",
+              "verify": "模型校验拒绝重复 ID 和悬空分类/标签；已删除菜品的历史显示快照与‘已删除’标记。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R model"
+            ],
+            "runActions": [
+              "创建 40 道菜、4 分类、8 标签并触发扩容。",
+              "移动与删除实体后按稳定 ID 查询。",
+              "删除一条有历史的菜。"
+            ],
+            "expectedResults": [
+              "ID 不因向量移动改变。",
+              "悬空引用被校验拒绝。",
+              "历史名称快照保留且不会跳到复用 ID 的新菜。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先画出实体之间只允许哪些 ID 引用。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查查找函数和历史快照的创建点。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "稳定 ID 不能用当前数组下标替代，历史也不能只保存会悬空的指针。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立加入模型级 duplicate-name 错误：忽略首尾空白并使用明确的大小写策略，返回冲突菜品 ID。",
+            "evidence": "模型关系图、重复名称用例、删除前后历史与校验结果",
+            "automatedChecks": [
+              "stable-id-after-growth",
+              "duplicate-id-rejected",
+              "dangling-reference-rejected",
+              "history-snapshot-after-delete",
+              "duplicate-name-normalized"
+            ],
+            "selfChecks": [
+              "视图状态保存 ID 而不是向量元素地址",
+              "推荐定格与 Enter 接受使用两个不同动作"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 9、13 和 14 章会直接读取这些字段实现选择、历史与策略。"
+        },
+        {
+          "id": "versioned-replacement-store",
+          "title": "让食堂数据安全跨越重启",
+          "phase": "状态与数据",
+          "estimatedSessions": 4,
+          "goal": "实现带 schema 版本、转义、全量校验和替换式崩溃保护的单文件存储。",
+          "concepts": [
+            "UTF-8",
+            "行格式",
+            "schema 迁移",
+            "临时模型",
+            "ReplaceFileW"
+          ],
+          "guidedBuild": "把完整 AppState 保存为 data/canteen.tsv：文件头 EGGY_CANTEEN\\t2，后续 CATEGORY/TAG/DISH/HISTORY/SETTINGS 行。先解析到临时状态，完全校验后再交换；保存走同卷临时文件、flush、关闭和替换。",
+          "milestone": "修改数据后重启仍完整恢复，坏文件不会覆盖好状态",
+          "filesTouched": [
+            "src/persistence/codec.c",
+            "src/persistence/codec.h",
+            "src/platform/store_win32.c",
+            "src/platform/store_win32.h",
+            "tests/test_codec.c",
+            "tests/test_store.c",
+            "data/canteen.tsv"
+          ],
+          "guidedSteps": [
+            {
+              "id": "store-01",
+              "title": "编码可往返的版本化行格式",
+              "targetFiles": [
+                "src/persistence/codec.c",
+                "src/persistence/codec.h",
+                "tests/test_codec.c"
+              ],
+              "instruction": "明确文件内容为 UTF-8；实现反斜线、Tab、换行、回车的转义/反转义；写入 v2 文件头和全部记录类型。",
+              "verify": "中文、Tab、换行、反斜线和空字段 encode→decode 后逐字段相同。"
+            },
+            {
+              "id": "store-02",
+              "title": "先验证完整快照再替换内存",
+              "targetFiles": [
+                "src/persistence/codec.c",
+                "tests/test_codec.c"
+              ],
+              "instruction": "加载到临时 AppState，检查行号、数量上限、重复 ID、未知引用和未来 schema；任一失败都销毁临时状态并保留当前状态。",
+              "verify": "坏行、截断、重复 ID、悬空引用和 v99 文件都给定位信息且当前内存字节不变。"
+            },
+            {
+              "id": "store-03",
+              "title": "实现替换式崩溃保护保存",
+              "targetFiles": [
+                "src/platform/store_win32.c",
+                "tests/test_store.c"
+              ],
+              "instruction": "在目标同目录创建唯一临时文件，fflush 后 FlushFileBuffers，关闭；已有文件 ReplaceFileW，首次保存 MoveFileExW；失败保留原件并清理临时文件。",
+              "verify": "写入、flush、关闭和替换每个故障点后，原 canteen.tsv 仍能完整加载；不宣称数据库级断电事务。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R \"codec|store\""
+            ],
+            "runActions": [
+              "建立含特殊字符的 v2 快照并重启。",
+              "加载五种损坏文件。",
+              "逐点注入保存失败并比较原文件哈希。"
+            ],
+            "expectedResults": [
+              "合法状态完整往返。",
+              "损坏数据不污染当前内存。",
+              "保存失败后原文件字节保持不变且错误可见。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先判断失败发生在编码、写入、flush 还是替换。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查加载是否写进独立临时 AppState，保存是否始终保留原文件。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "只有完整解析和校验成功后才能交换内存；只有临时文件完整落盘后才能替换目标。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立实现一次 v1→v2 迁移：为旧菜品补齐接受统计；迁移成功后才写 v2，未知未来版本仍拒绝。",
+            "evidence": "迁移前后文件、故障矩阵、原文件哈希和重新加载结果",
+            "automatedChecks": [
+              "utf8-escaped-roundtrip",
+              "load-into-temporary-state",
+              "future-schema-rejected",
+              "first-save-move",
+              "replace-failure-preserves-original",
+              "v1-to-v2-migration"
+            ],
+            "selfChecks": [
+              "磁盘内容编码不是依赖 _wfopen 猜测",
+              "临时文件与目标处于同一目录",
+              "失败不会让内存假装已保存"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 15 章会把保存事务和业务 Command 合并验证内存/磁盘一致性。"
+        },
+        {
+          "id": "basic-recommend-engine",
+          "title": "写出与界面无关的推荐核心",
+          "phase": "推荐核心",
+          "estimatedSessions": 4,
+          "goal": "用可注入随机数和时间完成全集、分类、标签组合过滤及无偏整数选择。",
+          "concepts": [
+            "纯函数边界",
+            "AND 过滤",
+            "可注入 RNG",
+            "拒绝取模偏差",
+            "空结果"
+          ],
+          "guidedBuild": "实现 RecommendQuery、RecommendResult 和候选收集。分类与多个标签使用 AND 语义；引擎不读文件、不画 UI、不取系统时间，最终选择使用拒绝采样避免 modulo bias。",
+          "milestone": "命令行测试可稳定给出真实筛选结果",
+          "filesTouched": [
+            "src/core/rng.c",
+            "src/core/rng.h",
+            "src/core/recommend.c",
+            "src/core/recommend.h",
+            "tests/test_recommend.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "recommend-01",
+              "title": "建立查询与候选过滤",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "src/core/recommend.h",
+                "tests/test_recommend.c"
+              ],
+              "instruction": "定义可选 category_id、tag_ids、排除策略和选择模式；先遍历一次收集合法 DishId，不复制完整 Dish。",
+              "verify": "无筛选、分类、单标签、多标签 AND、单候选和零候选均得到确定结果码。"
+            },
+            {
+              "id": "recommend-02",
+              "title": "注入可复现的随机源",
+              "targetFiles": [
+                "src/core/rng.c",
+                "src/core/rng.h",
+                "tests/test_recommend.c"
+              ],
+              "instruction": "生产入口用 rand_s 产生非零种子，内部使用有状态 xorshift；测试用固定/脚本 RNG；零状态被拒绝。",
+              "verify": "同一模型、查询、时间和 RNG 序列得到同一 DishId；不同绘制速度不会参与选择。"
+            },
+            {
+              "id": "recommend-03",
+              "title": "完成无偏整数命中",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "tests/test_recommend.c"
+              ],
+              "instruction": "通过拒绝采样把 32 位随机值映射到 [0,count)，明确处理 count=0/1；返回候选 ID 和查询快照，不直接修改 AppState。",
+              "verify": "脚本 RNG 覆盖第一个、最后一个和拒绝重抽边界；零候选返回 NO_MATCH。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R recommend_basic"
+            ],
+            "runActions": [
+              "用固定菜单运行 100 次确定性推荐测试。",
+              "尝试‘川菜 + 下饭’和空组合。",
+              "改变 UI 刷新次数后重复相同 RNG。"
+            ],
+            "expectedResults": [
+              "过滤条件是 AND。",
+              "空范围给明确原因而不是伪结果。",
+              "动画帧数和 UI 不改变最终 DishId。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先打印过滤后的稳定 ID，而不是反复看随机结果。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 query 匹配谓词与 RNG 映射函数。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "过滤和选择分成两步；没有候选必须在随机调用前返回。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立加入 required_all_tags 与 required_any_tags 两种显式模式，并各写一组能区分结果的测试。",
+            "evidence": "查询输入、候选 ID 列表、固定 RNG 输出和空结果文案",
+            "automatedChecks": [
+              "recommend-all",
+              "recommend-category",
+              "recommend-tags-and",
+              "recommend-no-match",
+              "rng-zero-state",
+              "rng-rejection-boundary"
+            ],
+            "selfChecks": [
+              "recommend.c 不包含 windows.h 或 UI 头文件",
+              "推荐函数不直接写历史或保存文件"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 10 章由应用层在最终定格时提交 RECOMMENDED 动作。"
+        },
+        {
+          "id": "recommendation-view",
+          "title": "做出有仪式感的抽奖推荐",
+          "phase": "推荐核心",
+          "estimatedSessions": 4,
+          "goal": "实现 IDLE→ROLLING→RESULT 状态机、逐渐减速动画和 Enter/Esc/f 快捷交互。",
+          "concepts": [
+            "有限状态机",
+            "超时动画",
+            "业务提交",
+            "键盘交互",
+            "即时持久化"
+          ],
+          "guidedBuild": "单独实现推荐视图。进入 ROLLING 前先由推荐引擎决定最终 DishId；中间菜名只作视觉预览。最终定格提交 RECOMMENDED，Enter 再提交 ACCEPTED，Esc 开始新一轮，f 切换收藏。",
+          "milestone": "完成一键抽奖、定格、接受、重抽与收藏的核心体验",
+          "filesTouched": [
+            "src/ui/view_recommend.c",
+            "src/ui/view_recommend.h",
+            "src/core/command.c",
+            "src/core/command.h",
+            "src/app.c",
+            "tests/test_recommend_view.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "recommend-view-01",
+              "title": "写清三个状态和合法转换",
+              "targetFiles": [
+                "src/ui/view_recommend.c",
+                "src/ui/view_recommend.h",
+                "tests/test_recommend_view.c"
+              ],
+              "instruction": "定义 IDLE/ROLLING/RESULT 及进入/退出动作；只有 IDLE 可启动，ROLLING 可取消或定格，RESULT 可接受、收藏或重抽。",
+              "verify": "非法事件不改变状态；每个合法转换有表驱动测试。"
+            },
+            {
+              "id": "recommend-view-02",
+              "title": "用 timeout 播放逐渐减速动画",
+              "targetFiles": [
+                "src/ui/view_recommend.c",
+                "tests/test_recommend_view.c"
+              ],
+              "instruction": "启动时一次确定 final_id，再按时间计划显示候选预览，间隔从约 35ms 逐步增加；resize 只重绘，不重新抽取。",
+              "verify": "不同超时粒度、漏帧和中途 resize 后 final_id 相同；预览不写历史和统计。"
+            },
+            {
+              "id": "recommend-view-03",
+              "title": "提交推荐、接受、重抽和收藏",
+              "targetFiles": [
+                "src/core/command.c",
+                "src/ui/view_recommend.c",
+                "src/app.c"
+              ],
+              "instruction": "定格通过 Command 更新 lastRecommendedAt/recommendCount 并写 RECOMMENDED；Enter 更新 accepted 字段写 ACCEPTED；Esc 保留已有推荐记录并重抽；f 收藏并保存。",
+              "verify": "结果卡显示名称/分类/标签/备注；四种动作的统计、历史和文件重开结果一致。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R recommend_view"
+            ],
+            "runActions": [
+              "用默认范围完整抽一次并 Enter。",
+              "再抽一次按 Esc 重抽。",
+              "滚动中 resize，定格后按 f。"
+            ],
+            "expectedResults": [
+              "动画有减速和明确落点。",
+              "每次定格只写一条 RECOMMENDED。",
+              "只有 Enter 写 ACCEPTED，收藏立即持久化。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先记录状态、final_id 和历史长度。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 timeout 是否只推进展示索引，业务提交是否只发生在定格/Enter。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "最终结果必须在动画开始前确定，任何重绘都不能再次调用业务选择。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立加入 500ms/1500ms/3000ms 三档动画时长，并证明档位只改变展示时间、不改变固定种子下的结果。",
+            "evidence": "状态转换日志、三档耗时、历史差异和重启后的收藏状态",
+            "automatedChecks": [
+              "rolling-preview-no-history",
+              "resize-keeps-final-result",
+              "recommended-once",
+              "accepted-on-enter-only",
+              "escape-redraw",
+              "favorite-persisted"
+            ],
+            "selfChecks": [
+              "没有把最后一帧预览当作业务随机来源",
+              "保存失败时界面显示错误且不谎报成功"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 14 章会在同一视图加入排除、去重和权重策略。"
+        },
+        {
+          "id": "dish-management",
+          "title": "让菜单管理真正服务推荐",
+          "phase": "管理与历史",
+          "estimatedSessions": 4,
+          "goal": "完成菜品列表、详情、搜索、表单和增删改查，并保证保存失败可回滚。",
+          "concepts": [
+            "宽字符输入",
+            "表单状态",
+            "CRUD",
+            "校验结果",
+            "事务回滚"
+          ],
+          "guidedBuild": "把管理保持实用而克制：列表支持搜索和分类/标签筛选；表单编辑名称、分类、标签、备注、收藏与评分；所有变更走统一 Command，保存成功后才交换内存。",
+          "milestone": "可从界面完整维护并搜索菜单",
+          "filesTouched": [
+            "src/ui/view_dishes.c",
+            "src/ui/view_dish_form.c",
+            "src/ui/view_dish_form.h",
+            "src/core/command.c",
+            "tests/test_dish_commands.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "dish-01",
+              "title": "完成列表、详情和搜索",
+              "targetFiles": [
+                "src/ui/view_dishes.c"
+              ],
+              "instruction": "从真实 AppState 绘制可滚动列表；支持增量搜索、分类/标签筛选、查看详情和从详情返回原位置。",
+              "verify": "0、1、100 道菜和长名称均可浏览；筛选后选择索引被安全夹取。"
+            },
+            {
+              "id": "dish-02",
+              "title": "写出可取消的宽字符表单",
+              "targetFiles": [
+                "src/ui/view_dish_form.c",
+                "src/ui/view_dish_form.h",
+                "tests/test_dish_commands.c"
+              ],
+              "instruction": "表单维护独立草稿和光标；处理插入、删除、字段切换；保存前做空名、规范化重名、长度和引用校验，Esc 丢弃草稿。",
+              "verify": "空名称、全空格、恰好上限、超长、编辑后重名都有明确反馈且不改模型。"
+            },
+            {
+              "id": "dish-03",
+              "title": "让 CRUD 与磁盘保持一致",
+              "targetFiles": [
+                "src/core/command.c",
+                "src/ui/view_dishes.c",
+                "tests/test_dish_commands.c"
+              ],
+              "instruction": "Command 复制小型状态、应用新增/编辑/删除、写 CREATED/UPDATED、保存副本，成功后交换；删除用非阻塞确认视图。",
+              "verify": "成功后推荐立即看到新菜单；替换失败时内存、列表和磁盘都保持旧值并显示错误。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R dish_command"
+            ],
+            "runActions": [
+              "新增、搜索、编辑和删除一道菜。",
+              "制造重名和空名称。",
+              "在保存替换点注入失败后重启。"
+            ],
+            "expectedResults": [
+              "CRUD 立即影响推荐候选。",
+              "非法输入不产生半条记录。",
+              "保存失败没有内存/磁盘静默分叉。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先区分表单草稿、候选新状态和已提交状态。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 validate→copy→modify→save→swap 的顺序。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "写盘失败时绝不能先改全局 AppState 再尝试补救。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立加入‘复制为新菜’：预填当前菜但清空 ID，仍必须通过规范化重名检查和完整保存事务。",
+            "evidence": "六类表单边界、CRUD 前后模型快照、保存失败后的文件哈希",
+            "automatedChecks": [
+              "dish-empty-name",
+              "dish-duplicate-name",
+              "dish-max-length",
+              "dish-create-persist",
+              "dish-update-rollback",
+              "dish-delete-confirm"
+            ],
+            "selfChecks": [
+              "管理界面不复制一套推荐过滤逻辑",
+              "表单草稿未直接指向模型可变字段"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 12 章将表单中的分类和标签占位项替换为真实管理数据。"
+        },
+        {
+          "id": "taxonomy-management",
+          "title": "用分类和标签控制推荐范围",
+          "phase": "管理与历史",
+          "estimatedSessions": 4,
+          "goal": "完成分类、标签管理及删除关联规则，让‘川菜 + 下饭’等组合范围在列表和推荐中共用。",
+          "concepts": [
+            "一对多",
+            "多对多",
+            "未分类",
+            "关联清理",
+            "共享过滤器"
+          ],
+          "guidedBuild": "加入分类与标签视图、编辑和删除确认。删除分类时菜品转为保留的‘未分类’，删除标签时从所有菜品摘除；列表与推荐调用同一个匹配谓词。",
+          "milestone": "可维护分类标签并完成组合范围推荐",
+          "filesTouched": [
+            "src/ui/view_taxonomy.c",
+            "src/ui/view_taxonomy.h",
+            "src/ui/view_dish_form.c",
+            "src/core/model.c",
+            "src/core/command.c",
+            "tests/test_taxonomy.c",
+            "src/core/recommend.c",
+            "src/ui/view_dishes.c",
+            "src/ui/view_recommend.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "taxonomy-01",
+              "title": "管理分类及未分类规则",
+              "targetFiles": [
+                "src/ui/view_taxonomy.c",
+                "src/core/command.c",
+                "tests/test_taxonomy.c"
+              ],
+              "instruction": "实现分类新增、改名、删除；固定保留未分类 ID，不允许删除；删除普通分类时一次事务更新所有引用菜品。",
+              "verify": "删除被 20 道菜引用的分类后全部指向未分类，重启后仍一致。"
+            },
+            {
+              "id": "taxonomy-02",
+              "title": "管理标签和多选关系",
+              "targetFiles": [
+                "src/ui/view_taxonomy.c",
+                "src/ui/view_dish_form.c",
+                "src/core/command.c"
+              ],
+              "instruction": "实现标签新增、改名、删除；表单提供多选标签；删除标签时遍历菜品清除对应 ID 并保存。",
+              "verify": "同一菜可有多个标签；删除高频标签后模型校验无悬空引用。"
+            },
+            {
+              "id": "taxonomy-03",
+              "title": "共用组合过滤与空状态",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "src/ui/view_dishes.c",
+                "src/ui/view_recommend.c",
+                "tests/test_taxonomy.c"
+              ],
+              "instruction": "抽取统一 dish_matches_query；列表和推荐使用同一 AND 语义；界面展示当前范围并对空结果给出清除条件入口。",
+              "verify": "‘川菜 + 下饭’在列表计数和推荐候选完全一致；删除关联项后范围即时更新。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R taxonomy"
+            ],
+            "runActions": [
+              "创建 4 分类和 8 标签并分配给多道菜。",
+              "删除一个被多菜引用的分类和标签。",
+              "在列表与推荐选择相同组合。"
+            ],
+            "expectedResults": [
+              "未分类始终存在。",
+              "删除标签后所有引用清除。",
+              "列表和推荐的候选集合一致，空范围有明确文案。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先列出删除前所有引用 ID。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 Command 是否在保存前更新并校验整个副本。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "分类删除要重指向未分类，标签删除要从每个 IdVec 中摘除。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立加入‘标签使用次数’显示，并验证新增、编辑、删除菜品与删除标签后计数都从模型实时计算而非缓存漂移。",
+            "evidence": "关联删除前后表、重启结果、组合过滤候选 ID 对照",
+            "automatedChecks": [
+              "category-delete-reassigns",
+              "uncategorized-protected",
+              "tag-delete-detaches",
+              "shared-filter-semantics",
+              "empty-filter-message"
+            ],
+            "selfChecks": [
+              "删除规则在 Command 层而不是只在视图层",
+              "没有用名称代替稳定 ID 建立关联"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 14 章以同一 Query 签名区分不同去重轮次。"
+        },
+        {
+          "id": "history-and-recency",
+          "title": "让历史解释每一次推荐",
+          "phase": "管理与历史",
+          "estimatedSessions": 4,
+          "goal": "记录推荐、接受、查看、新增和编辑，支持回跳、容量滚动和多久未被推荐/接受的反查。",
+          "concepts": [
+            "动作日志",
+            "名称快照",
+            "容量上限",
+            "时间边界",
+            "回跳"
+          ],
+          "guidedBuild": "完善 HistoryEntry：保存时间、动作、dish_id、name_snapshot 与 query_snapshot。历史页可筛动作、进入现存菜品详情、标记已删除菜，并从统计字段反查距离上次推荐/接受时间。",
+          "milestone": "历史页可解释并回看食堂的真实推荐过程",
+          "filesTouched": [
+            "src/ui/view_history.c",
+            "src/ui/view_history.h",
+            "src/core/command.c",
+            "src/core/model.c",
+            "tests/test_history.c",
+            "src/ui/view_dishes.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "history-01",
+              "title": "在正确业务时点写动作",
+              "targetFiles": [
+                "src/core/command.c",
+                "tests/test_history.c"
+              ],
+              "instruction": "定格写 RECOMMENDED，Enter 写 ACCEPTED，详情写 VIEWED，新增/编辑写 CREATED/UPDATED；动画预览不记录。",
+              "verify": "脚本化完整操作后动作序列、时间和 query_snapshot 精确相等。"
+            },
+            {
+              "id": "history-02",
+              "title": "完成历史浏览和安全回跳",
+              "targetFiles": [
+                "src/ui/view_history.c",
+                "src/ui/view_dishes.c"
+              ],
+              "instruction": "按时间倒序显示动作、菜名快照和筛选条件；现存 dish_id 可回跳，删除或未知 ID 显示‘已删除’且禁用回跳。",
+              "verify": "删除菜品前后历史文本不变，不会跳到后来复用位置的新菜。"
+            },
+            {
+              "id": "history-03",
+              "title": "限制容量并反查最近时间",
+              "targetFiles": [
+                "src/core/model.c",
+                "src/ui/view_history.c",
+                "tests/test_history.c"
+              ],
+              "instruction": "保留最近 N 条，N+1 时只淘汰最旧；以注入时钟计算‘多久没抽到/多久没确认吃’，明确恰好 N 天边界。",
+              "verify": "写入 N+2 条后留下正确区间；时间恰好等于 N 天的包含/排除语义固定并有测试。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R history"
+            ],
+            "runActions": [
+              "完成一次推荐→重抽→推荐→接受→查看→编辑。",
+              "删除有历史的菜再打开历史。",
+              "写入超过容量的动作并重启。"
+            ],
+            "expectedResults": [
+              "历史能回答谁、何时、用什么条件抽到。",
+              "删除后仍显示快照。",
+              "容量淘汰与最近时间计算可重复。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先把预期动作序列逐项写出。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查动作究竟在预览、定格还是 Enter 时提交。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "历史条目需要自己的名称与查询快照，不能依赖当前 Dish 仍存在。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加‘只看已接受’过滤器，并验证空结果、删除菜品快照和返回列表时选择位置。",
+            "evidence": "动作序列表、N+2 容量结果、时间边界测试和删除后历史界面",
+            "automatedChecks": [
+              "history-action-order",
+              "preview-not-recorded",
+              "history-deleted-snapshot",
+              "history-capacity",
+              "recency-exact-boundary",
+              "history-filter-accepted"
+            ],
+            "selfChecks": [
+              "查看动作不会递归触发无限历史写入",
+              "查询时间来自注入 clock 而不是测试中的真实系统时间"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "第 14 章的排除最近规则直接复用 lastRecommendedAt 或 lastAcceptedAt。"
+        },
+        {
+          "id": "recommend-strategies",
+          "title": "加入排除、去重和加权策略",
+          "phase": "推荐核心",
+          "estimatedSessions": 4,
+          "goal": "实现可解释的最近排除、按查询签名去重和 64 位整数加权随机。",
+          "concepts": [
+            "最近排除",
+            "查询签名",
+            "去重轮次",
+            "整数权重",
+            "溢出保护"
+          ],
+          "guidedBuild": "在 RecommendQuery 中明确‘排除最近抽到’读取 lastRecommendedAt，‘排除最近接受’读取 lastAcceptedAt。去重状态按规范化查询签名保存；权重综合收藏、评分、久未接受并使用安全 64 位累加。",
+          "milestone": "四种推荐策略可切换且每次选择可解释",
+          "filesTouched": [
+            "src/core/recommend.c",
+            "src/core/recommend.h",
+            "src/core/model.h",
+            "src/ui/view_recommend.c",
+            "tests/test_recommend_strategies.c"
+          ],
+          "guidedSteps": [
+            {
+              "id": "strategy-01",
+              "title": "实现两种语义明确的最近排除",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "tests/test_recommend_strategies.c"
+              ],
+              "instruction": "为 recommended/accepted 分别计算 cutoff；未有时间的菜可参与；恰好等于 N 天的规则固定为可参与并写入界面文案。",
+              "verify": "固定时钟覆盖早于、等于、晚于 cutoff 及从未发生四类菜。"
+            },
+            {
+              "id": "strategy-02",
+              "title": "完成按查询签名的无重复轮次",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "src/core/model.h",
+                "tests/test_recommend_strategies.c"
+              ],
+              "instruction": "规范化分类、排序后的标签和排除选项生成签名；一轮内移除已抽 ID，耗尽后只重置一次；菜单或条件变化建立新轮次。",
+              "verify": "同一范围抽完前无重复；耗尽后下一次可重置；切换标签不会误用旧轮次。"
+            },
+            {
+              "id": "strategy-03",
+              "title": "完成可解释的整数加权选择",
+              "targetFiles": [
+                "src/core/recommend.c",
+                "src/ui/view_recommend.c",
+                "tests/test_recommend_strategies.c"
+              ],
+              "instruction": "定义权重公式并在 UI 解释来源；用 uint64_t 检查总和溢出，处理全零回退，通过无偏随机命中半开区间。",
+              "verify": "脚本 RNG 命中第一个、区间边界和最后一个；超大权重返回错误或安全归一化，全零退回均匀选择。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug -R recommend_strategies"
+            ],
+            "runActions": [
+              "以固定菜单跑排除最近 7 天。",
+              "连续抽完一轮后再抽一次。",
+              "收藏一道菜并比较权重解释。"
+            ],
+            "expectedResults": [
+              "排除文案与字段含义一致。",
+              "去重轮次按查询隔离。",
+              "权重边界、溢出和全零情况有确定结果。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先打印每道候选的排除原因或整数权重。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 cutoff、查询签名和累计半开区间。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "过滤、去重、权重计算、随机命中分层执行，每层都能单独复现。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立增加‘仅提高很久没确认吃过的菜’预设，并用固定 RNG 证明它不读取推荐次数造成隐式偏差。",
+            "evidence": "候选/排除清单、查询签名、轮次序列、权重分解表与边界测试",
+            "automatedChecks": [
+              "exclude-recommended-boundary",
+              "exclude-accepted-boundary",
+              "no-repeat-cycle-reset",
+              "query-change-new-cycle",
+              "weighted-first-last-boundary",
+              "weight-overflow",
+              "all-zero-fallback"
+            ],
+            "selfChecks": [
+              "权重公式不使用浮点累计",
+              "筛选后为空时不偷偷放宽条件"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 会把组合筛选、排除、去重和中途收藏放在同一高峰流程中。"
+        },
+        {
+          "id": "release-hardening",
+          "title": "把食堂收束成可交付应用",
+          "phase": "发布验收",
+          "estimatedSessions": 4,
+          "goal": "统一业务 Command，补齐反馈与空状态，并在组合故障、压力和发布构建下验证完整作品。",
+          "concepts": [
+            "事务边界",
+            "故障注入",
+            "压力测试",
+            "发布构建",
+            "可操作反馈"
+          ],
+          "guidedBuild": "将所有修改统一为 validate→copy→modify→save→swap→report；补齐标题栏、状态栏、错误/空状态和快捷键；建立自动回归与 Windows Terminal/传统控制台人工验收清单。",
+          "milestone": "获得可构建、可重启、可排错的完整蛋仔食堂",
+          "filesTouched": [
+            "src/core/command.c",
+            "src/app.c",
+            "src/ui/view_home.c",
+            "src/ui/view_recommend.c",
+            "tests/test_app_flow.c",
+            "README.md",
+            "CMakeLists.txt"
+          ],
+          "guidedSteps": [
+            {
+              "id": "release-01",
+              "title": "统一命令与失败语义",
+              "targetFiles": [
+                "src/core/command.c",
+                "tests/test_app_flow.c"
+              ],
+              "instruction": "梳理 CRUD、推荐定格、接受、收藏、分类标签删除和设置变更；每个命令返回同一 Result，并只在存储成功后交换全局状态。",
+              "verify": "对每个保存故障点，内存和重载后的磁盘状态相等；界面不显示虚假成功。"
+            },
+            {
+              "id": "release-02",
+              "title": "补齐所有可恢复反馈",
+              "targetFiles": [
+                "src/app.c",
+                "src/ui/view_home.c",
+                "src/ui/view_recommend.c"
+              ],
+              "instruction": "每个视图显示当前位置和可用快捷键；为空、重复、无候选、文件损坏、窗口过小、保存失败均给下一步；提示不泄露实现细节。",
+              "verify": "从错误提示能回到可操作状态，键盘焦点和视图栈没有丢失。"
+            },
+            {
+              "id": "release-03",
+              "title": "执行压力、故障与发布验收",
+              "targetFiles": [
+                "tests/test_app_flow.c",
+                "CMakeLists.txt",
+                "README.md"
+              ],
+              "instruction": "脚本执行 1000 次混合操作和重启；遍历分配/写盘失败；启用 /W4 /WX、Debug AddressSanitizer 与 Release；记录两种控制台的动画/resize/退出人工验收。",
+              "verify": "自动测试通过、活动分配归零、文件每次可重载；两种控制台无明显闪烁且退出完全恢复。"
+            }
+          ],
+          "runbook": {
+            "buildCommands": [
+              "cmake -S . -B build -A x64",
+              "cmake --build build --config Debug",
+              "ctest --test-dir build -C Debug --output-on-failure",
+              "cmake --build build --config Release"
+            ],
+            "runActions": [
+              "执行 1000 步固定种子混合场景。",
+              "遍历内存与存储故障注入。",
+              "分别在 Windows Terminal 和传统控制台运行动画、连续 resize 与退出。"
+            ],
+            "expectedResults": [
+              "所有自动回归通过且无泄漏。",
+              "每个失败点后磁盘可重载、内存无静默分叉。",
+              "发布程序可由新用户按 README 构建运行。"
+            ]
+          },
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先按业务、内存、文件、终端四条状态线定位分叉点。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "用固定种子和故障序号复现，再检查 Command 提交顺序。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "修复必须让失败后状态仍满足不变量，并增加能在旧代码上失败的回归用例。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "独立修复一份含三个组合故障的候选版本：滚动中 resize、替换失败和分类删除；提交复现、根因、修复与防回归证据。",
+            "evidence": "固定种子操作日志、故障矩阵、完整测试报告、两种控制台验收表和 Release 构建产物说明",
+            "automatedChecks": [
+              "thousand-step-mixed-flow",
+              "all-allocation-fail-points",
+              "all-store-fail-points",
+              "console-restore-on-error",
+              "debug-and-release-build",
+              "reload-after-every-failure"
+            ],
+            "selfChecks": [
+              "没有用 retry/catch 掩盖一致性错误",
+              "README 明确 Windows 宿主和字符范围限制",
+              "Boss 前不增加新功能"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "Boss 只整合并排查这 15 章已经完成的能力，不再讲新接口。"
         }
       ],
       "boss": {
         "id": "goose-food-street-boss",
-        "title": "美食街闭店前的最后一单",
-        "story": "菜单已满、历史文件含坏行，保存目录突然不可写；程序仍要给出合法候选并保护旧记录。",
+        "title": "午餐高峰开餐验收",
+        "story": "开餐前拿到一份已经完成全部功能、但混入多处真实故障的候选版本。学习者不增加新功能，只需独立复现、定位、修复并证明食堂能在高峰流程中可靠运行。",
         "phases": [
           {
-            "id": "reproduce",
-            "title": "复现三个故障",
+            "id": "opening-data-check",
+            "title": "数据开门检查",
             "successCriteria": [
-              "分别记录满菜单、坏行、写入失败现象"
+              "合法数据可用，坏行有行号和原因",
+              "未来 schema 不覆盖当前状态",
+              "历史上限和引用完整性通过"
             ]
           },
           {
-            "id": "repair",
-            "title": "修复数据边界",
+            "id": "recommendation-rush",
+            "title": "推荐高峰演练",
             "successCriteria": [
-              "无越界",
-              "坏行被拒绝",
-              "写失败不破坏旧文件"
+              "完成川菜+下饭+排除最近7天+去重流程",
+              "轮次耗尽只重置一次",
+              "中途收藏后权重、结果、历史和统计一致"
             ]
           },
           {
-            "id": "independent-change",
-            "title": "加入“今日不再推荐”规则",
+            "id": "terminal-store-faults",
+            "title": "终端与存储故障",
             "successCriteria": [
-              "重启后规则仍生效",
-              "可解释内存与文件状态"
+              "滚动中连续 resize 不改变最终结果",
+              "替换失败后原文件仍可重启读取",
+              "Ctrl+C 与普通退出都恢复控制台"
+            ]
+          },
+          {
+            "id": "release-acceptance",
+            "title": "发布验收",
+            "successCriteria": [
+              "CRUD、分类标签、推荐和历史完整演示",
+              "空状态、重复名称和删除关联均有明确反馈",
+              "/W4 /WX 构建与自动测试通过且退出无泄漏",
+              "能解释过滤、权重区间、视图状态机和替换保存"
             ]
           }
         ],
         "faultScenarios": [
-          "full-menu",
-          "malformed-history",
-          "write-denied",
-          "zero-valid-dishes"
+          "quick-edit-freeze",
+          "cjk-right-edge",
+          "resize-during-roll",
+          "empty-filter-result",
+          "duplicate-name",
+          "dangling-category",
+          "tag-delete-detach",
+          "history-over-capacity",
+          "no-repeat-cycle-reset",
+          "weighted-boundary-hit",
+          "malformed-schema",
+          "replacement-save-failure",
+          "memory-allocation-failure",
+          "console-restore-on-error"
         ],
         "resumableByPhase": true,
         "managerApprovalRequired": false
@@ -1117,10 +2607,10 @@
       "rewards": {
         "chapterXp": 35,
         "independentCheckpointStar": 1,
-        "bossXp": 150,
+        "bossXp": 220,
         "trophy": {
           "id": "trophy-food-street-sign",
-          "title": "美食街招牌模型",
+          "title": "蛋仔食堂营业执照",
           "wallCategory": "project-trophy"
         },
         "neverRevoke": true
@@ -1130,16 +2620,19 @@
           "rankId",
           "title",
           "chapter",
+          "guidedStep",
           "goal",
-          "coreContract",
+          "filesTouched",
+          "milestone",
           "codeOrCommand",
           "input",
           "expectedBehavior",
           "actualResult",
+          "compilerOutput",
           "viewedHintTiers",
           "recentAttempts"
         ],
-        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+        "tutorInstruction": "先确认学习者正在做哪一个引导步骤，帮助复现并定位到具体文件/函数；优先给观察点和局部方向。引导步骤可解释课程已经给出的完整代码；独立检查不直接给完整答案，查看后改派等价变式。Boss 只协助定位，不新增需求。"
       },
       "file": "levels/goose-food-street-project.json"
     },
@@ -3248,7 +4741,7 @@
     },
     {
       "id": "trophy-food-street-sign",
-      "title": "美食街招牌模型",
+      "title": "蛋仔食堂营业执照",
       "kind": "project-trophy",
       "sourceRankId": "goose"
     },

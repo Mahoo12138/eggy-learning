@@ -1,3 +1,5 @@
+import { attemptPassed } from './admin-attempt.mjs';
+
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -96,14 +98,14 @@ function renderRanks() {
 function attemptView(attempt) {
   const payload = attempt.payload || attempt;
   const result = attempt.result || attempt.feedback || {};
-  const passed = payload.passed === true || result.levelCompleted === true || result.checkpointCompleted === true || result.passed === true;
+  const passed = attemptPassed(attempt, state?.course);
   return {
     id: attempt.id || payload.requestId || '',
     when: attempt.submittedAt || attempt.createdAt || payload.submittedAt || '',
     kind: attempt.kind || (payload.projectId ? 'project' : 'level'),
     title: payload.levelId || payload.projectId || attempt.levelTitle || '未知内容',
     step: payload.stepId || payload.checkpointId || attempt.stepTitle || '',
-    answer: payload.answer || payload.code || attempt.answer || '',
+    answer: payload.answer || payload.code || payload.evidence || attempt.answer || '',
     hint: Number(payload.hintLevel ?? attempt.hintLevel ?? 0),
     full: payload.viewedFullAnswer === true || attempt.viewedFullAnswer === true,
     independent: payload.independent === true || attempt.independent === true,

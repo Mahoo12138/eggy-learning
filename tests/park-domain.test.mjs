@@ -34,6 +34,66 @@ const PARK_SCENE_TERMS = [
 function clone(value) { return structuredClone(value); }
 function iso(minute) { return new Date(Date.UTC(2026, 9, 13, 1, minute)).toISOString(); }
 
+function richProjectCourse() {
+  const course = clone(RAW_COURSE);
+  const project = course.projects.find(item => item.id === 'goose-food-street-project');
+  assert.ok(project, '测试基线须包含蛋仔食堂项目');
+  project.guidancePolicy = {
+    mode: 'fully-guided-until-final-capstone',
+    guidedLessonsPerChapter: 4,
+    independentCheckpointPerChapter: true,
+    cumulativeArtifact: true,
+    chapterSnapshotRequired: true,
+    fullSolutionScope: 'every-guided-step',
+    learnerFreedomBoundary: 'final-capstone-only'
+  };
+  project.environment = {
+    platform: 'Windows 11',
+    languageStandard: 'C17',
+    toolchain: 'MSVC or clang-cl',
+    buildSystem: 'CMake',
+    outputBackend: 'VT sequences',
+    inputBackend: 'ReadConsoleInputW',
+    requirements: ['Windows SDK', 'UTF-8 source files'],
+    supportedHosts: ['Windows Terminal', 'conhost']
+  };
+  Object.assign(project.chapters[0], {
+    phase: 'recommendation-core',
+    estimatedSessions: 2,
+    milestone: '一键推荐能够在固定种子下稳定运行',
+    filesTouched: ['src/recommend.c', 'src/recommend.h', 'tests/test_recommend.c'],
+    guidedSteps: [
+      {
+        id: 'define-query',
+        title: '定义推荐查询',
+        targetFiles: ['src/recommend.h'],
+        instruction: '声明筛选条件和推荐结果，并保持接口不依赖终端层。',
+        verify: '编译测试目标并确认推荐头文件可独立包含。'
+      },
+      {
+        id: 'select-candidate',
+        title: '选择候选菜品',
+        targetFiles: ['src/recommend.c', 'tests/test_recommend.c'],
+        instruction: '遍历菜品构建候选集，再通过注入的随机源选择一个结果。',
+        verify: '固定随机序列下，空集合和单元素集合测试均通过。'
+      }
+    ],
+    runbook: {
+      buildCommands: ['cmake -S . -B build', 'cmake --build build'],
+      runActions: ['ctest --test-dir build -R recommend', 'build\\eggy-canteen.exe'],
+      expectedResults: ['推荐单元测试全部通过', '终端显示一个合法候选菜品']
+    }
+  });
+  return { course, project, chapter: project.chapters[0] };
+}
+
+function guidedCompleteProjectCourse() {
+  const course = clone(RAW_COURSE);
+  const project = course.projects.find(item => item.id === 'goose-food-street-project');
+  assert.equal(project?.guidancePolicy?.mode, 'guided-complete-build', '测试基线须包含完整引导的蛋仔食堂项目');
+  return { course, project };
+}
+
 function levelInput(levelId, requestId, overrides = {}, course = COURSE) {
   const level = course.levels.find(item => item.id === levelId);
   const step = level.content.steps.find(item => item.type === 'independent-variation') || level.content.steps[0];
@@ -149,7 +209,7 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
 
 test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
-  assert.equal(indexOnly.publishedRevision, 3);
+  assert.equal(indexOnly.publishedRevision, 4);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
@@ -160,6 +220,105 @@ test('the checked-in schema-v2 documents publish the V3 early curriculum and hyd
   assert.equal(COURSE.ranks[8].title, '无敌凤凰蛋');
   assert.doesNotThrow(() => sanitizeProgress(indexOnly, INITIAL_PROGRESS));
   assert.doesNotThrow(() => sanitizeWeekCard(indexOnly, INITIAL_WEEK_CARD));
+});
+
+test('project validation accepts a complete guided curriculum while preserving legacy project documents', () => {
+  const { course: richDraft, project: richInput, chapter: richChapterInput } = richProjectCourse();
+  const richCourse = sanitizeCourse(richDraft);
+  const richProject = richCourse.projects.find(item => item.id === richInput.id);
+  const richChapter = richProject.chapters.find(item => item.id === richChapterInput.id);
+
+  assert.deepEqual(richProject.guidancePolicy, richInput.guidancePolicy);
+  assert.deepEqual(richProject.environment, richInput.environment);
+  assert.equal(richChapter.phase, 'recommendation-core');
+  assert.equal(richChapter.estimatedSessions, 2);
+  assert.equal(richChapter.milestone, '一键推荐能够在固定种子下稳定运行');
+  assert.deepEqual(richChapter.filesTouched, ['src/recommend.c', 'src/recommend.h', 'tests/test_recommend.c']);
+  assert.deepEqual(richChapter.guidedSteps, richChapterInput.guidedSteps);
+  assert.deepEqual(richChapter.runbook, richChapterInput.runbook);
+
+  const legacyDraft = clone(richDraft);
+  const legacyProject = legacyDraft.projects.find(item => item.id === richInput.id);
+  delete legacyProject.guidancePolicy;
+  delete legacyProject.environment;
+  for (const chapter of legacyProject.chapters) {
+    delete chapter.phase;
+    delete chapter.estimatedSessions;
+    delete chapter.milestone;
+    delete chapter.filesTouched;
+    delete chapter.guidedSteps;
+    delete chapter.runbook;
+  }
+  const legacyCourse = sanitizeCourse(legacyDraft);
+  const sanitizedLegacy = legacyCourse.projects.find(item => item.id === richInput.id);
+  assert.equal(Object.hasOwn(sanitizedLegacy, 'guidancePolicy'), false);
+  assert.equal(Object.hasOwn(sanitizedLegacy, 'environment'), false);
+  assert.equal(Object.hasOwn(sanitizedLegacy.chapters[0], 'guidedSteps'), false);
+  assert.equal(Object.hasOwn(sanitizedLegacy.chapters[0], 'runbook'), false);
+});
+
+test('project validation rejects incomplete policies, malformed guided steps, and invalid runbooks', () => {
+  function invalid(mutator, pattern) {
+    const fixture = richProjectCourse();
+    mutator(fixture);
+    assert.throws(() => sanitizeCourse(fixture.course), pattern);
+  }
+
+  invalid(({ project }) => {
+    delete project.guidancePolicy.learnerFreedomBoundary;
+  }, /字段缺失或包含未知字段/);
+
+  invalid(({ project }) => {
+    project.environment.unknown = true;
+  }, /字段缺失或包含未知字段/);
+
+  invalid(({ chapter }) => {
+    chapter.guidedSteps[0].instruction = '   ';
+  }, /须为非空文本/);
+
+  invalid(({ chapter }) => {
+    chapter.guidedSteps[0].targetFiles = 'src/recommend.h';
+  }, /须为列表/);
+
+  invalid(({ chapter }) => {
+    chapter.guidedSteps[1].id = chapter.guidedSteps[0].id;
+  }, /重复/);
+
+  invalid(({ chapter }) => {
+    delete chapter.guidedSteps[0].verify;
+  }, /字段缺失或包含未知字段/);
+
+  invalid(({ chapter }) => {
+    chapter.runbook.buildCommands = [];
+  }, /不能为空/);
+
+  invalid(({ chapter }) => {
+    chapter.runbook.runActions = ['   '];
+  }, /须为非空文本/);
+
+  invalid(({ chapter }) => {
+    chapter.runbook.extra = [];
+  }, /字段缺失或包含未知字段/);
+});
+
+test('guided complete-build projects keep lesson counts and session totals consistent', () => {
+  function invalid(mutator, pattern) {
+    const fixture = guidedCompleteProjectCourse();
+    mutator(fixture.project);
+    assert.throws(() => sanitizeCourse(fixture.course), pattern);
+  }
+
+  invalid(project => {
+    project.chapters[0].guidedSteps.pop();
+  }, /引导步骤数与课程策略不一致/);
+
+  invalid(project => {
+    project.chapters[0].estimatedSessions = project.guidancePolicy.guidedLessonsPerChapter;
+  }, /未给独立检查预留课时/);
+
+  invalid(project => {
+    project.estimatedSessions.minimum += 1;
+  }, /预计场次必须覆盖全部章节场次/);
 });
 
 test('V3 binds the first two ranks to C17 and the third rank to the deterministic Linux terminal', () => {
@@ -539,7 +698,7 @@ test('an assisted project checkpoint can later earn its star, and the Boss promo
   assert.equal(reclaimed.result.checkpointCompleted, false);
   assert.equal(reclaimed.result.starAwarded, true);
   for (const chapter of project.chapters.slice(1)) run.project(projectInput(project.id, chapter.id, `chapter-${chapter.id}`));
-  assert.equal(run.progress.rankStates.find(item => item.rankId === 'goose').earnedStars, 6);
+  assert.equal(run.progress.rankStates.find(item => item.rankId === 'goose').earnedStars, project.chapters.length);
   assert.equal(run.progress.current.stepId, project.boss.id);
 
   const assistedBoss = run.project(projectInput(project.id, project.boss.id, 'assisted-project-boss', { independent: false }));

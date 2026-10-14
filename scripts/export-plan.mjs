@@ -42,8 +42,41 @@ for (const rank of course.ranks) {
     lines.push('');
   }
   if (project) {
-    lines.push(`**段位作品：${project.title}**`, '', project.story, '', '| 章节 | 目标 | 独立检查 |', '|---|---|---|');
-    for (const chapter of project.chapters) lines.push(`| ${chapter.title} | ${chapter.goal} | ${chapter.checkpoint.task} |`);
+    lines.push(`**段位作品：${project.title}**`, '', project.story, '');
+    const fullyGuided = project.guidancePolicy || project.chapters.some(chapter => chapter.guidedSteps?.length);
+    if (fullyGuided) {
+      if (project.guidancePolicy) {
+        lines.push(
+          `- 课程模式：${project.guidancePolicy.mode}`,
+          `- 每章结构：${project.guidancePolicy.guidedLessonsPerChapter} 个完整引导步骤 + 1 个独立检查`,
+          `- 完整解法：${project.guidancePolicy.fullSolutionScope}`,
+          `- 自主边界：${project.guidancePolicy.learnerFreedomBoundary}`,
+          ''
+        );
+      }
+      if (project.environment) {
+        lines.push(
+          `- 开发环境：${project.environment.platform} · ${project.environment.languageStandard} · ${project.environment.toolchain} · ${project.environment.buildSystem}`,
+          `- 输出：${project.environment.outputBackend}`,
+          `- 输入：${project.environment.inputBackend}`,
+          ''
+        );
+      }
+      lines.push('| 章节 | 阶段 | 场次 | 可运行里程碑 | 独立检查 |', '|---|---|---:|---|---|');
+      for (const chapter of project.chapters) lines.push(`| ${chapter.title} | ${chapter.phase || '累积构建'} | ${chapter.estimatedSessions || '—'} | ${chapter.milestone || chapter.goal} | ${chapter.checkpoint.task} |`);
+      lines.push('');
+      for (const [chapterIndex, chapter] of project.chapters.entries()) {
+        if (!chapter.guidedSteps?.length) continue;
+        lines.push(`#### ${chapterIndex + 1}. ${chapter.title}`, '', chapter.guidedBuild, '', `涉及文件：${(chapter.filesTouched || []).map(file => `\`${file}\``).join('、')}`, '');
+        chapter.guidedSteps.forEach((step, stepIndex) => {
+          lines.push(`${stepIndex + 1}. **${step.title}**：${step.instruction}`, `   - 文件：${step.targetFiles.map(file => `\`${file}\``).join('、')}`, `   - 验证：${step.verify}`);
+        });
+        lines.push('', `- 编译：${chapter.runbook.buildCommands.map(command => `\`${command}\``).join('；')}`, `- 操作：${chapter.runbook.runActions.join('；')}`, `- 预期：${chapter.runbook.expectedResults.join('；')}`, `- 独立检查：${chapter.checkpoint.task}`, `- 证据：${chapter.checkpoint.evidence}`, '');
+      }
+    } else {
+      lines.push('| 章节 | 目标 | 独立检查 |', '|---|---|---|');
+      for (const chapter of project.chapters) lines.push(`| ${chapter.title} | ${chapter.goal} | ${chapter.checkpoint.task} |`);
+    }
     lines.push('', `**Boss：${project.boss.title}** — ${project.boss.story || project.boss.goal || '完成综合故障与独立变式。'}`, '');
   }
 }

@@ -20,6 +20,7 @@ const state = {
   viewedFullAnswer: new Set(),
   revealedSolutions: new Map(),
   pendingRequests: new Map(),
+  guidedProgress: new Map(),
   feedback: null,
   lastResult: null,
   submitting: false,
@@ -332,10 +333,122 @@ function selectProjectStep(index) {
   window.scrollTo({ top: 0, behavior: document.documentElement.dataset.motion === 'reduced' ? 'auto' : 'smooth' });
 }
 
+function guidedProgressKey(step) {
+  return `eggy-guided:${state.level?.id || ''}:${state.level?.version || 1}:${step.id}`;
+}
+
+function projectGuidedProgress(step) {
+  const lastIndex = Math.max((step.guidedSteps?.length || 1) - 1, 0);
+  const serverCompleted = projectProgressState().completed.has(step.id);
+  const key = guidedProgressKey(step);
+  if (!state.guidedProgress.has(key)) {
+    let stored = {};
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) stored = parsed;
+    } catch {}
+    const index = Math.min(Math.max(Number.isInteger(stored.index) ? stored.index : 0, 0), lastIndex);
+    const reached = Math.min(Math.max(Number.isInteger(stored.reached) ? stored.reached : index, index), lastIndex);
+    state.guidedProgress.set(key, {
+      index: serverCompleted ? lastIndex : index,
+      reached: serverCompleted ? lastIndex : reached,
+      completed: serverCompleted || stored.completed === true
+    });
+  }
+  const progress = state.guidedProgress.get(key);
+  if (serverCompleted) {
+    progress.index = Math.min(progress.index, lastIndex);
+    progress.reached = lastIndex;
+    progress.completed = true;
+  }
+  return progress;
+}
+
+function saveGuidedProgress(step, progress) {
+  const key = guidedProgressKey(step);
+  state.guidedProgress.set(key, progress);
+  try { localStorage.setItem(key, JSON.stringify(progress)); } catch {}
+}
+
+function projectScenePrompt(step) {
+  if (isProjectBoss(step)) return '项目 Boss 已就绪，先按阶段留下可复现证据。';
+  if (step?.guidedSteps?.length) {
+    const progress = projectGuidedProgress(step);
+    if (!progress.completed) return step.guidedSteps[progress.index]?.instruction || '完成当前代码引导，再进入下一步。';
+  }
+  return step?.checkpoint?.task || '项目已就绪，等待你的这次操作。';
+}
+
+function updateGuidedProgress(step, action, requestedIndex) {
+  if (!step?.guidedSteps?.length) return;
+  if ($('#project-evidence')) state.answers.set(step.id, readAnswer(step));
+  const progress = { ...projectGuidedProgress(step) };
+  const lastIndex = step.guidedSteps.length - 1;
+  if (action === 'select' && Number.isInteger(requestedIndex) && requestedIndex >= 0 && requestedIndex <= progress.reached) progress.index = requestedIndex;
+  if (action === 'back') progress.index = Math.max(0, progress.index - 1);
+  if (action === 'next' && progress.index < lastIndex) {
+    progress.index += 1;
+    progress.reached = Math.max(progress.reached, progress.index);
+  }
+  if (action === 'complete' && progress.index === lastIndex) progress.completed = true;
+  saveGuidedProgress(step, progress);
+  state.lastResult = null;
+  $('#scene-output p').textContent = projectScenePrompt(step);
+  renderProjectInteraction(step);
+  requestAnimationFrame(() => $('[data-guided-current="true"]', $('#interaction-root'))?.focus({ preventScroll: true }));
+}
+
+function projectChapterGuide(step) {
+  const policy = state.level?.guidancePolicy;
+  const environment = state.level?.environment;
+  const progress = projectGuidedProgress(step);
+  const currentIndex = Math.min(progress.index, Math.max((step.guidedSteps?.length || 1) - 1, 0));
+  const currentGuidedStep = step.guidedSteps?.[currentIndex];
+  const meta = [
+    step.phase ? ['当前阶段', step.phase] : null,
+    Number.isInteger(step.estimatedSessions) ? ['预计课时', `${step.estimatedSessions} 课时`] : null,
+    step.milestone ? ['本章里程碑', step.milestone] : null
+  ].filter(Boolean);
+  const environmentItems = environment ? [
+    ['平台', environment.platform],
+    ['语言', environment.languageStandard],
+    ['工具链', environment.toolchain],
+    ['构建', environment.buildSystem],
+    ['输出', environment.outputBackend],
+    ['输入', environment.inputBackend]
+  ].filter(([, value]) => value) : [];
+  const policyCopy = policy
+    ? `<section class="project-guidance-policy"><strong>本章先做 ${esc(policy.guidedLessonsPerChapter)} 个代码步骤</strong><p>每次只处理当前一步；完成全部引导后，才进入独立检查。${policy.cumulativeArtifact ? '所有章节持续修改同一份作品。' : ''}</p></section>`
+    : '';
+  const environmentCopy = environmentItems.length
+    ? `<details class="project-environment"><summary>开发环境与完整解法说明</summary><div class="project-environment-grid">${environmentItems.map(([label, value]) => `<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</div>${environment.requirements?.length ? `<p><span>环境要求</span>${environment.requirements.map(item => `<code>${esc(item)}</code>`).join('')}</p>` : ''}${environment.supportedHosts?.length ? `<p><span>支持主机</span>${environment.supportedHosts.map(item => `<code>${esc(item)}</code>`).join('')}</p>` : ''}${policy ? `<p class="project-solution-scope"><span>完整解法</span>${esc(policy.fullSolutionScope)}</p><p class="project-solution-scope"><span>自主边界</span>${esc(policy.learnerFreedomBoundary)}</p>` : ''}</details>`
+    : '';
+  const files = step.filesTouched?.length
+    ? `<details class="project-files"><summary>本章会修改 ${step.filesTouched.length} 个文件</summary><div>${step.filesTouched.map(file => `<code>${esc(file)}</code>`).join('')}</div></details>`
+    : '';
+  const guidedSteps = currentGuidedStep
+    ? `<section class="project-guided"><div class="project-guided-heading"><span>代码引导 ${currentIndex + 1} / ${step.guidedSteps.length}</span><strong>${progress.completed ? '引导已完成，可继续复习' : '当前只完成这一步'}</strong></div><div class="project-guided-progress" aria-label="章内引导进度">${step.guidedSteps.map((item, index) => `<button type="button" data-guided-action="select" data-guided-index="${index}"${index > progress.reached ? ' disabled' : ''}${index === currentIndex ? ' aria-current="step" data-guided-current="true"' : ''}><span>${index + 1}</span><small>${esc(item.title)}</small></button>`).join('')}</div><article class="project-guided-step"><div class="project-guided-step-number">${currentIndex + 1}</div><div><strong>${esc(currentGuidedStep.title)}</strong><div class="project-target-files">${currentGuidedStep.targetFiles.map(file => `<code>${esc(file)}</code>`).join('')}</div><p>${esc(currentGuidedStep.instruction)}</p><small><b>完成标志</b>${esc(currentGuidedStep.verify)}</small></div></article><div class="project-guided-controls"><button class="park-button secondary" type="button" data-guided-action="back"${currentIndex === 0 ? ' disabled' : ''}>上一步</button>${currentIndex < step.guidedSteps.length - 1 ? '<button class="park-button primary" type="button" data-guided-action="next">本步完成，进入下一步</button>' : progress.completed ? '<span class="project-guided-done">三个引导步骤已经完成</span>' : '<button class="park-button primary" type="button" data-guided-action="complete">完成引导，进入独立检查</button>'}</div></section>`
+    : '';
+  const runbookGroups = step.runbook ? [
+    ['编译', step.runbook.buildCommands, true],
+    ['运行', step.runbook.runActions, false],
+    ['预期', step.runbook.expectedResults, false]
+  ].filter(([, items]) => items?.length) : [];
+  const runbook = runbookGroups.length
+    ? `<details class="project-runbook" aria-label="本章运行手册"><summary>现在编译、运行并核对结果</summary><div class="project-runbook-grid">${runbookGroups.map(([label, items, command]) => `<div><strong>${esc(label)}</strong><ol>${items.map(item => `<li>${command ? `<code>${esc(item)}</code>` : esc(item)}</li>`).join('')}</ol></div>`).join('')}</div></details>`
+    : '';
+  if (!meta.length && !policyCopy && !environmentCopy && !files && !guidedSteps && !runbook) return { html: '', complete: true };
+  return { complete: progress.completed, html: `<div class="project-course-guide">
+    ${meta.length ? `<section class="project-chapter-meta">${meta.map(([label, value]) => `<div><small>${esc(label)}</small><strong>${esc(value)}</strong></div>`).join('')}</section>` : ''}
+    ${policyCopy}${environmentCopy}${files}${guidedSteps}${runbook}
+  </div>` };
+}
+
 function renderProjectInteraction(step) {
   const boss = isProjectBoss(step);
   const previous = state.answers.get(step.id) || {};
   const checkpoint = step.checkpoint || {};
+  const guide = boss ? { html: '', complete: true } : projectChapterGuide(step);
   const concepts = boss ? [] : step.concepts || [];
   const checks = boss
     ? (step.phases || []).flatMap(phase => (phase.successCriteria || []).map(text => ({ group: phase.title, text })))
@@ -348,15 +461,18 @@ function renderProjectInteraction(step) {
     ${projectNavigation(step)}
     ${concepts.length ? `<div class="concept-chips" aria-label="本章概念">${concepts.map(concept => `<span>${esc(concept)}</span>`).join('')}</div>` : ''}
     <section class="project-brief"><p class="section-label">${boss ? 'Boss 故障场景' : '逐步构建'}</p><p>${esc(boss ? step.story : step.guidedBuild)}</p></section>
-    ${boss ? `<div class="fault-chips" aria-label="需要覆盖的故障">${(step.faultScenarios || []).map(item => `<span>${esc(item)}</span>`).join('')}</div>` : `<section class="checkpoint-task"><strong>这次独立检查</strong><p>${esc(checkpoint.task || '')}</p><small>建议证据：${esc(checkpoint.evidence || '可复现的输出或记录')}</small></section>`}
-    ${checks.length ? `<div class="project-checklist">${checks.map((item, index) => `<div><span>${index + 1}</span><p><small>${esc(item.group)}</small>${esc(item.text)}</p></div>`).join('')}</div>` : ''}
+    ${guide.html}
+    ${boss ? `<div class="fault-chips" aria-label="需要覆盖的故障">${(step.faultScenarios || []).map(item => `<span>${esc(item)}</span>`).join('')}</div>` : guide.complete ? `<section class="checkpoint-task"><strong>这次独立检查</strong><p>${esc(checkpoint.task || '')}</p><small>建议证据：${esc(checkpoint.evidence || '可复现的输出或记录')}</small></section>` : '<section class="checkpoint-locked"><strong>独立检查尚未展开</strong><p>依次完成上面的三个代码引导步骤后，这里会出现本章独立变式。</p></section>'}
+    ${guide.complete && checks.length ? `<div class="project-checklist">${checks.map((item, index) => `<div><span>${index + 1}</span><p><small>${esc(item.group)}</small>${esc(item.text)}</p></div>`).join('')}</div>` : ''}
+    ${guide.complete ? `
     <label class="evidence-field" for="project-evidence"><span>证据与本次结果</span><textarea id="project-evidence" rows="5" placeholder="记录文件路径、运行命令、关键输出和尚未解决的问题。">${esc(previous.evidence || '')}</textarea></label>
     ${points ? `<label class="performance-field" for="performance-points"><span>本次表现分 <small>达到 ${points.pass} / ${points.maximum} 可通过本段 Boss</small></span><input id="performance-points" type="number" inputmode="numeric" min="0" max="${points.maximum}" value="${esc(previous.performancePoints ?? 0)}"></label>` : ''}
     <div class="project-confirmations">
       <label><input id="project-passed" type="checkbox"${previous.passed ? ' checked' : ''}><span><strong>我已按上面清单完成自检</strong><small>这是学习者自检记录，管理者可在后台查看。</small></span></label>
       <label><input id="project-independent" type="checkbox"${boss || previous.independent ? ' checked' : ''}${boss ? ' disabled' : ''}><span><strong>${boss ? 'Boss 必须独立完成' : '这一步由我独立完成'}</strong><small>${boss ? '可以查阅自己的旧记录，不由他人代做。' : '勾选后通过才会授予本章星星。'}</small></span></label>
-    </div>
+    </div>` : ''}
   </div>`;
+  $('#check-step').disabled = !guide.complete;
 }
 
 function renderInteraction(step) {
@@ -396,7 +512,7 @@ function renderStep() {
     $('#scene-building').textContent = rank.building || state.level.locationIds?.[0] || '当前项目';
     $('#scene-caption').textContent = state.level.story || '把这一段技术逐步做成可运行的作品。';
     $('#scene-output').dataset.state = 'ready';
-    $('#scene-output p').textContent = step.checkpoint?.task || (isProjectBoss(step) ? '项目 Boss 已就绪，先按阶段留下可复现证据。' : '项目已就绪，等待你的这次操作。');
+    $('#scene-output p').textContent = projectScenePrompt(step);
   }
   $('#step-kind').textContent = KIND_LABELS[stepType(step)] || '当前步骤';
   $('#step-title').textContent = step.title || (variant ? variant.title : '') || KIND_LABELS[stepType(step)] || '继续游玩';
@@ -744,12 +860,32 @@ async function copyAIContext() {
   const button = $('#copy-ai-context');
   const original = button.textContent;
   try {
+    const chapter = currentStep();
+    const progress = state.mode === 'project' && chapter?.guidedSteps?.length ? projectGuidedProgress(chapter) : null;
+    const guided = progress ? chapter.guidedSteps[progress.index] : null;
+    const rawAnswer = readAnswer(chapter);
+    const answer = typeof rawAnswer === 'string' ? rawAnswer : JSON.stringify(rawAnswer, null, 2);
+    let contextStep = chapter;
+    let contextAnswer = answer;
+    if (state.mode === 'project') {
+      const tutorInstruction = state.level.aiContext?.tutorInstruction ? `项目导师要求：${state.level.aiContext.tutorInstruction}\n` : '';
+      if (isProjectBoss(chapter)) {
+        const phases = (chapter.phases || []).map(phase => `${phase.title}：${(phase.successCriteria || []).join('；')}`).join('\n');
+        contextAnswer = `${tutorInstruction}Boss 任务：${chapter.story || chapter.goal || chapter.title}\n验收阶段：\n${phases || '（未配置）'}\n故障范围：${(chapter.faultScenarios || []).join('、') || '（未配置）'}\n\n我的记录：\n${answer}`;
+      } else if (progress?.completed) {
+        contextStep = { ...chapter, title: `${chapter.title} · 独立检查` };
+        contextAnswer = `${tutorInstruction}本章里程碑：${chapter.milestone || chapter.goal}\n独立检查：${chapter.checkpoint?.task || '（未配置）'}\n建议证据：${chapter.checkpoint?.evidence || '（未配置）'}\n自动检查：${(chapter.checkpoint?.automatedChecks || []).join('；') || '（未配置）'}\n人工自检：${(chapter.checkpoint?.selfChecks || []).join('；') || '（未配置）'}\n当前回看的引导：${guided?.title || '无'}\n\n我的记录：\n${answer}`;
+      } else if (guided) {
+        contextStep = { ...chapter, title: `${chapter.title} · ${guided.title}` };
+        contextAnswer = `${tutorInstruction}当前目标文件：${guided.targetFiles.join('、')}\n当前引导：${guided.instruction}\n完成标志：${guided.verify}\n\n我的记录：\n${answer}`;
+      }
+    }
     const context = buildAIContext({
       level: state.level,
-      step: currentStep(),
-      answer: typeof readAnswer() === 'string' ? readAnswer() : JSON.stringify(readAnswer(), null, 2),
+      step: contextStep,
+      answer: contextAnswer,
       feedback: state.lastResult,
-      hintLevel: state.hintLevels.get(currentStep().id) || 0
+      hintLevel: state.hintLevels.get(chapter.id) || 0
     });
     await copyText(context);
     button.textContent = '已复制，去询问 AI 导师';
@@ -808,6 +944,11 @@ $('#next-hint').addEventListener('click', nextHint);
 $('#reveal-answer').addEventListener('click', revealAnswer);
 $('#copy-ai-context').addEventListener('click', copyAIContext);
 $('#interaction-root').addEventListener('click', event => {
+  const guidedButton = event.target.closest('[data-guided-action]');
+  if (guidedButton) {
+    updateGuidedProgress(currentStep(), guidedButton.dataset.guidedAction, Number(guidedButton.dataset.guidedIndex));
+    return;
+  }
   const projectButton = event.target.closest('[data-project-index]');
   if (projectButton) {
     selectProjectStep(Number(projectButton.dataset.projectIndex));

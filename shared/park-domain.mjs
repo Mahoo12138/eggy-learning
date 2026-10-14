@@ -73,6 +73,19 @@ function validateHints(value, name = '提示阶梯') {
   return hints;
 }
 
+function projectFilePaths(value, name) {
+  const paths = strings(value, name, 100);
+  if (!paths.length) fail(`${name}不能为空`);
+  for (const path of paths) {
+    const parts = path.split('/');
+    if (path.length > 300 || path.startsWith('/') || path.includes('\\') || parts.some(part => !part || part === '.' || part === '..')) {
+      fail(`${name}须使用不含空段、. 或 .. 的相对路径`);
+    }
+  }
+  unique(paths, item => item, name);
+  return paths;
+}
+
 function validateProgramRequirements(value, name, runtimeId) {
   object(value, name);
   const allowed = ['requiredIdentifiers', 'commands', 'commandSequence', 'commandEvidence', 'cwd', 'pathForms', 'files', 'absentFiles', 'absentProcesses', 'presentProcesses'];
@@ -268,8 +281,55 @@ function sanitizeBossContent(raw) {
   return content;
 }
 
+function sanitizeProjectChapter(raw) {
+  const required = ['id', 'title', 'goal', 'concepts', 'guidedBuild', 'hintLadder', 'checkpoint', 'laterReencounter'];
+  const optional = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'guidedSteps', 'runbook'];
+  object(raw, '作品章节');
+  const keys = Object.keys(raw);
+  if (required.some(field => !own(raw, field)) || keys.some(field => !required.includes(field) && !optional.includes(field))) {
+    fail('作品章节字段缺失或包含未知字段');
+  }
+  const chapter = clone(raw);
+  id(chapter.id, '章节编号'); text(chapter.title, '章节标题', true); text(chapter.goal, '章节目标', true); strings(chapter.concepts, '章节概念'); text(chapter.guidedBuild, '引导构建', true); text(chapter.laterReencounter, '后续重遇', true);
+  fields(chapter.checkpoint, ['kind', 'task', 'evidence', 'automatedChecks', 'selfChecks', 'awardsStar'], '章节检查点'); text(chapter.checkpoint.kind, '章节检查点类型', true); text(chapter.checkpoint.task, '章节检查点任务', true); text(chapter.checkpoint.evidence, '章节检查点证据', true); strings(chapter.checkpoint.automatedChecks, '自动检查'); strings(chapter.checkpoint.selfChecks, '自检');
+  if (chapter.checkpoint.awardsStar !== true) fail('每个作品章节都须以独立检查点授星');
+  chapter.hintLadder = validateHints(chapter.hintLadder);
+
+  if (own(chapter, 'phase')) text(chapter.phase, '章节阶段', true);
+  if (own(chapter, 'estimatedSessions')) integer(chapter.estimatedSessions, '章节预计课时', 1, 100);
+  if (own(chapter, 'milestone')) text(chapter.milestone, '章节里程碑', true);
+  if (own(chapter, 'filesTouched')) chapter.filesTouched = projectFilePaths(chapter.filesTouched, '章节涉及文件');
+  if (own(chapter, 'guidedSteps')) {
+    const guidedSteps = list(chapter.guidedSteps, '章节引导步骤', 100);
+    if (!guidedSteps.length) fail('章节引导步骤不能为空');
+    unique(guidedSteps, step => {
+      fields(step, ['id', 'title', 'targetFiles', 'instruction', 'verify'], '章节引导步骤');
+      const stepId = id(step.id, '引导步骤编号');
+      text(step.title, '引导步骤标题', true);
+      step.targetFiles = projectFilePaths(step.targetFiles, '引导步骤目标文件');
+      text(step.instruction, '引导步骤说明', true);
+      text(step.verify, '引导步骤验证', true);
+      if (chapter.filesTouched && step.targetFiles.some(path => !chapter.filesTouched.includes(path))) fail(`引导步骤 ${stepId} 引用了章节文件清单外的文件`);
+      return stepId;
+    }, '引导步骤编号');
+  }
+  if (own(chapter, 'runbook')) {
+    fields(chapter.runbook, ['buildCommands', 'runActions', 'expectedResults'], '章节运行手册');
+    for (const [field, label] of [['buildCommands', '编译命令'], ['runActions', '运行操作'], ['expectedResults', '预期结果']]) {
+      const entries = strings(chapter.runbook[field], `章节${label}`, 100);
+      if (!entries.length) fail(`章节${label}不能为空`);
+      chapter.runbook[field] = entries;
+    }
+  }
+  return chapter;
+}
+
 function sanitizeProject(raw) {
-  fields(raw, ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'title', 'technologyTheme', 'languages', 'locationIds', 'propIds', 'estimatedSessions', 'prerequisiteActivityIds', 'story', 'oneProjectRule', 'artifact', 'coreContract', 'chapterTeachingLoop', 'chapters', 'boss', 'rewards', 'aiContext', 'file'], '段位作品');
+  const required = ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'title', 'technologyTheme', 'languages', 'locationIds', 'propIds', 'estimatedSessions', 'prerequisiteActivityIds', 'story', 'oneProjectRule', 'artifact', 'coreContract', 'chapterTeachingLoop', 'chapters', 'boss', 'rewards', 'aiContext', 'file'];
+  const optional = ['guidancePolicy', 'environment'];
+  object(raw, '段位作品');
+  const keys = Object.keys(raw);
+  if (required.some(field => !own(raw, field)) || keys.some(field => !required.includes(field) && !optional.includes(field))) fail('段位作品字段缺失或包含未知字段');
   if (raw.schemaVersion !== 2 || raw.activityType !== 'rank-project') fail('段位作品版本或类型无效');
   const project = clone(raw);
   id(project.id, '作品编号'); id(project.rankId, '作品段位编号'); integer(project.version, '作品版本', 1); text(project.title, '作品标题', true); text(project.technologyTheme, '作品技术主题', true); strings(project.languages, '作品语言'); ids(project.locationIds, '作品建筑'); ids(project.propIds, '作品道具'); ids(project.prerequisiteActivityIds, '作品前置活动'); text(project.story, '作品故事', true); text(project.file, '作品文件', true);
@@ -287,15 +347,46 @@ function sanitizeProject(raw) {
   if (own(project.artifact, 'requiredDeliverables')) strings(project.artifact.requiredDeliverables, '作品必交物');
   if (own(project.artifact, 'hardwareProfile')) { fields(project.artifact.hardwareProfile, ['strategy', 'requiredCapabilities', 'debugEvidence'], '硬件配置'); text(project.artifact.hardwareProfile.strategy, '硬件配置策略', true); strings(project.artifact.hardwareProfile.requiredCapabilities, '硬件必需能力'); strings(project.artifact.hardwareProfile.debugEvidence, '硬件调试证据'); }
   if (own(project.artifact, 'learnerMustName')) bool(project.artifact.learnerMustName, '学习者命名要求');
+  if (own(project, 'guidancePolicy')) {
+    fields(project.guidancePolicy, ['mode', 'guidedLessonsPerChapter', 'independentCheckpointPerChapter', 'cumulativeArtifact', 'chapterSnapshotRequired', 'fullSolutionScope', 'learnerFreedomBoundary'], '作品引导策略');
+    text(project.guidancePolicy.mode, '作品引导模式', true);
+    integer(project.guidancePolicy.guidedLessonsPerChapter, '每章引导课数', 1, 100);
+    bool(project.guidancePolicy.independentCheckpointPerChapter, '每章独立检查点');
+    bool(project.guidancePolicy.cumulativeArtifact, '累积作品要求');
+    bool(project.guidancePolicy.chapterSnapshotRequired, '章节快照要求');
+    text(project.guidancePolicy.fullSolutionScope, '完整解法范围', true);
+    text(project.guidancePolicy.learnerFreedomBoundary, '学习者自主边界', true);
+  }
+  if (own(project, 'environment')) {
+    fields(project.environment, ['platform', 'languageStandard', 'toolchain', 'buildSystem', 'outputBackend', 'inputBackend', 'requirements', 'supportedHosts'], '作品开发环境');
+    for (const [field, label] of [['platform', '平台'], ['languageStandard', '语言标准'], ['toolchain', '工具链'], ['buildSystem', '构建系统'], ['outputBackend', '输出后端'], ['inputBackend', '输入后端']]) text(project.environment[field], `作品${label}`, true);
+    for (const [field, label] of [['requirements', '环境要求'], ['supportedHosts', '支持主机']]) {
+      const entries = strings(project.environment[field], `作品${label}`, 100);
+      if (!entries.length) fail(`作品${label}不能为空`);
+      project.environment[field] = entries;
+    }
+  }
   strings(project.coreContract, '核心合同'); strings(project.chapterTeachingLoop, '章节教学循环'); fields(project.aiContext, ['copyFields', 'tutorInstruction'], '作品 AI 上下文'); strings(project.aiContext.copyFields, 'AI 复制字段'); text(project.aiContext.tutorInstruction, 'AI 导师说明', true);
-  const chapters = list(project.chapters, '作品章节', 100);
+  const chapters = list(project.chapters, '作品章节', 100).map(sanitizeProjectChapter);
   if (!chapters.length) fail('段位作品至少需要一个章节');
-  unique(chapters, chapter => {
-    fields(chapter, ['id', 'title', 'goal', 'concepts', 'guidedBuild', 'hintLadder', 'checkpoint', 'laterReencounter'], '作品章节'); id(chapter.id, '章节编号'); text(chapter.title, '章节标题', true); text(chapter.goal, '章节目标', true); strings(chapter.concepts, '章节概念'); text(chapter.guidedBuild, '引导构建', true); text(chapter.laterReencounter, '后续重遇', true); fields(chapter.checkpoint, ['kind', 'task', 'evidence', 'automatedChecks', 'selfChecks', 'awardsStar'], '章节检查点'); text(chapter.checkpoint.kind, '章节检查点类型', true); text(chapter.checkpoint.task, '章节检查点任务', true); text(chapter.checkpoint.evidence, '章节检查点证据', true); strings(chapter.checkpoint.automatedChecks, '自动检查'); strings(chapter.checkpoint.selfChecks, '自检');
-    if (chapter.checkpoint.awardsStar !== true) fail('每个作品章节都须以独立检查点授星');
-    validateHints(chapter.hintLadder);
-    return chapter.id;
-  }, '章节编号');
+  unique(chapters, 'id', '章节编号');
+  project.chapters = chapters;
+  if (project.guidancePolicy?.mode === 'guided-complete-build') {
+    const policy = project.guidancePolicy;
+    if (!policy.independentCheckpointPerChapter || !policy.cumulativeArtifact || !policy.chapterSnapshotRequired) {
+      fail('完整引导作品必须逐章独立检查、累积同一作品并保留章节快照');
+    }
+    const richFields = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'guidedSteps', 'runbook'];
+    for (const chapter of chapters) {
+      if (richFields.some(field => !own(chapter, field))) fail(`完整引导章节 ${chapter.id} 缺少代码教学字段`);
+      if (chapter.guidedSteps.length !== policy.guidedLessonsPerChapter) fail(`完整引导章节 ${chapter.id} 的引导步骤数与课程策略不一致`);
+      if (chapter.estimatedSessions < policy.guidedLessonsPerChapter + 1) fail(`完整引导章节 ${chapter.id} 未给独立检查预留课时`);
+    }
+    const chapterSessions = chapters.reduce((sum, chapter) => sum + chapter.estimatedSessions, 0);
+    if (project.estimatedSessions.minimum !== chapterSessions || project.estimatedSessions.typical < chapterSessions) {
+      fail('完整引导作品的预计场次必须覆盖全部章节场次');
+    }
+  }
   object(project.boss, '作品 Boss');
   const bossRequired = ['id', 'title', 'story', 'phases', 'faultScenarios', 'resumableByPhase', 'managerApprovalRequired'];
   const bossAllowed = [...bossRequired, 'performancePoints', 'referenceIntegration'];
