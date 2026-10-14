@@ -116,12 +116,125 @@ int main(void) {
   assert.ok(Buffer.byteLength(result.stdout) <= C_RUNNER_LIMITS.maxOutputBytes);
 });
 
-test('拒绝 stdio.h 之外的 include 指令', async () => {
+test('拒绝允许列表之外的 include 指令', async () => {
   await rejectsWithRunnerCode(
-    runC(`#include <stdlib.h>
+    runC(`#include <stdint.h>
 int main(void) { return 0; }`),
     'directive_not_allowed'
   );
+});
+
+test('允许动态内存以及临时工作目录内的标准 C 文件读写', { skip: runtimeSkip }, async () => {
+  const source = `#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+  int *values = malloc(3 * sizeof *values);
+  if (!values) return 2;
+  values[0] = 7; values[1] = 11; values[2] = 13;
+  FILE *out = fopen("scores.txt", "w");
+  if (!out) { free(values); return 3; }
+  for (int i = 0; i < 3; i++) fprintf(out, "%d\\n", values[i]);
+  fclose(out);
+  FILE *in = fopen("scores.txt", "r");
+  if (!in) { free(values); return 4; }
+  int value = 0, sum = 0;
+  while (fscanf(in, "%d", &value) == 1) sum += value;
+  fclose(in);
+  free(values);
+  printf("sum=%d\\n", sum);
+  return 0;
+}`;
+
+  const result = await runC(source);
+  assert.equal(result.passed, true);
+  assert.equal(result.stdout, 'sum=31\n');
+  assert.equal(result.stderr, '');
+});
+
+test('文件 API 不能写出隔离的临时工作目录', { skip: runtimeSkip }, async () => {
+  const marker = `/tmp/eggy-c-runner-escape-${process.pid}`;
+  await rm(marker, { force: true });
+  const result = await runC(`#include <stdio.h>
+int main(void) {
+  FILE *file = fopen("${marker}", "w");
+  puts(file ? "escaped" : "blocked");
+  if (file) fclose(file);
+  return file ? 9 : 0;
+}`);
+
+  assert.equal(result.stdout, 'blocked\n');
+  assert.equal(result.exitCode, 0);
+  await assert.rejects(access(marker), error => error?.code === 'ENOENT');
+});
+
+test('文件 API 拒绝绝对路径和上级目录读取', { skip: runtimeSkip }, async () => {
+  const result = await runC(`#include <stdio.h>
+int main(void) {
+  FILE *absolute = fopen("/etc/hosts", "r");
+  FILE *parent = fopen("../main.c", "r");
+  printf("absolute=%s,parent=%s\\n", absolute ? "open" : "blocked", parent ? "open" : "blocked");
+  if (absolute) fclose(absolute);
+  if (parent) fclose(parent);
+  return absolute || parent ? 9 : 0;
+}`);
+
+  assert.equal(result.passed, true);
+  assert.equal(result.stdout, 'absolute=blocked,parent=blocked\n');
+});
+
+test('工作目录内的文件写入受 128 KiB 资源上限约束', { skip: runtimeSkip }, async () => {
+  const result = await runC(`#include <stdio.h>
+int main(void) {
+  FILE *file = fopen("oversized.bin", "wb");
+  if (!file) return 2;
+  char block[4096] = {0};
+  for (int i = 0; i < 128; i++) {
+    if (fwrite(block, 1, sizeof block, file) != sizeof block) return 3;
+  }
+  fclose(file);
+  return 0;
+}`);
+
+  assert.equal(result.passed, false);
+  assert.notEqual(result.exitCode, 0);
+  assert.equal(C_RUNNER_LIMITS.maxFileBytes, 128 * 1024);
+});
+
+test('标准动态内存分配受 128 MiB 活跃分配上限约束', { skip: runtimeSkip }, async () => {
+  const result = await runC(`#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+  void *memory = malloc(512UL * 1024UL * 1024UL);
+  puts(memory ? "allocated" : "blocked");
+  free(memory);
+  return memory ? 9 : 0;
+}`);
+
+  assert.equal(result.passed, true);
+  assert.equal(result.stdout, 'blocked\n');
+  assert.equal(C_RUNNER_LIMITS.maxDataBytes, 128 * 1024 * 1024);
+});
+
+test('释放内存会归还额度，失败的 realloc 保留原指针', { skip: runtimeSkip }, async () => {
+  const result = await runC(`#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+  void *first = malloc(96UL * 1024UL * 1024UL);
+  if (!first) return 2;
+  void *too_much = calloc(40UL * 1024UL * 1024UL, 1);
+  if (too_much) return 3;
+  void *resized = realloc(first, 140UL * 1024UL * 1024UL);
+  if (resized) return 4;
+  free(first);
+  void *replacement = calloc(96UL * 1024UL * 1024UL, 1);
+  puts(replacement ? "budget-restored" : "budget-lost");
+  free(replacement);
+  return replacement ? 0 : 5;
+}`);
+
+  assert.equal(result.passed, true);
+  assert.equal(result.stdout, 'budget-restored\n');
+  assert.equal(result.stderr, '');
 });
 
 test('即使没有危险头文件，也拒绝子进程和系统 API', async () => {

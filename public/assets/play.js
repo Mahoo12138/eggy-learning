@@ -60,6 +60,7 @@ function attempts() { return state.progress?.attempts || state.payload?.attempts
 function isProjectBoss(step) { return state.mode === 'project' && step?.id === state.level?.boss?.id; }
 function stepType(step) { return isProjectBoss(step) ? 'project-boss' : state.mode === 'project' ? 'project-chapter' : step?.type || step?.kind || step?.interaction?.kind || 'scene'; }
 function isCodeStep(step) { return ['run-observe', 'run', 'code-edit', 'guided-edit', 'code-repair', 'independent-variation', 'independent-transfer', 'variation', 'boss'].includes(stepType(step)) || !!step?.runtimeId; }
+function isTerminalStep(step) { return step?.runtimeId === 'linux-shell-sim'; }
 function isIndependent(step) { return ['independent-variation', 'independent-transfer', 'variation'].includes(stepType(step)); }
 
 function levelAttemptPayloads(step) {
@@ -273,7 +274,12 @@ function renderCode(step) {
   const previousCode = typeof previous === 'string' ? previous : previous?.files ? Object.values(previous.files)[0] : '';
   const observeOnly = stepType(step) === 'run-observe';
   const code = observeOnly ? starterCode(step) : previousCode || starterCode(step);
-  $('#interaction-root').innerHTML = `<label for="code-answer" class="visually-hidden">${observeOnly ? '固定示例代码，本步只观察' : '当前代码'}</label><textarea id="code-answer" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off"${observeOnly ? ' readonly aria-readonly="true"' : ''}>${esc(code)}</textarea>${observeOnly ? '<p class="observe-note">这一步运行固定示例，先观察结果；可编辑练习会在后面的步骤出现。</p>' : ''}`;
+  const terminal = isTerminalStep(step);
+  const label = terminal ? (observeOnly ? '固定示例命令，本步只观察' : '当前命令') : (observeOnly ? '固定示例代码，本步只观察' : '当前代码');
+  const note = terminal
+    ? '这里运行的是隔离的虚拟 Linux 终端，只改变练习文件系统，不会执行本机命令。'
+    : '这一步运行固定示例，先观察结果；可编辑练习会在后面的步骤出现。';
+  $('#interaction-root').innerHTML = `<label for="code-answer" class="visually-hidden">${label}</label><textarea id="code-answer" class="code-editor" data-language="${terminal ? 'shell' : 'c'}" spellcheck="false" autocapitalize="off" autocomplete="off"${observeOnly ? ' readonly aria-readonly="true"' : ''}>${esc(code)}</textarea>${observeOnly || terminal ? `<p class="observe-note">${esc(note)}</p>` : ''}`;
 }
 
 function renderText(step) {
@@ -368,8 +374,8 @@ function renderInteraction(step) {
 
 function actionLabel(step) {
   if (state.mode === 'project') return isProjectBoss(step) ? '提交 Boss 自检' : '保存本章自检';
-  if (isIndependent(step)) return '独立运行这个变式';
-  if (isCodeStep(step)) return '运行并看结果';
+  if (isIndependent(step)) return isTerminalStep(step) ? '独立运行这组命令' : '独立运行这个变式';
+  if (isCodeStep(step)) return isTerminalStep(step) ? '运行命令并看结果' : '运行并看结果';
   if ((step.interaction?.kind || step.interaction?.type) === 'reorder') return '保留预测并继续';
   if (['explanation', 'explain'].includes(stepType(step))) return '检查我的解释';
   return '我观察好了';
@@ -421,7 +427,9 @@ function readAnswer(step = currentStep()) {
     return Object.fromEntries($$('[data-answer-key]', $('#interaction-root')).map(input => [input.dataset.answerKey, numeric && input.value !== '' ? Number(input.value) : input.value]));
   }
   if (isCodeStep(step)) {
-    const filename = step.starterFiles?.['main.cpp'] !== undefined || selectedVariant(step)?.starterFiles?.['main.cpp'] !== undefined ? 'main.cpp' : 'main.c';
+    const filename = isTerminalStep(step)
+      ? 'session.sh'
+      : step.starterFiles?.['main.cpp'] !== undefined || selectedVariant(step)?.starterFiles?.['main.cpp'] !== undefined ? 'main.cpp' : 'main.c';
     return { files: { [filename]: $('#code-answer')?.value || '' }, stdin: step.stdin || selectedVariant(step)?.stdin || '' };
   }
   if ($('#text-answer')) return $('#text-answer').value;
@@ -442,7 +450,7 @@ function validateAnswer(step, answer) {
   }
   if ($('#number-answer') && answer === '') return '先写下你预测的数值。';
   if ($('.structured-answer') && Object.values(answer).some(value => value === '' || Number.isNaN(value))) return '先完成每一项预测。';
-  if (isCodeStep(step) && !Object.values(answer.files || {}).some(code => code.trim())) return '代码区还是空的。';
+  if (isCodeStep(step) && !Object.values(answer.files || {}).some(code => code.trim())) return isTerminalStep(step) ? '命令区还是空的。' : '代码区还是空的。';
   return '';
 }
 

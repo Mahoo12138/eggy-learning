@@ -6,7 +6,8 @@ import { networkInterfaces } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { Store, acquireLock, httpError, fingerprint, etag, requireMatch, safeId } from './lib/store.mjs';
 import { getGitHistory } from './lib/git-history.mjs';
-import { runC } from './lib/c-runner.mjs';
+import { cIdentifiers, runC } from './lib/c-runner.mjs';
+import { runLinuxShell } from './lib/linux-shell-sim.mjs';
 import {
   sanitizeCourse, sanitizeProgress, sanitizeWeekCard,
   submitAttempt, submitProjectCheckpoint, summary as progressSummary
@@ -185,14 +186,78 @@ function parseJSONAnswer(answer) {
 
 function normalizedOutput(value) { return String(value ?? '').replace(/\r\n?/g, '\n'); }
 
-async function gradeProgram(source, rule, stdin = '') {
+function includesSubsequence(values, expected) {
+  let index = 0;
+  for (const value of values) if (value === expected[index]) index++;
+  return index === expected.length;
+}
+
+function commandEvidenceMatches(event, expected) {
+  if (event.command !== expected.command) return false;
+  if (expected.args && JSON.stringify(event.rawArgs || []) !== JSON.stringify(expected.args)) return false;
+  for (const field of ['pipedFrom', 'pipedTo', 'redirect', 'redirectPath']) {
+    if (Object.hasOwn(expected, field) && event[field] !== expected[field]) return false;
+  }
+  for (const field of ['visibleOutput', 'exitStatusExpanded']) {
+    if (Object.hasOwn(expected, field) && event[field] !== expected[field]) return false;
+  }
+  return true;
+}
+
+function programRequirementFailures(source, runtimeId, execution, requirements = {}) {
+  const failures = [];
+  if (runtimeId === 'c17-console') {
+    const identifiers = new Set(cIdentifiers(source));
+    for (const identifier of requirements.requiredIdentifiers || []) {
+      if (!identifiers.has(identifier)) failures.push(`代码中需要实际使用 ${identifier}`);
+    }
+    return failures;
+  }
+  if (runtimeId !== 'linux-shell-sim') return failures;
+  const trace = execution.trace || [];
+  for (const command of requirements.commands || []) if (!trace.includes(command)) failures.push(`需要执行 ${command}`);
+  if (requirements.commandSequence && !includesSubsequence(trace, requirements.commandSequence)) failures.push('命令执行顺序与任务要求不一致');
+  const usedEvents = new Set();
+  for (const expected of requirements.commandEvidence || []) {
+    const index = (execution.events || []).findIndex((event, eventIndex) => !usedEvents.has(eventIndex) && commandEvidenceMatches(event, expected));
+    if (index < 0) failures.push(`缺少可验证的命令步骤：${expected.command}`);
+    else usedEvents.add(index);
+  }
+  if (requirements.cwd && execution.cwd !== requirements.cwd) failures.push(`最终目录应为 ${requirements.cwd}`);
+  for (const form of requirements.pathForms || []) {
+    const matched = (execution.pathEvents || []).some(event => event.form === form);
+    if (!matched) failures.push(`需要实际使用路径写法 ${form === 'dot' ? './' : form === 'dotdot' ? '..' : '~'}`);
+  }
+  for (const [path, expected] of Object.entries(requirements.files || {})) {
+    const actual = execution.state?.files?.[path];
+    if (!actual) { failures.push(`需要生成文件 ${path}`); continue; }
+    if (expected.mode && actual.mode !== expected.mode) failures.push(`${path} 的权限应为 ${expected.mode}`);
+    if (Object.hasOwn(expected, 'content') && actual.content !== expected.content) failures.push(`${path} 的内容不符合任务要求`);
+  }
+  for (const path of requirements.absentFiles || []) {
+    if (execution.state?.files?.[path]) failures.push(`文件 ${path} 应已被移走或删除`);
+  }
+  const processes = new Set((execution.state?.processes || []).map(item => item.pid));
+  for (const pid of requirements.absentProcesses || []) if (processes.has(pid)) failures.push(`进程 ${pid} 仍在运行`);
+  for (const pid of requirements.presentProcesses || []) if (!processes.has(pid)) failures.push(`进程 ${pid} 不应被终止`);
+  return failures;
+}
+
+async function gradeProgram(source, rule, stdin = '', runtimeId = 'c17-console') {
   const cases = rule.kind === 'stdin-stdout-cases' ? rule.cases : [{ stdin, stdout: rule.expected }];
   const caseResults = [];
   for (const testCase of cases) {
-    const execution = await runC(source, testCase.stdin || '');
+    let execution;
+    if (runtimeId === 'linux-shell-sim') execution = runLinuxShell(source, testCase.stdin || '');
+    else if (runtimeId === 'c17-console') execution = await runC(source, testCase.stdin || '');
+    else throw httpError(400, `当前在线关卡不支持运行环境 ${runtimeId}。`, 'unsupported_runtime');
     const expected = normalizedOutput(testCase.stdout);
     const actual = normalizedOutput(execution.stdout);
-    caseResults.push({ stdin: testCase.stdin || '', expected, actual, stderr: execution.stderr, phase: execution.phase, exitCode: execution.exitCode, timedOut: execution.timedOut === true, passed: execution.passed && actual === expected });
+    const expectedExitCode = Number.isInteger(testCase.exitCode) ? testCase.exitCode : 0;
+    const requirements = { ...(rule.requirements || {}), ...(testCase.requirements || {}) };
+    const requirementFailures = execution.phase === 'run' ? programRequirementFailures(source, runtimeId, execution, requirements) : [];
+    const passed = execution.phase === 'run' && !execution.timedOut && execution.exitCode === expectedExitCode && actual === expected && requirementFailures.length === 0;
+    caseResults.push({ stdin: testCase.stdin || '', expected, actual, stderr: execution.stderr, phase: execution.phase, exitCode: execution.exitCode, expectedExitCode, timedOut: execution.timedOut === true, requirementFailures, passed });
     if (execution.phase === 'compile' || execution.timedOut || execution.outputLimited) break;
   }
   const passed = caseResults.length === cases.length && caseResults.every(item => item.passed);
@@ -200,7 +265,7 @@ async function gradeProgram(source, rule, stdin = '') {
   return {
     passed,
     feedback: {
-      kind: 'program', message: passed ? `全部 ${cases.length} 组检查通过。` : firstFailure?.phase === 'compile' ? '代码还没有编译通过，先处理第一条编译信息。' : firstFailure?.timedOut ? '程序没有在限定时间内结束。' : '实际输出与目标还不一致。',
+      kind: runtimeId === 'linux-shell-sim' ? 'terminal' : 'program', message: passed ? `全部 ${cases.length} 组检查通过。` : firstFailure?.phase === 'compile' ? '代码还没有编译通过，先处理第一条编译信息。' : firstFailure?.timedOut ? '程序没有在限定时间内结束。' : firstFailure?.requirementFailures?.length ? `输出已经接近目标，但实现证据还不完整：${firstFailure.requirementFailures.join('；')}。` : runtimeId === 'linux-shell-sim' ? '命令执行结果与目标还不一致。' : '实际输出与目标还不一致。',
       actualOutput: firstFailure?.actual ?? caseResults.at(-1)?.actual ?? '', expectedOutput: firstFailure?.expected ?? '', stderr: firstFailure?.stderr || '', cases: caseResults
     }
   };
@@ -250,10 +315,11 @@ export async function gradeLevel(course, raw) {
     const passed = Number.isFinite(actual) && actual === rule.expected;
     graded = { passed, feedback: { kind: 'answer', message: passed ? '数值判断正确。' : '重新逐步代入一次，观察每次状态变化。', actualOutput: String(actual), expectedOutput: String(rule.expected) } };
   } else if (['stdout-exact', 'stdin-stdout-cases'].includes(rule?.kind)) {
-    const starter = variant?.starterFiles?.['main.c'] || step.starterFiles?.['main.c'];
+    const starterFiles = variant?.starterFiles || step.starterFiles || {};
+    const starter = starterFiles['main.c'] || starterFiles['session.sh'] || Object.values(starterFiles)[0];
     const source = step.type === 'run-observe' ? starter : answer;
-    if (!source) throw httpError(400, '这一代码步骤没有收到 C 源码。', 'source_required');
-    graded = await gradeProgram(source, rule, step.stdin || '');
+    if (!source) throw httpError(400, step.runtimeId === 'linux-shell-sim' ? '这一终端步骤没有收到命令。' : '这一代码步骤没有收到 C 源码。', 'source_required');
+    graded = await gradeProgram(source, rule, step.stdin || '', step.runtimeId);
   } else {
     const minimum = Number(step.answerPolicy?.minimumCharacters || 8);
     const passed = [...answer.trim()].length >= minimum;

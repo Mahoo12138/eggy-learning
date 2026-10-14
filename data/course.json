@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "courseId": "eggy-programming-park",
-  "publishedRevision": 2,
+  "publishedRevision": 3,
   "title": "蛋仔编程乐园",
   "subtitle": "从第一行代码，玩到自己的作品",
   "terminology": {
@@ -49,6 +49,12 @@
       "language": "c",
       "standard": "C17",
       "execution": "managed-web-runtime"
+    },
+    {
+      "id": "linux-shell-sim",
+      "language": "shell",
+      "standard": "safe Linux command model",
+      "execution": "deterministic-virtual-terminal"
     },
     {
       "id": "native-c17",
@@ -211,7 +217,7 @@
       "id": "quail",
       "order": 1,
       "title": "鹌鹑蛋",
-      "technologyTheme": "C 程序运行、执行顺序、输入输出与错误观察",
+      "technologyTheme": "C 编程基础、可靠输入、流程控制与函数调用",
       "languageIds": [
         "c"
       ],
@@ -226,17 +232,17 @@
       "subdivisions": [
         {
           "id": "quail-iii",
-          "title": "执行追踪",
+          "title": "程序与数据",
           "requiredStars": 1
         },
         {
           "id": "quail-ii",
-          "title": "格式输出",
+          "title": "分支与循环",
           "requiredStars": 1
         },
         {
           "id": "quail-i",
-          "title": "输入校验",
+          "title": "函数与调用",
           "requiredStars": 1
         }
       ],
@@ -251,7 +257,7 @@
       "id": "pigeon",
       "order": 2,
       "title": "鸽子蛋",
-      "technologyTheme": "C 数据、类型、表达式与状态变化",
+      "technologyTheme": "C 数组、结构体、指针、动态内存与文件",
       "languageIds": [
         "c"
       ],
@@ -266,17 +272,17 @@
       "subdivisions": [
         {
           "id": "pigeon-iii",
-          "title": "变量状态",
+          "title": "数组与结构体",
           "requiredStars": 1
         },
         {
           "id": "pigeon-ii",
-          "title": "类型与精度",
+          "title": "指针与内存",
           "requiredStars": 1
         },
         {
           "id": "pigeon-i",
-          "title": "表达式拆解",
+          "title": "文件与记录",
           "requiredStars": 1
         }
       ],
@@ -291,9 +297,9 @@
       "id": "chicken",
       "order": 3,
       "title": "鸡蛋",
-      "technologyTheme": "C 条件、循环、函数与执行路径",
+      "technologyTheme": "Linux 系统、目录路径、权限、管道与进程基础",
       "languageIds": [
-        "c"
+        "linux"
       ],
       "locationIds": [],
       "activityIds": [
@@ -306,17 +312,17 @@
       "subdivisions": [
         {
           "id": "chicken-iii",
-          "title": "多状态分支",
+          "title": "系统与进程",
           "requiredStars": 1
         },
         {
           "id": "chicken-ii",
-          "title": "边界条件",
+          "title": "目录与路径",
           "requiredStars": 1
         },
         {
           "id": "chicken-i",
-          "title": "循环与函数",
+          "title": "权限与管道",
           "requiredStars": 1
         }
       ],
@@ -553,11 +559,11 @@
       "rankId": "quail",
       "subrankId": "quail-iii",
       "sequence": 1,
-      "title": "追踪函数与语句的执行顺序",
+      "title": "读懂完整 C 程序与可靠输入",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/quail-fountain-sequence.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 22,
       "locationId": "central-fountain",
       "propIds": [],
       "prerequisiteLevelIds": []
@@ -567,11 +573,11 @@
       "rankId": "quail",
       "subrankId": "quail-ii",
       "sequence": 2,
-      "title": "精确控制格式化输出",
+      "title": "用分支与循环处理批量数据",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/quail-piano-output.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 24,
       "locationId": "piano-carpet",
       "propIds": [],
       "prerequisiteLevelIds": [
@@ -583,11 +589,11 @@
       "rankId": "quail",
       "subrankId": "quail-i",
       "sequence": 3,
-      "title": "检查输入是否真正读取成功",
+      "title": "用函数合同拆分并追踪调用",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/quail-opening-broadcast.json",
-      "estimatedMinutes": 18,
+      "estimatedMinutes": 25,
       "locationId": "central-fountain",
       "propIds": [],
       "prerequisiteLevelIds": [
@@ -599,11 +605,11 @@
       "rankId": "quail",
       "subrankId": null,
       "sequence": 4,
-      "title": "程序执行与输入输出诊断",
+      "title": "C 基础与流程控制综合检查",
       "kind": "rank-boss",
-      "version": 2,
+      "version": 3,
       "file": "levels/quail-opening-boss.json",
-      "estimatedMinutes": 24,
+      "estimatedMinutes": 35,
       "locationId": "central-fountain",
       "propIds": [],
       "prerequisiteLevelIds": [
@@ -617,11 +623,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-iii",
       "sequence": 1,
-      "title": "追踪多次赋值后的变量",
+      "title": "用数组与结构体组织记录",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/pigeon-salty-fish-counter.json",
-      "estimatedMinutes": 22,
+      "estimatedMinutes": 25,
       "locationId": "blind-box-store",
       "propIds": [
         "salty-fish"
@@ -635,11 +641,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-ii",
       "sequence": 2,
-      "title": "辨认整数除法与类型转换",
+      "title": "用指针与动态内存管理数据",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/pigeon-shrink-milk-timer.json",
-      "estimatedMinutes": 22,
+      "estimatedMinutes": 25,
       "locationId": "makeover-shop",
       "propIds": [
         "shrink-milk",
@@ -654,11 +660,11 @@
       "rankId": "pigeon",
       "subrankId": "pigeon-i",
       "sequence": 3,
-      "title": "拆解多步表达式与预算",
+      "title": "用文件保存并恢复结构化记录",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/pigeon-blind-box-balance.json",
-      "estimatedMinutes": 24,
+      "estimatedMinutes": 25,
       "locationId": "blind-box-store",
       "propIds": [
         "teleport-ball"
@@ -672,11 +678,11 @@
       "rankId": "pigeon",
       "subrankId": null,
       "sequence": 4,
-      "title": "数据与表达式综合检查",
+      "title": "数据、内存与文件综合检查",
       "kind": "rank-boss",
-      "version": 2,
+      "version": 3,
       "file": "levels/pigeon-data-boss.json",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 40,
       "locationId": "blind-box-store",
       "propIds": [
         "salty-fish",
@@ -694,9 +700,9 @@
       "rankId": "chicken",
       "subrankId": "chicken-iii",
       "sequence": 1,
-      "title": "用分支处理多状态输入",
+      "title": "认识 Linux：内核、Shell 与进程",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/chicken-teleport-state.json",
       "estimatedMinutes": 22,
       "locationId": "eggy-park",
@@ -712,11 +718,11 @@
       "rankId": "chicken",
       "subrankId": "chicken-ii",
       "sequence": 2,
-      "title": "判断数值是否落在闭区间",
+      "title": "在 Linux 目录树中定位与管理文件",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/chicken-bomb-boundary.json",
-      "estimatedMinutes": 22,
+      "estimatedMinutes": 24,
       "locationId": "eggy-park",
       "propIds": [
         "bomb",
@@ -732,11 +738,11 @@
       "rankId": "chicken",
       "subrankId": "chicken-i",
       "sequence": 3,
-      "title": "用函数统计多次输入",
+      "title": "用权限、重定向与管道处理系统状态",
       "kind": "interactive-lesson",
-      "version": 2,
+      "version": 3,
       "file": "levels/chicken-football-rounds.json",
-      "estimatedMinutes": 24,
+      "estimatedMinutes": 25,
       "locationId": "football-field",
       "propIds": [
         "bouncy-ball"
@@ -750,11 +756,11 @@
       "rankId": "chicken",
       "subrankId": null,
       "sequence": 4,
-      "title": "条件、循环与函数综合检查",
+      "title": "Linux 终端故障排查",
       "kind": "rank-boss",
-      "version": 2,
+      "version": 3,
       "file": "levels/chicken-rules-boss.json",
-      "estimatedMinutes": 30,
+      "estimatedMinutes": 35,
       "locationId": "eggy-park",
       "propIds": [
         "teleport-ball",
@@ -3224,19 +3230,19 @@
   "rewardCatalog": [
     {
       "id": "token-square-start-key",
-      "title": "程序追踪徽章",
+      "title": "C 程序通行证",
       "kind": "ability-token",
       "sourceRankId": "quail"
     },
     {
       "id": "token-data-calibration-chip",
-      "title": "数据调试芯片",
+      "title": "内存与文件芯片",
       "kind": "ability-token",
       "sourceRankId": "pigeon"
     },
     {
       "id": "token-golden-referee-whistle",
-      "title": "控制流罗盘",
+      "title": "Linux 终端徽章",
       "kind": "ability-token",
       "sourceRankId": "chicken"
     },

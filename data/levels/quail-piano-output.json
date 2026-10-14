@@ -1,25 +1,25 @@
 {
   "schemaVersion": 2,
   "id": "quail-piano-output",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "quail",
   "subrankId": "quail-ii",
   "sequence": 2,
-  "title": "精确控制格式化输出",
-  "estimatedMinutes": 18,
+  "title": "用分支与循环处理批量数据",
+  "estimatedMinutes": 24,
   "prerequisiteLevelIds": [
     "quail-fountain-sequence"
   ],
   "scene": {
     "locationId": "piano-carpet",
     "propIds": [],
-    "intro": "通过整数、浮点数和换行符的组合，判断表达式的类型如何影响最终文本。",
-    "success": "已经能选择正确格式并避免整数除法悄悄截断结果。"
+    "intro": "通过可运行示例逐步掌握“用分支与循环处理批量数据”。",
+    "success": "能够独立完成“用分支与循环处理批量数据”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "区分整数除法与浮点除法",
-    "使用格式说明符和精度要求生成可核对的输出"
+    "组合 if/else、for 与 while 处理多条输入",
+    "用计数器、累加器和循环不变量定位边界错误"
   ],
   "teachingLoop": [
     "predict",
@@ -32,78 +32,82 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "total=13、count=4，average 使用 (double)total / count 计算，并用 %.2f 输出。程序会打印哪一组结果？",
+      "prompt": "规则为 value<0 输出 negative，value==0 输出 zero，1–9 输出 small，其余输出 large。填写四个输入的分类。",
       "interaction": {
-        "kind": "single-choice",
-        "options": [
-          "total=13\naverage=3.25",
-          "total=13\naverage=3.00",
-          "total=13 average=3.25"
+        "kind": "mapping",
+        "fields": [
+          "-2",
+          "0",
+          "9",
+          "10"
         ]
       },
       "evaluator": {
-        "kind": "choice",
-        "expectedIndex": 0
+        "kind": "mapping-exact",
+        "expected": {
+          "0": "zero",
+          "9": "small",
+          "10": "large",
+          "-2": "negative"
+        }
       },
       "feedback": {
-        "correct": "转换在除法前发生，因此结果保留小数；两个换行符形成两行输出。",
-        "incorrect": "先判断除法发生时操作数的类型，再检查 %.2f 与换行符。"
+        "correct": "四条路径和边界都判断正确。",
+        "incorrect": "重点检查 0、9、10 分别落在哪一个互斥区间。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行程序，观察强制类型转换、%.2f 和换行符共同产生的精确结果。",
+      "prompt": "运行五轮统计，观察循环每次如何更新 positive 与 sum。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int total = 13;\n  int count = 4;\n  double average = (double)total / count;\n  printf(\"total=%d\\n\", total);\n  printf(\"average=%.2f\\n\", average);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int positive = 0;\n  int sum = 0;\n  for (int i = 0; i < 5; i++) {\n    int value;\n    if (scanf(\"%d\", &value) != 1) return 1;\n    if (value > 0) {\n      positive++;\n      sum += value;\n    }\n  }\n  printf(\"positive=%d,sum=%d\\n\", positive, sum);\n  return 0;\n}\n"
       },
-      "stdin": "",
+      "stdin": "3\n-2\n0\n7\n4\n",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "total=13\naverage=3.25\n"
+        "expected": "positive=3,sum=14\n"
       },
       "visualizer": {
         "kind": "stdout-sequence",
-        "target": "formatted-output",
-        "tokenMap": {
-          "total=13": "integer-line",
-          "average=3.25": "decimal-line"
-        }
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "如果移除 (double)，average 为什么会变成 3.00，而不是 3.25？"
+      "observationPrompt": "第 i 轮结束后，positive 与 sum 分别保证表示什么？为什么循环条件是 i < 5？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "说明为什么仅把接收结果的变量声明为 double，仍不能补回整数除法已经丢失的小数部分。",
+      "prompt": "说明循环不变量：完成第 i 轮后，计数器和累加器各代表什么；再解释把 i < 5 写成 i <= 5 会造成什么问题。",
       "referencePoints": [
-        "除法先根据两个操作数的类型计算",
-        "整数除法完成后再转成 double 只能得到 3.00"
+        "计数器只记录满足条件的项目数",
+        "累加器只加入满足条件的数值",
+        "循环边界决定读取次数"
       ],
       "answerPolicy": {
-        "minimumCharacters": 20,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "修复平均值计算，使 13/4 输出 average=3.25，-7/2 输出 average=-3.50。保持两位小数。",
+      "prompt": "程序应该只读取 count 个整数并求和。修复多读一次的问题，并保留 count=0 的空输入情况。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int total, count;\n  if (scanf(\"%d %d\", &total, &count) != 2 || count == 0) return 1;\n  double average = total / count;\n  printf(\"average=%.2f\\n\", average);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int count;\n  if (scanf(\"%d\", &count) != 1 || count < 0 || count > 8) return 1;\n  int sum = 0;\n  for (int i = 0; i <= count; i++) {\n    int value;\n    if (scanf(\"%d\", &value) != 1) return 1;\n    sum += value;\n  }\n  printf(\"sum=%d\\n\", sum);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "13 4\n",
-            "stdout": "average=3.25\n"
+            "stdin": "3\n4 5 6\n",
+            "stdout": "sum=15\n"
           },
           {
-            "stdin": "-7 2\n",
-            "stdout": "average=-3.50\n"
+            "stdin": "0\n",
+            "stdout": "sum=0\n"
           }
         ]
       },
@@ -111,90 +115,106 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "结果变量的类型不会改变已经完成的整数除法。"
+          "text": "count=0 时循环体应该执行几次？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 average 赋值语句右侧的两个操作数。"
+          "text": "检查 for 的继续条件。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "让至少一个操作数在除法前变成 double。"
+          "text": "i 从 0 开始时，执行 count 次应使用 i < count。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "把计算改为 double average = (double)total / count;。",
+        "text": "把循环条件从 i <= count 改成 i < count。",
         "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成新的精确数值输出，格式必须逐字符匹配。",
+      "prompt": "独立写出带边界检查的批量统计程序。",
       "runtimeId": "c17-console",
-      "variantSetId": "quail-piano-melody-v1",
+      "variantSetId": "quail-control-flow-v3",
       "variants": [
         {
-          "id": "sol-mi-do",
-          "prompt": "读取两个整数，输出它们的精确比值，保留两位小数。7 和 2 应输出 ratio=3.50，-9 和 4 应输出 ratio=-2.25。",
+          "id": "score-summary",
+          "prompt": "读取 n（0–8）和 n 个成绩，输出 pass=P,sum=S；60 分及以上计为通过。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\n\nint main(void) {\n  int left, right;\n  if (scanf(\"%d %d\", &left, &right) != 2 || right == 0) return 1;\n  /* 计算并输出 ratio */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 0 || n > 8) return 1;\n  /* 循环读取并统计 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "7 2\n",
-                "stdout": "ratio=3.50\n"
+                "stdin": "5\n59 60 88 20 100\n",
+                "stdout": "pass=3,sum=327\n"
               },
               {
-                "stdin": "-9 4\n",
-                "stdout": "ratio=-2.25\n"
+                "stdin": "0\n",
+                "stdout": "pass=0,sum=0\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "scanf",
+                "for",
+                "if",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\n\nint main(void) {\n  int left, right;\n  if (scanf(\"%d %d\", &left, &right) != 2 || right == 0) return 1;\n  double ratio = (double)left / right;\n  printf(\"ratio=%.2f\\n\", ratio);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 0 || n > 8) return 1;\n  int pass = 0, sum = 0;\n  for (int i = 0; i < n; i++) {\n    int score;\n    if (scanf(\"%d\", &score) != 1) return 1;\n    sum += score;\n    if (score >= 60) pass++;\n  }\n  printf(\"pass=%d,sum=%d\\n\", pass, sum);\n  return 0;\n}\n"
         },
         {
-          "id": "re-sol-do",
-          "prompt": "读取 completed 和 total，输出完成百分比并保留一位小数。17/20 应输出 percent=85.0%，1/8 应输出 percent=12.5%。",
+          "id": "range-summary",
+          "prompt": "读取 n（1–8）和 n 个整数，输出 min、max 与偶数个数 even。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\n\nint main(void) {\n  int completed, total;\n  if (scanf(\"%d %d\", &completed, &total) != 2 || total == 0) return 1;\n  /* 计算并输出 percent */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  /* 初始化并循环更新 min、max、even */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "17 20\n",
-                "stdout": "percent=85.0%\n"
+                "stdin": "5\n3 -2 8 8 1\n",
+                "stdout": "min=-2,max=8,even=3\n"
               },
               {
-                "stdin": "1 8\n",
-                "stdout": "percent=12.5%\n"
+                "stdin": "1\n-7\n",
+                "stdout": "min=-7,max=-7,even=0\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "scanf",
+                "for",
+                "if",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\n\nint main(void) {\n  int completed, total;\n  if (scanf(\"%d %d\", &completed, &total) != 2 || total == 0) return 1;\n  double percent = (double)completed * 100.0 / total;\n  printf(\"percent=%.1f%%\\n\", percent);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  int value;\n  if (scanf(\"%d\", &value) != 1) return 1;\n  int min = value, max = value, even = value % 2 == 0;\n  for (int i = 1; i < n; i++) {\n    if (scanf(\"%d\", &value) != 1) return 1;\n    if (value < min) min = value;\n    if (value > max) max = value;\n    if (value % 2 == 0) even++;\n  }\n  printf(\"min=%d,max=%d,even=%d\\n\", min, max, even);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先确认目标输出需要几位小数和哪些固定字符。"
+          "text": "先列出 n=0 或 n=1 时应保持的状态。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查除法发生前是否已有浮点操作数。"
+          "text": "检查初始化发生在循环前还是第一次输入之后。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "百分号本身要用 %% 输出；精度由 %.2f 或 %.1f 控制。"
+          "text": "计数器从 0 开始；最值应从真实输入初始化，避免随便猜一个哨兵值。"
         }
       ],
       "fullSolutionPolicy": {
@@ -212,7 +232,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -234,6 +254,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先通过追问帮助学习者定位执行过程和错误原因，不直接给出完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

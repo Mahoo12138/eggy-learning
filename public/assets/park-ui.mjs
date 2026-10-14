@@ -1,7 +1,7 @@
 export const RANK_BLUEPRINTS = [
-  { id: 'quail', name: '鹌鹑蛋', short: '程序启动', domain: 'C 程序如何运行', building: '', summary: '追踪函数、语句、输入与输出，定位程序在哪一步偏离预期。', reward: '程序追踪徽章' },
-  { id: 'pigeon', name: '鸽子蛋', short: '数据变化', domain: 'C 变量、类型与表达式', building: '', summary: '追踪多次赋值、类型转换和组合表达式中的数据变化。', reward: '数据调试芯片' },
-  { id: 'chicken', name: '鸡蛋', short: '规则与路径', domain: 'C 条件、循环与函数', building: '', summary: '处理多状态分支、边界条件、循环次数和函数返回值。', reward: '控制流罗盘' },
+  { id: 'quail', name: '鹌鹑蛋', short: 'C 程序基础', domain: 'C 基础、流程控制与函数', building: '', summary: '从完整程序和可靠输入开始，用分支、循环与函数处理批量数据。', reward: 'C 程序通行证' },
+  { id: 'pigeon', name: '鸽子蛋', short: '数据与资源', domain: 'C 数据结构、指针、内存与文件', building: '', summary: '用数组和结构体组织记录，管理动态内存，并把数据可靠写入文件。', reward: '内存与文件芯片' },
+  { id: 'chicken', name: '鸡蛋', short: 'Linux 入门', domain: 'Linux 系统与终端基础', building: '', summary: '认识内核、Shell 和进程，在目录树中组合权限、重定向与管道。', reward: 'Linux 终端徽章' },
   { id: 'goose', name: '鹅蛋', short: '内存与数据组织', domain: 'C 数组、字符串、指针与文件', building: '苹果派雪雪烘焙店 · 淘气丸子奶茶店', summary: '把零散数据放进可靠的内存与文件结构。', reward: '美食街奖杯', project: '蛋仔食堂·今天吃什么' },
   { id: 'ostrich', name: '鸵鸟蛋', short: '嵌入式机关', domain: 'STM32 与外设', building: '巨型摩天轮', summary: '用按键、定时器、中断和传感器守住设备安全。', reward: '摩天轮控制钥匙', project: '蛋仔摩天轮安全中控站' },
   { id: 'dinosaur', name: '恐龙蛋', short: '进程调度', domain: 'Linux 进程与系统接口', building: '中央喷泉夜间总控台', summary: '让多个进程协作，也能在故障时安全退出。', reward: '夜班巡检徽章', project: '蛋仔岛夜班巡检台' },

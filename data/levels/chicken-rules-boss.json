@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "chicken-rules-boss",
-  "version": 2,
+  "version": 3,
   "activityType": "rank-boss",
   "rankId": "chicken",
   "sequence": 4,
-  "title": "条件、循环与函数综合检查",
-  "estimatedMinutes": 30,
+  "title": "Linux 终端故障排查",
+  "estimatedMinutes": 35,
   "prerequisiteLevelIds": [
     "chicken-teleport-state",
     "chicken-bomb-boundary",
@@ -20,7 +20,7 @@
       "spring-board",
       "bouncy-ball"
     ],
-    "intro": "连续检查多状态分支、循环边界和函数复用，任何一个环节出错都会改变最终统计。"
+    "intro": "综合运用本段能力完成“Linux 终端故障排查”，每一步都要留下可复现结果。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -30,77 +30,313 @@
     {
       "id": "predict-paths",
       "kind": "prediction",
-      "title": "追踪四种执行路径",
-      "prompt": "规则为 0→pending、1→running、2→done、其余→invalid。填写四个输入的输出。",
+      "title": "规划不靠猜测的排查顺序",
+      "prompt": "目标是定位日志、筛选错误、保存报告、设定权限，并终止确认过的 logger。请排列命令。",
       "evaluator": {
-        "kind": "mapping-exact",
-        "expected": {
-          "0": "pending",
-          "1": "running",
-          "2": "done",
-          "3": "invalid"
-        }
+        "kind": "exact-order",
+        "expected": [
+          "pwd",
+          "cd /var/log",
+          "cat app.log | grep ERROR > /home/learner/errors.txt",
+          "chmod 640 /home/learner/errors.txt",
+          "ps | grep logger",
+          "kill 318"
+        ]
       }
     },
     {
       "id": "repair-loop-boundary",
       "kind": "code-repair",
-      "title": "修复少读一次的循环",
-      "runtimeId": "c17-console",
+      "title": "修复路径、筛选、权限与进程步骤",
+      "runtimeId": "linux-shell-sim",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint is_valid(int value) { return value >= 10 && value <= 20; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 2; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_valid(value);\n  }\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
+        "session.sh": "cd var/log\ncat app.log | grep INFO > /home/learner/errors.txt\nchmod 600 /home/learner/errors.txt\nps | grep logger\nkill 205\nps | grep editor\ncat /home/learner/errors.txt\n"
       },
       "grader": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "10\n9\n20\n",
-            "stdout": "valid=2\n"
+        "kind": "stdout-exact",
+        "expected": "318 logger\n205 editor\nERROR sensor\nERROR timeout\n",
+        "requirements": {
+          "commands": [
+            "cd",
+            "cat",
+            "grep",
+            "chmod",
+            "kill",
+            "ps"
+          ],
+          "commandSequence": [
+            "cd",
+            "cat",
+            "grep",
+            "chmod",
+            "ps",
+            "grep",
+            "kill",
+            "ps",
+            "grep",
+            "cat"
+          ],
+          "cwd": "/var/log",
+          "files": {
+            "/home/learner/errors.txt": {
+              "mode": "640",
+              "content": "ERROR sensor\nERROR timeout\n"
+            }
           },
-          {
-            "stdin": "11\n12\n13\n",
-            "stdout": "valid=3\n"
-          }
-        ]
+          "absentProcesses": [
+            318
+          ],
+          "presentProcesses": [
+            205
+          ],
+          "commandEvidence": [
+            {
+              "command": "grep",
+              "args": [
+                "ERROR"
+              ],
+              "pipedFrom": "cat",
+              "redirect": ">",
+              "redirectPath": "/home/learner/errors.txt"
+            },
+            {
+              "command": "chmod",
+              "args": [
+                "640",
+                "/home/learner/errors.txt"
+              ]
+            },
+            {
+              "command": "grep",
+              "args": [
+                "logger"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            },
+            {
+              "command": "kill",
+              "args": [
+                "318"
+              ]
+            },
+            {
+              "command": "grep",
+              "args": [
+                "editor"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            },
+            {
+              "command": "cat",
+              "args": [
+                "/home/learner/errors.txt"
+              ],
+              "visibleOutput": true
+            }
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "程序只消费了前两个输入。"
+          "text": "逐一核对目录起点、日志级别、权限数值和目标 PID。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 for 的终止条件。"
+          "text": "修复 cd、grep、chmod 与 kill 四行；保留 kill 前后的两次进程证据和最后的报告验证。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "i 从 0 开始，i < 3 才会执行三次。"
+          "text": "使用 /var/log、ERROR、640 与 logger 的 PID 318。"
         }
       ]
     },
     {
       "id": "transfer-item-judge",
       "kind": "independent-transfer",
-      "title": "独立组合函数与四轮统计",
-      "prompt": "编写 in_range(value)：1–4（含端点）返回 1。读取 4 个整数并输出 count=N。",
-      "runtimeId": "c17-console",
+      "title": "独立完成日志故障报告",
+      "prompt": "标准输入是一份变化的日志。保存为 input.log，筛选 ERROR 到 errors.txt 并设为 640；用覆盖和追加生成两行 audit.txt；先用 ps 确认 logger 再终止它。最后输出权限、错误行数、错误内容、审计内容与仍在运行的 editor。",
+      "runtimeId": "linux-shell-sim",
       "grader": {
         "kind": "stdin-stdout-cases",
+        "requirements": {
+          "commands": [
+            "cat",
+            "grep",
+            "chmod",
+            "echo",
+            "kill",
+            "stat",
+            "wc",
+            "ps"
+          ],
+          "commandSequence": [
+            "cat",
+            "cat",
+            "grep",
+            "chmod",
+            "echo",
+            "echo",
+            "ps",
+            "grep",
+            "kill",
+            "stat",
+            "wc",
+            "cat",
+            "cat",
+            "ps",
+            "grep"
+          ],
+          "absentProcesses": [
+            318
+          ],
+          "presentProcesses": [
+            205
+          ],
+          "commandEvidence": [
+            {
+              "command": "cat",
+              "args": [],
+              "redirect": ">",
+              "redirectPath": "/home/learner/input.log"
+            },
+            {
+              "command": "grep",
+              "args": [
+                "ERROR"
+              ],
+              "pipedFrom": "cat",
+              "redirect": ">",
+              "redirectPath": "/home/learner/errors.txt"
+            },
+            {
+              "command": "chmod",
+              "args": [
+                "640",
+                "errors.txt"
+              ]
+            },
+            {
+              "command": "echo",
+              "args": [
+                "checked"
+              ],
+              "redirect": ">",
+              "redirectPath": "/home/learner/audit.txt"
+            },
+            {
+              "command": "echo",
+              "args": [
+                "complete"
+              ],
+              "redirect": ">>",
+              "redirectPath": "/home/learner/audit.txt"
+            },
+            {
+              "command": "grep",
+              "args": [
+                "logger"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            },
+            {
+              "command": "kill",
+              "args": [
+                "318"
+              ]
+            },
+            {
+              "command": "stat",
+              "args": [
+                "-c",
+                "%a",
+                "errors.txt"
+              ],
+              "visibleOutput": true
+            },
+            {
+              "command": "wc",
+              "args": [
+                "-l",
+                "errors.txt"
+              ],
+              "visibleOutput": true
+            },
+            {
+              "command": "cat",
+              "args": [
+                "errors.txt"
+              ],
+              "visibleOutput": true
+            },
+            {
+              "command": "cat",
+              "args": [
+                "audit.txt"
+              ],
+              "visibleOutput": true
+            },
+            {
+              "command": "grep",
+              "args": [
+                "editor"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            }
+          ]
+        },
         "cases": [
           {
-            "stdin": "0\n1\n4\n5\n",
-            "stdout": "count=2\n"
+            "stdin": "INFO boot\nERROR sensor\nINFO retry\nERROR timeout\n",
+            "stdout": "318 logger\n640\n2\nERROR sensor\nERROR timeout\nchecked\ncomplete\n205 editor\n",
+            "requirements": {
+              "files": {
+                "/home/learner/errors.txt": {
+                  "mode": "640",
+                  "content": "ERROR sensor\nERROR timeout\n"
+                },
+                "/home/learner/audit.txt": {
+                  "content": "checked\ncomplete\n"
+                }
+              }
+            }
           },
           {
-            "stdin": "1\n2\n3\n4\n",
-            "stdout": "count=4\n"
+            "stdin": "ERROR one\n",
+            "stdout": "318 logger\n640\n1\nERROR one\nchecked\ncomplete\n205 editor\n",
+            "requirements": {
+              "files": {
+                "/home/learner/errors.txt": {
+                  "mode": "640",
+                  "content": "ERROR one\n"
+                },
+                "/home/learner/audit.txt": {
+                  "content": "checked\ncomplete\n"
+                }
+              }
+            }
           },
           {
-            "stdin": "-1\n8\n0\n5\n",
-            "stdout": "count=0\n"
+            "stdin": "INFO clean\n",
+            "stdout": "318 logger\n640\n0\nchecked\ncomplete\n205 editor\n",
+            "requirements": {
+              "files": {
+                "/home/learner/errors.txt": {
+                  "mode": "640",
+                  "content": ""
+                },
+                "/home/learner/audit.txt": {
+                  "content": "checked\ncomplete\n"
+                }
+              }
+            }
           }
         ]
       },
@@ -108,17 +344,17 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先用 0、1、4、5 检查函数边界。"
+          "text": "把任务拆成日志文件、权限、审计文件、进程四个可独立验证的状态。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "函数只处理一个 value；main 循环四次。"
+          "text": "errors.txt 需 grep+chmod；audit.txt 需 > 和 >>；logger 需先用 ps|grep 确认 PID 再 kill。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "把每次返回的 0 或 1 累加到 count。"
+          "text": "最后依次用 stat、wc、cat、ps|grep 输出所有证据。"
         }
       ],
       "fullSolutionPolicy": {
@@ -132,11 +368,11 @@
     "managerApprovalRequired": false
   },
   "rewards": {
-    "xp": 80,
+    "xp": 100,
     "rankPromotion": true,
     "coreToken": {
       "id": "token-golden-referee-whistle",
-      "title": "控制流罗盘",
+      "title": "Linux 终端徽章",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true
@@ -151,6 +387,6 @@
       "actualResult",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "用问题引导学习者解释现象；不要替学习者完成最后的迁移检查点。"
+    "tutorInstruction": "用问题帮助学习者缩小问题范围；不要替学习者完成最后的独立迁移检查点。"
   }
 }

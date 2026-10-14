@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-data-boss",
-  "version": 2,
+  "version": 3,
   "activityType": "rank-boss",
   "rankId": "pigeon",
   "sequence": 4,
-  "title": "数据与表达式综合检查",
-  "estimatedMinutes": 30,
+  "title": "数据、内存与文件综合检查",
+  "estimatedMinutes": 40,
   "prerequisiteLevelIds": [
     "pigeon-salty-fish-counter",
     "pigeon-shrink-milk-timer",
@@ -19,7 +19,7 @@
       "shrink-milk",
       "speed-shoes"
     ],
-    "intro": "综合追踪表达式、中间变量和格式化输出，定位数据从哪一步开始偏离。"
+    "intro": "综合运用本段能力完成“数据、内存与文件综合检查”，每一步都要留下可复现结果。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -29,84 +29,103 @@
     {
       "id": "predict-values",
       "kind": "prediction",
-      "title": "拆解使用量与剩余量",
-      "prompt": "limit=50、unit=7、count=4、fee=3。used=unit*count+fee，left=limit-used。写出 used 与 left。",
+      "title": "追踪结构体数组与指针统计",
+      "prompt": "三条记录分数为 70、95、85；cursor 从首元素走到尾后。填写 count、sum、best_index。",
       "evaluator": {
         "kind": "object-exact",
         "expected": {
-          "used": 31,
-          "left": 19
+          "count": 3,
+          "sum": 250,
+          "best_index": 1
         }
       }
     },
     {
       "id": "repair-mixed-fields",
       "kind": "code-repair",
-      "title": "修复字段与计算错位",
+      "title": "修复文件位置与记录字段",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int limit = 50;\n  int used = 37;\n  printf(\"used=%d,left=%d\\n\", limit - used, used);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\ntypedef struct { int id; int score; } Record;\nint main(void) {\n  Record records[2] = {{12, 80}, {7, 95}};\n  FILE *file = fopen(\"records.txt\", \"w+\");\n  if (!file) return 1;\n  for (int i = 0; i < 2; i++) fprintf(file, \"%d %d\\n\", records[i].id, records[i].score);\n  int id, score, total = 0;\n  while (fscanf(file, \"%d %d\", &id, &score) == 2) total += id;\n  fclose(file);\n  printf(\"total=%d\\n\", total);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdout-exact",
-        "expected": "used=37,left=13\n"
+        "expected": "total=175\n",
+        "requirements": {
+          "requiredIdentifiers": [
+            "struct",
+            "fopen",
+            "fprintf",
+            "rewind",
+            "fscanf",
+            "fclose"
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "两个需要的数都能由现有变量得到，但现在放错了位置。"
+          "text": "写完后文件位置在哪里？total 应累加哪个字段？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "第一个 %d 应对应 used；第二个应对应 limit - used。"
+          "text": "在读取前 rewind，并检查循环体中的累加字段。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "不要改 limit 和 used 的初值，只修正 printf 参数。"
+          "text": "fprintf 后调用 rewind(file)，然后 total += score。"
         }
       ]
     },
     {
       "id": "transfer-stock-panel",
       "kind": "independent-transfer",
-      "title": "独立计算三步库存",
-      "prompt": "读取 initial、received、sold，输出 final=initial+received-sold。",
+      "title": "独立实现文件记录分析器",
+      "prompt": "读取 n（1–8）和 n 条 id score；动态分配结构体数组，写入 records.txt，回卷读回，输出 count、sum、best_id、best_score；同分保留先出现者。所有资源均须释放或关闭。",
       "runtimeId": "c17-console",
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "6 5 3\n",
-            "stdout": "final=8\n"
+            "stdin": "3\n12 80\n7 95\n21 88\n",
+            "stdout": "count=3,sum=263,best_id=7,best_score=95\n"
           },
           {
-            "stdin": "10 0 4\n",
-            "stdout": "final=6\n"
-          },
-          {
-            "stdin": "2 8 10\n",
-            "stdout": "final=0\n"
+            "stdin": "2\n4 -2\n9 -2\n",
+            "stdout": "count=2,sum=-4,best_id=4,best_score=-2\n"
           }
-        ]
+        ],
+        "requirements": {
+          "requiredIdentifiers": [
+            "struct",
+            "malloc",
+            "free",
+            "fopen",
+            "fprintf",
+            "rewind",
+            "fscanf",
+            "fclose"
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "按事件顺序更新同一个结果。"
+          "text": "先分开验证内存记录、文件往返、统计三段。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "也可以先算 initial + received，再减 sold。"
+          "text": "检查 malloc/NULL、每条 fscanf 的返回值、rewind、fclose 和 free。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "输出格式必须是 final=N，并保留换行。"
+          "text": "最优记录从第一条成功读回的数据初始化，比较时使用 > 保留先出现者。"
         }
       ],
       "fullSolutionPolicy": {
@@ -120,11 +139,11 @@
     "managerApprovalRequired": false
   },
   "rewards": {
-    "xp": 80,
+    "xp": 100,
     "rankPromotion": true,
     "coreToken": {
       "id": "token-data-calibration-chip",
-      "title": "数据调试芯片",
+      "title": "内存与文件芯片",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true
@@ -139,6 +158,6 @@
       "actualResult",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "用问题引导学习者解释现象；不要替学习者完成最后的迁移检查点。"
+    "tutorInstruction": "用问题帮助学习者缩小问题范围；不要替学习者完成最后的独立迁移检查点。"
   }
 }

@@ -11,6 +11,7 @@ import { gradeLevel, startServer } from '../server.mjs';
 import { freshProgress, sanitizeCourse, submitAttempt } from '../shared/park-domain.mjs';
 
 const PROJECT = fileURLToPath(new URL('..', import.meta.url));
+const V3_CONTENT_VERSION = 3;
 const EARLY_RANK_IDS = new Set(['quail', 'pigeon', 'chicken']);
 const PARK_SCENE_TERMS = [
   '摩天轮', '盲盒', '烘焙', '奶茶', '游戏厅', '换新店', '形象店', '喷泉', '蛋仔公园', '足球', '商城', '钢琴',
@@ -153,7 +154,7 @@ function levelAttempt(overrides = {}) {
   return {
     requestId: 'attempt-run-observe-1',
     levelId: 'quail-fountain-sequence',
-    contentVersion: 2,
+    contentVersion: V3_CONTENT_VERSION,
     stepId: 'run-observe',
     action: 'run',
     answer: '',
@@ -163,11 +164,12 @@ function levelAttempt(overrides = {}) {
   };
 }
 
-test('大厅、关卡和岛务状态来自同一份 v2 数据；岛屿图片以正确 MIME 静态提供', async t => {
+test('大厅、关卡和岛务状态来自 schema V2 的同一份 V3 课程；岛屿图片以正确 MIME 静态提供', async t => {
   const { app } = await fixture(t);
 
   const home = expect(await request(app, '/api/play/home'), 200);
   assert.equal(home.body.course.schemaVersion, 2);
+  assert.equal(home.body.course.publishedRevision, 3);
   assert.equal(home.body.course.ranks.length, 9);
   assert.equal(home.body.progress.revision, 0);
   assert.equal(home.body.summary.currentActivityId, 'quail-fountain-sequence');
@@ -244,23 +246,23 @@ test('前三段位的学习接口不暴露建筑或道具语汇，后六个段�
   }
 });
 
-test('升级到 contentVersion 2 后保留 v1 历史，但不会把旧步骤当作 v2 已完成', async t => {
-  const courseV2 = await checkedInCourse();
-  const checkedInLevel = courseV2.levels[0];
-  assert.equal(checkedInLevel.version, 2, '仓库内前三段位内容应已发布为 v2');
-  const v1Draft = structuredClone(courseV2);
-  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
-  const v1DraftLevel = v1Draft.levels.find(level => level.id === checkedInLevel.id);
-  v1DraftLevel.version = 1;
-  v1DraftLevel.content.version = 1;
-  const courseV1 = sanitizeCourse(v1Draft);
-  const levelV1 = courseV1.levels.find(level => level.id === checkedInLevel.id);
-  const firstStep = levelV1.content.steps[0];
-  let progressV1 = freshProgress(courseV1, 'learner-1');
-  progressV1 = submitAttempt(courseV1, progressV1, {
-    requestId: 'version-one-first-step',
-    levelId: levelV1.id,
-    contentVersion: 1,
+test('升级到 contentVersion 3 后保留 V2 历史，但不会把旧步骤当作 V3 已完成', async t => {
+  const courseV3 = await checkedInCourse();
+  const checkedInLevel = courseV3.levels[0];
+  assert.equal(checkedInLevel.version, 3, '仓库内前三段位内容应已发布为 V3');
+  const v2Draft = structuredClone(courseV3);
+  v2Draft.publishedRevision = 2;
+  const v2DraftLevel = v2Draft.levels.find(level => level.id === checkedInLevel.id);
+  v2DraftLevel.version = 2;
+  v2DraftLevel.content.version = 2;
+  const courseV2 = sanitizeCourse(v2Draft);
+  const levelV2 = courseV2.levels.find(level => level.id === checkedInLevel.id);
+  const firstStep = levelV2.content.steps[0];
+  let progressV2 = freshProgress(courseV2, 'learner-1');
+  progressV2 = submitAttempt(courseV2, progressV2, {
+    requestId: 'version-two-first-step',
+    levelId: levelV2.id,
+    contentVersion: 2,
     stepId: firstStep.id,
     variantId: '',
     action: 'check',
@@ -270,23 +272,23 @@ test('升级到 contentVersion 2 后保留 v1 历史，但不会把旧步骤当�
     passed: true,
     independent: false
   }, {
-    id: 'version-one-attempt',
+    id: 'version-two-attempt',
     submittedAt: '2026-10-13T01:01:00.000Z'
   }).progress;
 
   const f = await fixture(t, { start: false });
-  await writeFile(join(f.root, 'data/progress.json'), `${JSON.stringify(progressV1, null, 2)}\n`, 'utf8');
+  await writeFile(join(f.root, 'data/progress.json'), `${JSON.stringify(progressV2, null, 2)}\n`, 'utf8');
 
   const app = await f.start();
   const home = expect(await request(app, '/api/play/home'), 200).body;
-  assert.equal(home.currentLevel.version, 2);
+  assert.equal(home.currentLevel.version, 3);
   assert.equal(home.progress.attempts.length, 1);
-  assert.equal(home.progress.attempts[0].payload.contentVersion, 1);
+  assert.equal(home.progress.attempts[0].payload.contentVersion, 2);
 
-  const activity = expect(await request(app, `/api/play/levels/${levelV1.id}`), 200).body;
-  assert.equal(activity.level.version, 2);
-  assert.deepEqual(activity.completedStepIds, [], 'v1 的通过记录不能推进 v2 的步骤游标');
-  assert.equal(activity.progress.attempts[0].payload.stepId, firstStep.id, 'v1 历史仍应完整保留给管理端和学习记录');
+  const activity = expect(await request(app, `/api/play/levels/${levelV2.id}`), 200).body;
+  assert.equal(activity.level.version, 3);
+  assert.deepEqual(activity.completedStepIds, [], 'V2 的通过记录不能推进 V3 的步骤游标');
+  assert.equal(activity.progress.attempts[0].payload.stepId, firstStep.id, 'V2 历史仍应完整保留给管理端和学习记录');
 });
 
 test('拒绝伪造 Host、跨源写入、非 JSON 写入和静态目录穿越', async t => {
@@ -311,32 +313,359 @@ test('拒绝伪造 Host、跨源写入、非 JSON 写入和静态目录穿越', 
   assert.equal(traversal.headers['x-frame-options'], 'DENY');
 });
 
-test('Boss 的对象值与映射关系按完整结构判定，不会误落入文本长度规则', async () => {
+test('V3 的对象值、映射关系和顺序按完整结构判定', async () => {
   const course = await checkedInCourse();
   const objectBase = {
-    requestId: 'boss-object-1', levelId: 'pigeon-data-boss', contentVersion: 2,
+    requestId: 'boss-object-1', levelId: 'pigeon-data-boss', contentVersion: V3_CONTENT_VERSION,
     stepId: 'predict-values', action: 'check', hintLevel: 0, viewedFullAnswer: false
   };
-  const objectCorrect = await gradeLevel(course, { ...objectBase, answer: JSON.stringify({ used: 31, left: 19 }) });
+  const objectCorrect = await gradeLevel(course, { ...objectBase, answer: JSON.stringify({ count: 3, sum: 250, best_index: 1 }) });
   assert.equal(objectCorrect.input.passed, true);
-  const objectExtra = await gradeLevel(course, { ...objectBase, requestId: 'boss-object-2', answer: JSON.stringify({ used: 31, left: 19, guessed: true }) });
+  const objectExtra = await gradeLevel(course, { ...objectBase, requestId: 'boss-object-2', answer: JSON.stringify({ count: 3, sum: 250, best_index: 1, guessed: true }) });
   assert.equal(objectExtra.input.passed, false);
 
-  const mappingBase = {
-    requestId: 'boss-mapping-1', levelId: 'chicken-rules-boss', contentVersion: 2,
+  const orderBase = {
+    requestId: 'boss-order-1', levelId: 'chicken-rules-boss', contentVersion: V3_CONTENT_VERSION,
     stepId: 'predict-paths', action: 'check', hintLevel: 0, viewedFullAnswer: false
   };
-  const mappingCorrect = await gradeLevel(course, { ...mappingBase, answer: JSON.stringify({ 0: 'pending', 1: 'running', 2: 'done', 3: 'invalid' }) });
+  const expectedOrder = course.levels.find(level => level.id === orderBase.levelId).content.checkpoints[0].evaluator.expected;
+  const orderCorrect = await gradeLevel(course, { ...orderBase, answer: JSON.stringify(expectedOrder) });
+  assert.equal(orderCorrect.input.passed, true);
+  const orderWrong = await gradeLevel(course, { ...orderBase, requestId: 'boss-order-2', answer: JSON.stringify([...expectedOrder].reverse()) });
+  assert.equal(orderWrong.input.passed, false);
+
+  const mappingLevel = course.levels.find(level => level.id === 'quail-piano-output');
+  const mappingStep = mappingLevel.content.steps.find(step => step.id === 'predict');
+  const mappingCorrect = await gradeLevel(course, {
+    requestId: 'lesson-mapping-1', levelId: mappingLevel.id, contentVersion: mappingLevel.version,
+    stepId: mappingStep.id, action: 'check', hintLevel: 0, viewedFullAnswer: false,
+    answer: JSON.stringify(mappingStep.evaluator.expected)
+  });
   assert.equal(mappingCorrect.input.passed, true);
-  const mappingWrong = await gradeLevel(course, { ...mappingBase, requestId: 'boss-mapping-2', answer: JSON.stringify({ 0: 'running', 1: 'pending', 2: 'done', 3: 'invalid' }) });
-  assert.equal(mappingWrong.input.passed, false);
 });
 
-test('仓库内 18 份独立变式完整解法都能通过各自真实 C 评分用例', { skip: cRuntimeSkip }, async () => {
+test('程序评分只分派已声明的 C 与 Linux 运行时，未知 runtimeId 会被明确拒绝', async () => {
+  const course = structuredClone(await checkedInCourse());
+  const level = course.levels.find(item => item.id === 'quail-fountain-sequence');
+  const step = level.content.steps.find(item => item.id === 'short-edit');
+  step.runtimeId = 'host-shell';
+
+  await assert.rejects(
+    gradeLevel(course, {
+      requestId: 'unsupported-runtime-1',
+      levelId: level.id,
+      contentVersion: level.version,
+      stepId: step.id,
+      action: 'check',
+      answer: step.starterFiles['main.c'],
+      hintLevel: 0,
+      viewedFullAnswer: false
+    }),
+    error => {
+      assert.equal(error?.status, 400);
+      assert.equal(error?.code, 'unsupported_runtime');
+      assert.match(error.message, /host-shell/);
+      return true;
+    }
+  );
+});
+
+test('C 评分不把注释或字符串里的标识符当作实现证据，即使硬编码 stdout 完全一致', { skip: cRuntimeSkip }, async () => {
+  const course = structuredClone(await checkedInCourse());
+  const level = course.levels.find(item => item.id === 'quail-fountain-sequence');
+  const step = level.content.steps.find(item => item.id === 'independent-variation');
+  const variant = step.variants.find(item => item.id === 'seconds-split');
+  variant.grader.cases = [variant.grader.cases[0]];
+  const hardcoded = `#include <stdio.h>
+int main(void) {
+  /* scanf if printf */
+  const char *decoy = "scanf if printf";
+  (void)decoy;
+  puts("total_seconds=7509,clock=02:05:09");
+  return 0;
+}`;
+
+  const graded = await gradeLevel(course, {
+    requestId: 'hardcoded-c-output-1', levelId: level.id, contentVersion: level.version,
+    stepId: step.id, variantId: variant.id, action: 'submit', answer: hardcoded,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+
+  assert.equal(graded.feedback.actualOutput, variant.grader.cases[0].stdout, '固定输出本身应与样例完全一致，确保回归确实由实现证据拦截');
+  assert.equal(graded.input.passed, false);
+  assert.deepEqual(graded.feedback.cases[0].requirementFailures, [
+    '代码中需要实际使用 scanf',
+    '代码中需要实际使用 if',
+    '代码中需要实际使用 printf'
+  ]);
+  assert.match(graded.feedback.message, /实现证据还不完整/);
+});
+
+test('C 评分把预期非零退出码作为合同：正确的 status 1 通过，空输出但 status 0 仍失败', { skip: cRuntimeSkip }, async () => {
+  const course = structuredClone(await checkedInCourse());
+  const level = course.levels.find(item => item.id === 'quail-fountain-sequence');
+  const step = level.content.steps.find(item => item.id === 'independent-variation');
+  const variant = step.variants.find(item => item.id === 'seconds-split');
+  const invalidCase = variant.grader.cases.find(testCase => testCase.exitCode === 1);
+  variant.grader.cases = [invalidCase];
+
+  const correct = await gradeLevel(course, {
+    requestId: 'expected-exit-one-1', levelId: level.id, contentVersion: level.version,
+    stepId: step.id, variantId: variant.id, action: 'submit', answer: variant.fullSolution,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(correct.input.passed, true);
+  assert.equal(correct.feedback.cases[0].exitCode, 1);
+  assert.equal(correct.feedback.cases[0].expectedExitCode, 1);
+
+  const wrongExit = await gradeLevel(course, {
+    requestId: 'expected-exit-one-2', levelId: level.id, contentVersion: level.version,
+    stepId: step.id, variantId: variant.id, action: 'submit',
+    answer: `#include <stdio.h>
+int main(void) {
+  int hours, minutes, seconds;
+  if (scanf("%d %d %d", &hours, &minutes, &seconds) != 3) return 1;
+  printf("%s", "");
+  return 0;
+}`,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(wrongExit.feedback.actualOutput, '');
+  assert.deepEqual(wrongExit.feedback.cases[0].requirementFailures, []);
+  assert.equal(wrongExit.feedback.cases[0].exitCode, 0);
+  assert.equal(wrongExit.feedback.cases[0].expectedExitCode, 1);
+  assert.equal(wrongExit.input.passed, false);
+});
+
+test('Linux 评分不接受伪造的相同 stdout，并分别核对命令、文件和进程最终状态', async () => {
+  const course = structuredClone(await checkedInCourse());
+  const level = course.levels.find(item => item.id === 'chicken-football-rounds');
+  const variationStep = level.content.steps.find(item => item.id === 'independent-variation');
+  const variant = variationStep.variants.find(item => item.id === 'filter-errors');
+  variant.grader.cases = [variant.grader.cases[0]];
+
+  const outputOnly = await gradeLevel(course, {
+    requestId: 'linux-output-only-1', levelId: level.id, contentVersion: level.version,
+    stepId: variationStep.id, variantId: variant.id, action: 'submit',
+    answer: 'echo 640\necho 2\necho ERROR sensor\necho ERROR timeout',
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(outputOnly.feedback.actualOutput, variant.grader.cases[0].stdout);
+  assert.equal(outputOnly.input.passed, false);
+  assert.ok(outputOnly.feedback.cases[0].requirementFailures.some(message => /需要执行 cat/.test(message)));
+  assert.ok(outputOnly.feedback.cases[0].requirementFailures.some(message => /需要生成文件 \/home\/learner\/errors\.txt/.test(message)));
+
+  const wrongFileState = await gradeLevel(course, {
+    requestId: 'linux-wrong-file-state-1', levelId: level.id, contentVersion: level.version,
+    stepId: variationStep.id, variantId: variant.id, action: 'submit',
+    answer: `cat > input.txt
+cat input.txt | grep ERROR > errors.txt
+chmod 640 errors.txt
+stat -c %a errors.txt
+wc -l errors.txt
+cat errors.txt
+echo INFO boot > errors.txt`,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(wrongFileState.feedback.actualOutput, variant.grader.cases[0].stdout);
+  assert.equal(wrongFileState.input.passed, false);
+  assert.deepEqual(wrongFileState.feedback.cases[0].requirementFailures, ['/home/learner/errors.txt 的内容不符合任务要求']);
+
+  const processStep = level.content.steps.find(item => item.id === 'short-edit');
+  const wrongProcessState = await gradeLevel(course, {
+    requestId: 'linux-wrong-process-state-1', levelId: level.id, contentVersion: level.version,
+    stepId: processStep.id, action: 'submit',
+    answer: `ps | grep logger
+kill 318
+ps | grep editor
+kill 205`,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(wrongProcessState.feedback.actualOutput, processStep.grader.expected);
+  assert.equal(wrongProcessState.input.passed, false);
+  assert.deepEqual(wrongProcessState.feedback.cases[0].requirementFailures, ['进程 205 不应被终止']);
+
+  const pathLevel = course.levels.find(item => item.id === 'chicken-bomb-boundary');
+  const pathStep = pathLevel.content.steps.find(item => item.id === 'independent-variation');
+  const cleanupVariant = pathStep.variants.find(item => item.grader.requirements.absentFiles?.length);
+  const wrongCommandEvidence = await gradeLevel(course, {
+    requestId: 'linux-wrong-command-evidence-1', levelId: pathLevel.id, contentVersion: pathLevel.version,
+    stepId: pathStep.id, variantId: cleanupVariant.id, action: 'submit',
+    answer: `cd ~
+mkdir /tmp/archive
+cp ./work/notes.txt /tmp/archive/notes.txt
+touch /tmp/dummy.txt
+mv /tmp/dummy.txt /tmp/dummy-moved.txt
+touch /tmp/scratch.txt
+rm /tmp/scratch.txt
+cd /tmp/archive
+pwd
+ls
+cat ./notes.txt`,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(wrongCommandEvidence.feedback.actualOutput, cleanupVariant.grader.expected);
+  assert.equal(wrongCommandEvidence.input.passed, false);
+  assert.deepEqual(wrongCommandEvidence.feedback.cases[0].requirementFailures, [
+    '缺少可验证的命令步骤：cp',
+    '缺少可验证的命令步骤：mv'
+  ]);
+
+  const recreatedTemporaryFiles = await gradeLevel(course, {
+    requestId: 'linux-recreated-temporary-files-1', levelId: pathLevel.id, contentVersion: pathLevel.version,
+    stepId: pathStep.id, variantId: cleanupVariant.id, action: 'submit',
+    answer: `${cleanupVariant.fullSolution}\ntouch /tmp/staging.txt\ntouch /tmp/scratch.txt`,
+    hintLevel: 0, viewedFullAnswer: false
+  });
+  assert.equal(recreatedTemporaryFiles.feedback.actualOutput, cleanupVariant.grader.expected);
+  assert.equal(recreatedTemporaryFiles.input.passed, false);
+  assert.deepEqual(recreatedTemporaryFiles.feedback.cases[0].requirementFailures, [
+    '文件 /tmp/staging.txt 应已被移走或删除',
+    '文件 /tmp/scratch.txt 应已被移走或删除'
+  ]);
+});
+
+test('前两段 Boss 的四份修复与独立参考解法满足实现合同和全部真实用例', { skip: cRuntimeSkip }, async () => {
+  const course = await checkedInCourse();
+  const quailRepaired = `#include <stdio.h>
+int accepted(int value) { return value > 0; }
+int main(void) {
+  int n;
+  if (scanf("%d", &n) != 1 || n < 1 || n > 8) return 1;
+  int count = 0, sum = 0;
+  for (int i = 0; i < n; i++) {
+    int value;
+    if (scanf("%d", &value) != 1) return 1;
+    if (accepted(value)) { count++; sum += value; }
+  }
+  printf("count=%d,sum=%d\\n", count, sum);
+  return 0;
+}`;
+  const quailTransferred = `#include <stdio.h>
+int accepted(int value) { return value >= -100 && value <= 100; }
+int main(void) {
+  int n;
+  if (scanf("%d", &n) != 1 || n < 1 || n > 8) return 1;
+  int valid = 0, sum = 0, min = 0, max = 0;
+  for (int i = 0; i < n; i++) {
+    int value;
+    if (scanf("%d", &value) != 1) return 1;
+    if (!accepted(value)) continue;
+    if (valid == 0) min = max = value;
+    else {
+      if (value < min) min = value;
+      if (value > max) max = value;
+    }
+    valid++;
+    sum += value;
+  }
+  if (valid == 0) printf("valid=0,sum=0\\n");
+  else printf("valid=%d,sum=%d,min=%d,max=%d\\n", valid, sum, min, max);
+  return 0;
+}`;
+  const pigeonRepaired = `#include <stdio.h>
+typedef struct { int id; int score; } Record;
+int main(void) {
+  Record records[2] = {{12, 80}, {7, 95}};
+  FILE *file = fopen("records.txt", "w+");
+  if (!file) return 1;
+  for (int i = 0; i < 2; i++) fprintf(file, "%d %d\\n", records[i].id, records[i].score);
+  rewind(file);
+  int id, score, total = 0;
+  while (fscanf(file, "%d %d", &id, &score) == 2) total += score;
+  fclose(file);
+  printf("total=%d\\n", total);
+  return 0;
+}`;
+  const pigeonTransferred = `#include <stdio.h>
+#include <stdlib.h>
+typedef struct { int id; int score; } Record;
+int main(void) {
+  int n;
+  if (scanf("%d", &n) != 1 || n < 1 || n > 8) return 1;
+  Record *records = malloc((size_t)n * sizeof *records);
+  if (!records) return 1;
+  for (int i = 0; i < n; i++) {
+    if (scanf("%d %d", &records[i].id, &records[i].score) != 2) { free(records); return 1; }
+  }
+  FILE *file = fopen("records.txt", "w+");
+  if (!file) { free(records); return 1; }
+  for (int i = 0; i < n; i++) fprintf(file, "%d %d\\n", records[i].id, records[i].score);
+  rewind(file);
+  int id, score, count = 0, sum = 0, best_id = 0, best_score = 0;
+  while (fscanf(file, "%d %d", &id, &score) == 2) {
+    if (count == 0 || score > best_score) { best_id = id; best_score = score; }
+    count++;
+    sum += score;
+  }
+  fclose(file);
+  free(records);
+  printf("count=%d,sum=%d,best_id=%d,best_score=%d\\n", count, sum, best_id, best_score);
+  return 0;
+}`;
+
+  const references = [
+    ['quail-opening-boss', 'repair-broadcast', quailRepaired],
+    ['quail-opening-boss', 'transfer-new-show', quailTransferred],
+    ['pigeon-data-boss', 'repair-mixed-fields', pigeonRepaired],
+    ['pigeon-data-boss', 'transfer-stock-panel', pigeonTransferred]
+  ];
+  for (const [levelId, stepId, answer] of references) {
+    const level = course.levels.find(item => item.id === levelId);
+    const graded = await gradeLevel(course, {
+      requestId: `boss-reference-${levelId}-${stepId}`, levelId: level.id, contentVersion: level.version,
+      stepId, action: 'submit', answer, hintLevel: 0, viewedFullAnswer: false
+    });
+    assert.equal(graded.input.passed, true, `${levelId}/${stepId} 参考解法应通过：${JSON.stringify(graded.feedback)}`);
+    assert.ok(graded.feedback.cases.every(testCase => testCase.passed));
+    assert.ok(graded.feedback.cases.every(testCase => testCase.requirementFailures.length === 0));
+  }
+  assert.equal(references.length, 4);
+});
+
+test('鸡蛋 Boss 的两份 Linux 修复与独立参考解法满足行为证据和最终状态', async () => {
+  const course = await checkedInCourse();
+  const level = course.levels.find(item => item.id === 'chicken-rules-boss');
+  const references = [
+    ['repair-loop-boundary', `cd /var/log
+cat app.log | grep ERROR > /home/learner/errors.txt
+chmod 640 /home/learner/errors.txt
+ps | grep logger
+kill 318
+ps | grep editor
+cat /home/learner/errors.txt`],
+    ['transfer-item-judge', `cat > input.log
+cat input.log | grep ERROR > errors.txt
+chmod 640 errors.txt
+echo checked > audit.txt
+echo complete >> audit.txt
+ps | grep logger
+kill 318
+stat -c %a errors.txt
+wc -l errors.txt
+cat errors.txt
+cat audit.txt
+ps | grep editor`]
+  ];
+
+  for (const [stepId, answer] of references) {
+    const graded = await gradeLevel(course, {
+      requestId: `boss-reference-${level.id}-${stepId}`, levelId: level.id, contentVersion: level.version,
+      stepId, action: 'submit', answer, hintLevel: 0, viewedFullAnswer: false
+    });
+    assert.equal(graded.input.passed, true, `${level.id}/${stepId} 参考解法应通过：${JSON.stringify(graded.feedback)}`);
+    assert.ok(graded.feedback.cases.every(testCase => testCase.passed));
+    assert.ok(graded.feedback.cases.every(testCase => testCase.requirementFailures.length === 0));
+  }
+  assert.equal(references.length, 2);
+});
+
+test('前两段 12 份 C 独立变式都通过真实 C17 评分', { skip: cRuntimeSkip }, async () => {
   const course = await checkedInCourse();
   let checked = 0;
-  for (const level of course.levels.filter(item => item.kind === 'interactive-lesson')) {
+  for (const level of course.levels.filter(item => item.kind === 'interactive-lesson' && ['quail', 'pigeon'].includes(item.rankId))) {
     for (const step of level.content.steps.filter(item => item.type === 'independent-variation')) {
+      assert.equal(step.runtimeId, 'c17-console');
       for (const variant of step.variants) {
         const graded = await gradeLevel(course, {
           requestId: `solution-${level.id}-${variant.id}`,
@@ -350,11 +679,39 @@ test('仓库内 18 份独立变式完整解法都能通过各自真实 C 评分�
           viewedFullAnswer: true
         });
         assert.equal(graded.input.passed, true, `${level.id}/${variant.id} 的完整解法应通过评分：${JSON.stringify(graded.feedback)}`);
+        assert.equal(graded.feedback.kind, 'program');
         checked++;
       }
     }
   }
-  assert.equal(checked, 18);
+  assert.equal(checked, 12);
+});
+
+test('第三段 6 份 Linux 独立变式都由虚拟终端评分，不会落入 C 运行器', async () => {
+  const course = await checkedInCourse();
+  let checked = 0;
+  for (const level of course.levels.filter(item => item.kind === 'interactive-lesson' && item.rankId === 'chicken')) {
+    for (const step of level.content.steps.filter(item => item.type === 'independent-variation')) {
+      assert.equal(step.runtimeId, 'linux-shell-sim');
+      for (const variant of step.variants) {
+        const graded = await gradeLevel(course, {
+          requestId: `linux-solution-${level.id}-${variant.id}`,
+          levelId: level.id,
+          contentVersion: level.version,
+          stepId: step.id,
+          variantId: variant.id,
+          action: 'check',
+          answer: variant.fullSolution,
+          hintLevel: 3,
+          viewedFullAnswer: true
+        });
+        assert.equal(graded.input.passed, true, `${level.id}/${variant.id} 的完整命令应通过评分：${JSON.stringify(graded.feedback)}`);
+        assert.equal(graded.feedback.kind, 'terminal');
+        checked++;
+      }
+    }
+  }
+  assert.equal(checked, 6);
 });
 
 test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求都不能刷经验；错误输出不通过', { skip: cRuntimeSkip }, async t => {
@@ -368,7 +725,12 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
       requestId: 'attempt-predict-1',
       stepId: 'predict',
       action: 'check',
-      answer: JSON.stringify(['before:3', 'inside:3', 'after:6'])
+      answer: JSON.stringify([
+        '声明 count、price 与 total',
+        '检查 scanf 是否成功读到两个值',
+        '计算 total = count * price',
+        '按两位小数输出 total'
+      ])
     })
   }), 200);
   assert.equal(prediction.body.feedback.passed, true);
@@ -376,8 +738,8 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
 
   const first = expect(await request(app, '/api/play/attempts', { method: 'POST', data: input }), 200);
   assert.equal(first.body.feedback.kind, 'program');
-  assert.equal(first.body.feedback.actualOutput, 'before:3\ninside:3\nafter:6\n', JSON.stringify(first.body.feedback));
-  assert.equal(first.body.feedback.cases[0].expected, 'before:3\ninside:3\nafter:6\n');
+  assert.equal(first.body.feedback.actualOutput, 'count=3,total=37.50\n', JSON.stringify(first.body.feedback));
+  assert.equal(first.body.feedback.cases[0].expected, 'count=3,total=37.50\n');
   assert.equal(first.body.feedback.cases[0].phase, 'run');
   assert.equal(first.body.feedback.cases[0].passed, true);
   assert.equal(first.body.result.replayed, false);
@@ -407,7 +769,7 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
       requestId: 'attempt-explain-1',
       stepId: 'explain',
       action: 'check',
-      answer: 'main 调用 twice 时先进入函数体，函数返回并完成 result 赋值后，才继续执行 after 输出。'
+      answer: 'scanf 先确认整数和 double 都读入成功，随后才计算总价；无效输入会在计算前 return。'
     })
   }), 200);
   assert.equal(explanation.body.feedback.passed, true);
@@ -424,7 +786,7 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
   }), 200);
   assert.equal(wrong.body.feedback.kind, 'program');
   assert.equal(wrong.body.feedback.actualOutput, 'wrong\n');
-  assert.equal(wrong.body.feedback.expectedOutput, 'result:7\n');
+  assert.equal(wrong.body.feedback.expectedOutput, 'average=1.67\n');
   assert.equal(wrong.body.feedback.cases[0].phase, 'run');
   assert.equal(wrong.body.feedback.cases[0].passed, false);
   assert.equal(wrong.body.result.levelCompleted, false);
@@ -437,33 +799,35 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
   const { app } = await fixture(t);
   const submit = overrides => request(app, '/api/play/attempts', { method: 'POST', data: levelAttempt(overrides) });
   const course = await checkedInCourse();
-  const sourceStep = course.levels.find(item => item.id === 'quail-fountain-sequence').content.steps.find(step => step.id === 'independent-variation');
-  const exposedVariant = sourceStep.variants.find(variant => variant.id === 'greenless-yellow-pink-blue');
+  const level = course.levels.find(item => item.id === 'quail-fountain-sequence');
+  const predictionOrder = level.content.steps.find(step => step.id === 'predict').evaluator.expected;
+  const sourceStep = level.content.steps.find(step => step.id === 'independent-variation');
+  const [exposedVariant, replacementVariant] = sourceStep.variants;
 
-  expect(await submit({ requestId: 'replacement-predict', stepId: 'predict', action: 'check', answer: JSON.stringify(['before:3', 'inside:3', 'after:6']) }), 200);
+  expect(await submit({ requestId: 'replacement-predict', stepId: 'predict', action: 'check', answer: JSON.stringify(predictionOrder) }), 200);
   expect(await submit({ requestId: 'replacement-run', stepId: 'run-observe', action: 'run' }), 200);
-  expect(await submit({ requestId: 'replacement-explain', stepId: 'explain', action: 'check', answer: '调用函数时控制流先进入函数体，返回并完成 result 赋值后，main 才执行下一条输出。' }), 200);
-  expect(await submit({ requestId: 'replacement-edit', stepId: 'short-edit', action: 'run', answer: '#include <stdio.h>\nint transform(int value){return value * 2 + 1;}\nint main(void){int value;if(scanf("%d",&value)!=1)return 1;printf("result:%d\\n",transform(value));return 0;}\n' }), 200);
+  expect(await submit({ requestId: 'replacement-explain', stepId: 'explain', action: 'check', answer: 'scanf 先检查两个字段是否读入成功，成功后才计算总价；失败输入会提前返回。' }), 200);
+  expect(await submit({ requestId: 'replacement-edit', stepId: 'short-edit', action: 'run', answer: '#include <stdio.h>\nint main(void){int a,b,c;if(scanf("%d %d %d",&a,&b,&c)!=3)return 1;printf("average=%.2f\\n",(a+b+c)/3.0);return 0;}\n' }), 200);
 
   const exposedSource = exposedVariant.fullSolution;
   const exposed = expect(await submit({
     requestId: 'replacement-exposed', stepId: 'independent-variation', action: 'reveal',
-    variantId: 'greenless-yellow-pink-blue', answer: '', hintLevel: 3, viewedFullAnswer: true
+    variantId: exposedVariant.id, answer: '', hintLevel: 3, viewedFullAnswer: true
   }), 200);
   assert.equal(exposed.body.feedback.kind, 'reveal');
   assert.equal(exposed.body.feedback.passed, false);
   assert.equal(exposed.body.result.levelCompleted, false);
   assert.equal(exposed.body.result.starAwarded, false);
   assert.equal(exposed.body.next.stepId, 'independent-variation');
-  assert.equal(exposed.body.reveal.variantId, 'greenless-yellow-pink-blue');
+  assert.equal(exposed.body.reveal.variantId, exposedVariant.id);
   assert.equal(exposed.body.reveal.fullSolution, exposedVariant.fullSolution);
-  assert.equal(exposed.body.next.replacementVariant.id, 'blue-pink-yellow');
+  assert.equal(exposed.body.next.replacementVariant.id, replacementVariant.id);
   assert.equal(exposed.body.next.replacementVariant.fullSolutionAvailable, true);
   assert.equal(Object.hasOwn(exposed.body.next.replacementVariant, 'fullSolution'), false);
 
   const revealReplay = expect(await submit({
     requestId: 'replacement-exposed', stepId: 'independent-variation', action: 'reveal',
-    variantId: 'greenless-yellow-pink-blue', answer: '', hintLevel: 3, viewedFullAnswer: true
+    variantId: exposedVariant.id, answer: '', hintLevel: 3, viewedFullAnswer: true
   }), 200);
   assert.equal(revealReplay.body.result.replayed, true);
   assert.equal(revealReplay.body.reveal.fullSolution, exposedVariant.fullSolution, '重试同一 reveal 仍应拿回当前变式答案');
@@ -472,17 +836,17 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
 
   const sameVariant = expect(await submit({
     requestId: 'replacement-same', stepId: 'independent-variation', action: 'submit',
-    variantId: 'greenless-yellow-pink-blue', answer: exposedSource
+    variantId: exposedVariant.id, answer: exposedSource
   }), 200);
   assert.equal(sameVariant.body.result.levelCompleted, false);
   assert.equal(sameVariant.body.result.starAwarded, false);
-  assert.equal(sameVariant.body.next.replacementVariant.id, 'blue-pink-yellow');
+  assert.equal(sameVariant.body.next.replacementVariant.id, replacementVariant.id);
   assert.equal(Object.hasOwn(sameVariant.body.next.replacementVariant, 'fullSolution'), false);
 
-  const freshSource = sourceStep.variants.find(variant => variant.id === 'blue-pink-yellow').fullSolution;
+  const freshSource = replacementVariant.fullSolution;
   const recovered = expect(await submit({
     requestId: 'replacement-fresh', stepId: 'independent-variation', action: 'submit',
-    variantId: 'blue-pink-yellow', answer: freshSource
+    variantId: replacementVariant.id, answer: freshSource
   }), 200);
   assert.equal(recovered.body.result.levelCompleted, true);
   assert.equal(recovered.body.result.starAwarded, true);

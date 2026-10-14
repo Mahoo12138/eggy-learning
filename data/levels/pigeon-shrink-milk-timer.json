@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-shrink-milk-timer",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "pigeon",
   "subrankId": "pigeon-ii",
   "sequence": 2,
-  "title": "辨认整数除法与类型转换",
-  "estimatedMinutes": 22,
+  "title": "用指针与动态内存管理数据",
+  "estimatedMinutes": 25,
   "prerequisiteLevelIds": [
     "pigeon-salty-fish-counter"
   ],
@@ -17,13 +17,12 @@
       "shrink-milk",
       "speed-shoes"
     ],
-    "intro": "比较整数除法与浮点除法，定位小数部分究竟在哪一步丢失。",
-    "success": "表达式在除法发生前完成正确转换，并按要求输出精度。"
+    "intro": "通过可运行示例逐步掌握“用指针与动态内存管理数据”。",
+    "success": "能够独立完成“用指针与动态内存管理数据”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "判断除法操作数的类型",
-    "在运算发生前进行显式转换",
-    "用格式说明符控制显示精度"
+    "区分指针变量、地址与解引用后的对象",
+    "按运行时数量分配内存，检查 NULL，并明确谁负责 free"
   ],
   "teachingLoop": [
     "predict",
@@ -36,80 +35,80 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "total=7、count=2。integer_average=total/count；precise=(double)total/count。哪一组输出正确？",
+      "prompt": "x=4，p=&x；执行 *p += 3；q=p；再执行 *q *= 2。填写最终 x、*p、*q。",
       "interaction": {
-        "kind": "single-choice",
-        "options": [
-          "integer=3，precise=3.50",
-          "integer=3.5，precise=3.50",
-          "integer=3，precise=3.00"
+        "kind": "mapping",
+        "fields": [
+          "x",
+          "*p",
+          "*q"
         ]
       },
       "evaluator": {
-        "kind": "choice",
-        "expectedIndex": 0
+        "kind": "object-exact",
+        "expected": {
+          "x": 14,
+          "*p": 14,
+          "*q": 14
+        }
       },
       "feedback": {
-        "correct": "两个 int 先做整数除法得到 3；转换一个操作数后得到 3.50。",
-        "incorrect": "变量最终是不是 double 不够，先看除法发生时两个操作数分别是什么类型。"
+        "correct": "三个表达式指向同一个 int 对象。",
+        "incorrect": "p 和 q 保存相同地址；通过任一指针写入都会改变 x。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行并对比同一组整数在转换前后的两个结果。",
+      "prompt": "运行动态数组示例，观察 malloc、指针遍历和 free 的完整生命周期。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int total = 7;\n  int count = 2;\n  int integer_average = total / count;\n  double precise = (double)total / count;\n  printf(\"integer=%d\\n\", integer_average);\n  printf(\"precise=%.2f\\n\", precise);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n#include <stdlib.h>\nint main(void) {\n  int n = 4;\n  int *values = malloc((size_t)n * sizeof *values);\n  if (!values) return 1;\n  values[0] = 2; values[1] = 4; values[2] = 6; values[3] = 8;\n  int sum = 0;\n  for (int *cursor = values; cursor < values + n; cursor++) sum += *cursor;\n  printf(\"count=%d,sum=%d\\n\", n, sum);\n  free(values);\n  values = NULL;\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "integer=3\nprecise=3.50\n"
+        "expected": "count=4,sum=20\n"
       },
       "visualizer": {
-        "kind": "expression-trace",
-        "target": "division",
-        "stages": [
-          "operand-types",
-          "division",
-          "format"
-        ]
+        "kind": "stdout-sequence",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "小数部分是在赋值时丢失，还是在除法运算时丢失？"
+      "observationPrompt": "values、cursor、*cursor 各代表什么？free 之后为什么不再允许解引用原地址？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么 double average = total / count; 仍可能得到 3.00，而不是 3.50？",
+      "prompt": "解释“地址—对象—生命周期—所有权”的关系：malloc 返回什么、NULL 表示什么、谁负责 free，以及悬空指针为何危险。",
       "referencePoints": [
-        "total 与 count 都是 int",
-        "整数除法先得到 3",
-        "之后转成 double 只能得到 3.0，无法恢复已丢失部分"
+        "指针保存地址而不是对象本身",
+        "分配失败必须在解引用前处理",
+        "free 结束对象生命周期，之后不能继续访问"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "修复平均值计算：读取 total 和 count，按两位小数输出 average；测试包含正数与负数。",
+      "prompt": "程序读取 n 个整数，但循环总把新值写进 values[0]。修复写入下标，使 sum 覆盖全部输入。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int total, count;\n  scanf(\"%d%d\", &total, &count);\n  double average = total / count;\n  printf(\"average=%.2f\\n\", average);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\n#include <stdlib.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  int *values = malloc((size_t)n * sizeof *values);\n  if (!values) return 1;\n  for (int i = 0; i < n; i++) if (scanf(\"%d\", &values[0]) != 1) { free(values); return 1; }\n  int sum = 0;\n  for (int i = 0; i < n; i++) sum += values[i];\n  printf(\"sum=%d\\n\", sum);\n  free(values);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "13 4\n",
-            "stdout": "average=3.25\n"
+            "stdin": "4\n2 4 6 8\n",
+            "stdout": "sum=20\n"
           },
           {
-            "stdin": "-7 2\n",
-            "stdout": "average=-3.50\n"
+            "stdin": "1\n-3\n",
+            "stdout": "sum=-3\n"
           }
         ]
       },
@@ -117,90 +116,108 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "结果变量已经是 double，问题仍发生在右侧。"
+          "text": "每轮应写入不同元素。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 / 两边的操作数类型。"
+          "text": "检查 scanf 的目标地址。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "在除法前把 total 或 count 显式转换为 double。"
+          "text": "第 i 轮应写入 &values[i]。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "把右侧改为 (double)total / count，并保留 %.2f。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "把 scanf 的目标从 &values[0] 改为 &values[i]。",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成另一种需要精确除法与固定格式的计算。",
+      "prompt": "独立完成带动态内存和指针参数的程序，并在所有退出路径释放资源。",
       "runtimeId": "c17-console",
-      "variantSetId": "pigeon-temporary-state-v1",
+      "variantSetId": "pigeon-pointers-memory-v3",
       "variants": [
         {
-          "id": "speed-two-seconds",
-          "prompt": "读取 numerator 和 denominator，输出 ratio= 两位小数。输入保证 denominator 非零。",
+          "id": "dynamic-min-max",
+          "prompt": "读取 n（1–8）和 n 个整数；动态分配数组，用 find_range(values,n,&min,&max) 返回最值。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int numerator, denominator;\n  scanf(\"%d%d\", &numerator, &denominator);\n  /* 计算并输出 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n#include <stdlib.h>\nvoid find_range(const int *values, int n, int *min, int *max) {\n  /* 通过输出指针写回结果 */\n}\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  /* 分配、读取、调用、输出、释放 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "9 4\n",
-                "stdout": "ratio=2.25\n"
+                "stdin": "5\n3 -2 8 1 8\n",
+                "stdout": "min=-2,max=8\n"
               },
               {
-                "stdin": "5 2\n",
-                "stdout": "ratio=2.50\n"
+                "stdin": "1\n-7\n",
+                "stdout": "min=-7,max=-7\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "malloc",
+                "free",
+                "find_range",
+                "scanf",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int numerator, denominator;\n  scanf(\"%d%d\", &numerator, &denominator);\n  double ratio = (double)numerator / denominator;\n  printf(\"ratio=%.2f\\n\", ratio);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n#include <stdlib.h>\nvoid find_range(const int *values, int n, int *min, int *max) {\n  *min = values[0]; *max = values[0];\n  for (int i = 1; i < n; i++) {\n    if (values[i] < *min) *min = values[i];\n    if (values[i] > *max) *max = values[i];\n  }\n}\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  int *values = malloc((size_t)n * sizeof *values);\n  if (!values) return 1;\n  for (int i = 0; i < n; i++) if (scanf(\"%d\", &values[i]) != 1) { free(values); return 1; }\n  int min, max;\n  find_range(values, n, &min, &max);\n  printf(\"min=%d,max=%d\\n\", min, max);\n  free(values);\n  return 0;\n}\n"
         },
         {
-          "id": "milk-one-second",
-          "prompt": "读取 success 和 total，输出 percent= 一位小数的百分比。输入保证 total 非零。",
+          "id": "dynamic-reverse",
+          "prompt": "读取 n（1–8）和 n 个整数；动态分配数组，用指针交换原地逆序并输出。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int success, total;\n  scanf(\"%d%d\", &success, &total);\n  /* 计算百分比并输出 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\n#include <stdlib.h>\nvoid reverse(int *values, int n) {\n  /* 使用左右指针交换 */\n}\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  /* 分配、读取、逆序、输出、释放 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "17 20\n",
-                "stdout": "percent=85.0%\n"
+                "stdin": "4\n1 2 3 4\n",
+                "stdout": "4 3 2 1\n"
               },
               {
-                "stdin": "1 8\n",
-                "stdout": "percent=12.5%\n"
+                "stdin": "1\n9\n",
+                "stdout": "9\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "malloc",
+                "free",
+                "reverse",
+                "scanf",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int success, total;\n  scanf(\"%d%d\", &success, &total);\n  double percent = (double)success / total * 100.0;\n  printf(\"percent=%.1f%%\\n\", percent);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\n#include <stdlib.h>\nvoid reverse(int *values, int n) {\n  int *left = values, *right = values + n - 1;\n  while (left < right) {\n    int temporary = *left; *left = *right; *right = temporary;\n    left++; right--;\n  }\n}\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  int *values = malloc((size_t)n * sizeof *values);\n  if (!values) return 1;\n  for (int i = 0; i < n; i++) if (scanf(\"%d\", &values[i]) != 1) { free(values); return 1; }\n  reverse(values, n);\n  for (int i = 0; i < n; i++) printf(\"%d%c\", values[i], i + 1 == n ? '\\n' : ' ');\n  free(values);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先判断除法发生时的操作数类型。"
+          "text": "先画出指针、数组对象和有效下标范围。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "类型转换写在除法之前，格式控制写在 printf 中。"
+          "text": "检查 malloc 大小、NULL 分支、每次解引用和 free。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "百分号本身需要在格式字符串中写成 %%。"
+          "text": "分配数量乘以 sizeof *pointer；输出指针必须指向仍然存活的对象。"
         }
       ],
       "fullSolutionPolicy": {
@@ -218,7 +235,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -240,6 +257,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

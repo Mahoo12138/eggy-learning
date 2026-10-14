@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "chicken-teleport-state",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-iii",
   "sequence": 1,
-  "title": "用分支处理多状态输入",
+  "title": "认识 Linux：内核、Shell 与进程",
   "estimatedMinutes": 22,
   "prerequisiteLevelIds": [
     "pigeon-data-boss"
@@ -16,12 +16,12 @@
     "propIds": [
       "teleport-ball"
     ],
-    "intro": "把一个整数状态准确映射到四种结果，并让非法值进入兜底分支。",
-    "success": "所有合法状态和非法输入都进入了唯一且可解释的分支。"
+    "intro": "通过可运行示例逐步掌握“认识 Linux：内核、Shell 与进程”。",
+    "success": "能够独立完成“认识 Linux：内核、Shell 与进程”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "用 if / else if / else 表达互斥状态",
-    "通过非法输入检查兜底分支是否可靠"
+    "区分 Linux 内核、用户空间、Shell、程序与进程",
+    "用 PID、标准输入输出和退出状态解释一条命令从启动到结束的过程"
   ],
   "teachingLoop": [
     "predict",
@@ -34,213 +34,279 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "阅读规则：0→pending，1→running，2→done，其余→invalid。填写每个输入最终输出。",
+      "prompt": "用户在终端输入 ps 后，系统经历 Shell 解析命令、启动进程、内核调度、ps 写标准输出、终端呈现结果、Shell 再次等待输入。请排列顺序。",
       "interaction": {
-        "kind": "mapping"
+        "kind": "reorder",
+        "items": [
+          "Shell 解析命令与参数",
+          "Shell 启动 ps 进程",
+          "内核调度进程运行",
+          "ps 把结果写到终端连接的标准输出",
+          "终端呈现字符，Shell 等待 ps 结束后再次显示提示符"
+        ]
       },
       "evaluator": {
-        "kind": "mapping-exact",
-        "expected": {
-          "0": "pending",
-          "1": "running",
-          "2": "done",
-          "3": "invalid"
-        }
+        "kind": "exact-order",
+        "expected": [
+          "Shell 解析命令与参数",
+          "Shell 启动 ps 进程",
+          "内核调度进程运行",
+          "ps 把结果写到终端连接的标准输出",
+          "终端呈现字符，Shell 等待 ps 结束后再次显示提示符"
+        ]
       },
       "feedback": {
-        "correct": "四个输入都落入了唯一分支。接下来用真实运行核对。",
-        "incorrect": "从上到下逐条判断；一旦条件成立，后面的 else if 和 else 不再执行。"
+        "correct": "顺序正确：Shell 负责解释和启动，内核调度，进程写 stdout，终端负责呈现，Shell 等待后继续交互。",
+        "incorrect": "Shell、内核和进程承担不同职责；先解析和启动，内核才有进程可调度。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
-      "runtimeId": "c17-console",
-      "prompt": "分别输入合法状态和非法状态，观察同一条分支链如何给出四种结果。",
+      "runtimeId": "linux-shell-sim",
+      "prompt": "在隔离虚拟终端中查看用户、目录和进程，再运行 false 并读取上一条命令的退出状态。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int status;\n  scanf(\"%d\", &status);\n  if (status == 0) {\n    puts(\"pending\");\n  } else if (status == 1) {\n    puts(\"running\");\n  } else if (status == 2) {\n    puts(\"done\");\n  } else {\n    puts(\"invalid\");\n  }\n  return 0;\n}\n"
+        "session.sh": "whoami\npwd\nps\nfalse\necho $?\n"
       },
-      "stdin": "2\n",
+      "stdin": "",
       "evaluator": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "0\n",
-            "stdout": "pending\n"
-          },
-          {
-            "stdin": "1\n",
-            "stdout": "running\n"
-          },
-          {
-            "stdin": "2\n",
-            "stdout": "done\n"
-          },
-          {
-            "stdin": "7\n",
-            "stdout": "invalid\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "learner\n/home/learner\nPID COMMAND\n101 init\n205 editor\n318 logger\n1\n"
       },
       "visualizer": {
-        "kind": "branch-trace",
-        "target": "status",
-        "branches": {
-          "pending": "0",
-          "running": "1",
-          "done": "2",
-          "invalid": "fallback"
-        }
+        "kind": "terminal-transcript",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "为什么 status=2 不会继续执行最后的 else？"
+      "observationPrompt": "为什么 ps 是一次新的进程？false 没有输出但 echo $? 得到 1，这与退出状态有什么关系？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "如果把三个 if 都写成彼此独立的 if，和现在的 if / else if / else 相比，控制流有什么不同？",
+      "prompt": "区分内核、Shell、终端、程序文件和进程；再说明 PID、标准输出与退出状态分别回答什么问题。",
       "referencePoints": [
-        "else if 链最多执行一个分支",
-        "独立 if 会分别判断每个条件",
-        "最后的 else 只属于紧邻的 if 链"
+        "内核管理进程与资源",
+        "Shell 解析命令并启动程序",
+        "终端呈现进程写入的字符",
+        "PID 标识一次运行中的进程",
+        "退出状态 0 通常表示成功，非 0 表示失败"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "修复程序：补上 status=2 的 done 分支，同时让其他整数继续输出 invalid。",
-      "runtimeId": "c17-console",
+      "prompt": "修复命令：依次输出当前用户、logger 进程，以及 false 的退出状态 1。",
+      "runtimeId": "linux-shell-sim",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int status;\n  scanf(\"%d\", &status);\n  if (status == 0) {\n    puts(\"pending\");\n  } else if (status == 1) {\n    puts(\"running\");\n  } else {\n    puts(\"invalid\");\n  }\n  return 0;\n}\n"
+        "session.sh": "whoami\nps | grep editor\nfalse\necho 0\n"
       },
       "grader": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "0\n",
-            "stdout": "pending\n"
-          },
-          {
-            "stdin": "1\n",
-            "stdout": "running\n"
-          },
-          {
-            "stdin": "2\n",
-            "stdout": "done\n"
-          },
-          {
-            "stdin": "-1\n",
-            "stdout": "invalid\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "learner\n318 logger\n1\n",
+        "requirements": {
+          "commands": [
+            "whoami",
+            "ps",
+            "grep",
+            "false",
+            "echo"
+          ],
+          "commandSequence": [
+            "whoami",
+            "ps",
+            "grep",
+            "false",
+            "echo"
+          ],
+          "commandEvidence": [
+            {
+              "command": "whoami",
+              "args": [],
+              "visibleOutput": true
+            },
+            {
+              "command": "grep",
+              "args": [
+                "logger"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            },
+            {
+              "command": "false",
+              "args": []
+            },
+            {
+              "command": "echo",
+              "args": [
+                "$?"
+              ],
+              "visibleOutput": true,
+              "exitStatusExpanded": true
+            }
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "当前程序把 2 交给了兜底分支。"
+          "text": "第二行筛选了哪个进程？退出状态从哪里读取？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "在 status == 1 与最后的 else 之间补一条判断。"
+          "text": "检查 grep 的模式和 echo 的参数。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "新增 else if (status == 2)，不要把兜底 else 改成无条件成功。"
+          "text": "使用 ps | grep logger；false 后使用 echo $?。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "保留 0 和 1 的分支，在最后的 else 前加入 else if (status == 2) 输出 done。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "whoami\nps | grep logger\nfalse\necho $?",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成另一组多状态映射，并用非法输入检查兜底分支。",
-      "runtimeId": "c17-console",
-      "variantSetId": "chicken-two-state-item-v1",
+      "prompt": "独立组合系统状态命令与管道筛选。",
+      "runtimeId": "linux-shell-sim",
+      "variantSetId": "chicken-linux-system-v3",
       "variants": [
         {
-          "id": "mine-arm-trigger",
-          "prompt": "读取 state：-1 输出 offline，0 输出 connecting，1 输出 online，其他值输出 invalid。",
+          "id": "inspect-editor",
+          "prompt": "依次输出当前用户、editor 进程和 false 的退出状态。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int state;\n  scanf(\"%d\", &state);\n  /* 完成四种结果 */\n  return 0;\n}\n"
+            "session.sh": "whoami\nps\n"
           },
           "grader": {
-            "kind": "stdin-stdout-cases",
-            "cases": [
-              {
-                "stdin": "-1\n",
-                "stdout": "offline\n"
-              },
-              {
-                "stdin": "0\n",
-                "stdout": "connecting\n"
-              },
-              {
-                "stdin": "1\n",
-                "stdout": "online\n"
-              },
-              {
-                "stdin": "2\n",
-                "stdout": "invalid\n"
-              }
-            ]
+            "kind": "stdout-exact",
+            "expected": "learner\n205 editor\n1\n",
+            "requirements": {
+              "commands": [
+                "whoami",
+                "ps",
+                "grep",
+                "false",
+                "echo"
+              ],
+              "commandSequence": [
+                "whoami",
+                "ps",
+                "grep",
+                "false",
+                "echo"
+              ],
+              "commandEvidence": [
+                {
+                  "command": "whoami",
+                  "args": [],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "grep",
+                  "args": [
+                    "editor"
+                  ],
+                  "pipedFrom": "ps",
+                  "visibleOutput": true
+                },
+                {
+                  "command": "false",
+                  "args": []
+                },
+                {
+                  "command": "echo",
+                  "args": [
+                    "$?"
+                  ],
+                  "visibleOutput": true,
+                  "exitStatusExpanded": true
+                }
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int state;\n  scanf(\"%d\", &state);\n  if (state == -1) puts(\"offline\");\n  else if (state == 0) puts(\"connecting\");\n  else if (state == 1) puts(\"online\");\n  else puts(\"invalid\");\n  return 0;\n}\n"
+          "fullSolution": "whoami\nps | grep editor\nfalse\necho $?"
         },
         {
-          "id": "spring-board-ready",
-          "prompt": "读取 stage：0 输出 queued，1 输出 running，2 输出 done，其他值输出 invalid。",
+          "id": "inspect-user-init",
+          "prompt": "依次输出当前目录、init 进程和 false 的退出状态。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int stage;\n  scanf(\"%d\", &stage);\n  /* 完成四种结果 */\n  return 0;\n}\n"
+            "session.sh": "pwd\nps\n"
           },
           "grader": {
-            "kind": "stdin-stdout-cases",
-            "cases": [
-              {
-                "stdin": "0\n",
-                "stdout": "queued\n"
-              },
-              {
-                "stdin": "1\n",
-                "stdout": "running\n"
-              },
-              {
-                "stdin": "2\n",
-                "stdout": "done\n"
-              },
-              {
-                "stdin": "9\n",
-                "stdout": "invalid\n"
-              }
-            ]
+            "kind": "stdout-exact",
+            "expected": "/home/learner\n101 init\n1\n",
+            "requirements": {
+              "commands": [
+                "pwd",
+                "ps",
+                "grep",
+                "false",
+                "echo"
+              ],
+              "commandSequence": [
+                "pwd",
+                "ps",
+                "grep",
+                "false",
+                "echo"
+              ],
+              "commandEvidence": [
+                {
+                  "command": "pwd",
+                  "args": [],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "grep",
+                  "args": [
+                    "init"
+                  ],
+                  "pipedFrom": "ps",
+                  "visibleOutput": true
+                },
+                {
+                  "command": "false",
+                  "args": []
+                },
+                {
+                  "command": "echo",
+                  "args": [
+                    "$?"
+                  ],
+                  "visibleOutput": true,
+                  "exitStatusExpanded": true
+                }
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int stage;\n  scanf(\"%d\", &stage);\n  if (stage == 0) puts(\"queued\");\n  else if (stage == 1) puts(\"running\");\n  else if (stage == 2) puts(\"done\");\n  else puts(\"invalid\");\n  return 0;\n}\n"
+          "fullSolution": "pwd\nps | grep init\nfalse\necho $?"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先列出每个合法值和兜底结果。"
+          "text": "分别确认身份/目录、目标进程和上一条命令状态。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "从最具体的相等判断开始写。"
+          "text": "进程筛选需要管道；状态读取必须紧跟在 false 后。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "用连续的 else if 保证一次输入只得到一个输出。"
+          "text": "使用 ps | grep 名称，再用 false 与 echo $?。"
         }
       ],
       "fullSolutionPolicy": {
@@ -258,7 +324,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -280,6 +346,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

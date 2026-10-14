@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "chicken-football-rounds",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-i",
   "sequence": 3,
-  "title": "用函数统计多次输入",
-  "estimatedMinutes": 24,
+  "title": "用权限、重定向与管道处理系统状态",
+  "estimatedMinutes": 25,
   "prerequisiteLevelIds": [
     "chicken-bomb-boundary"
   ],
@@ -16,13 +16,12 @@
     "propIds": [
       "bouncy-ball"
     ],
-    "intro": "让循环负责重复读入，让函数负责单次判定，再把每次返回值累加。",
-    "success": "循环次数、边界规则和函数返回值共同得到正确统计。"
+    "intro": "通过可运行示例逐步掌握“用权限、重定向与管道处理系统状态”。",
+    "success": "能够独立完成“用权限、重定向与管道处理系统状态”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "用小函数封装单次范围判定",
-    "识别循环边界造成的少读或多读",
-    "累计多次函数返回值"
+    "读懂 rwx 权限与三位八进制模式，并用 chmod 修改练习文件权限",
+    "组合标准输入、重定向、管道、grep、ps 与 kill 完成可复现排查"
   ],
   "teachingLoop": [
     "predict",
@@ -35,173 +34,383 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "in_range(value) 在 4–7（含端点）时返回 1。依次输入 3、4、7、8、6，count 最终是多少？",
+      "prompt": "权限 640 表示所有者、同组用户、其他用户分别拥有什么权限？",
       "interaction": {
-        "kind": "number",
-        "min": 0,
-        "max": 5
+        "kind": "mapping",
+        "fields": [
+          "owner",
+          "group",
+          "other"
+        ]
       },
       "evaluator": {
-        "kind": "number-exact",
-        "expected": 3
+        "kind": "mapping-exact",
+        "expected": {
+          "owner": "rw-",
+          "group": "r--",
+          "other": "---"
+        }
       },
       "feedback": {
-        "correct": "4、7、6 三个值位于闭区间，返回值累加为 3。",
-        "incorrect": "逐个写出五次函数返回的 0 或 1，再相加。"
+        "correct": "三组都使用标准 rwx 三字符写法，640 即 rw-、r--、---。",
+        "incorrect": "每一组都写成三位：6=rw-，4=r--，0=---。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
-      "runtimeId": "c17-console",
-      "prompt": "运行五轮统计，观察循环次数、函数调用次数和最终计数之间的关系。",
+      "runtimeId": "linux-shell-sim",
+      "prompt": "先用 > 覆盖创建报告，再用 >> 追加一行；随后修改权限，并用管道筛选日志。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint in_range(int value) {\n  return value >= 4 && value <= 7;\n}\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 5; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += in_range(value);\n  }\n  printf(\"count=%d\\n\", count);\n  return 0;\n}\n"
+        "session.sh": "echo first > report.txt\necho second >> report.txt\ncat report.txt\nchmod 640 report.txt\nstat -c %a report.txt\ncat /var/log/app.log | grep ERROR\n"
       },
-      "stdin": "3\n4\n7\n8\n6\n",
+      "stdin": "",
       "evaluator": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "3\n4\n7\n8\n6\n",
-            "stdout": "count=3\n"
-          },
-          {
-            "stdin": "4\n4\n4\n4\n4\n",
-            "stdout": "count=5\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "first\nsecond\n640\nERROR sensor\nERROR timeout\n"
       },
       "visualizer": {
-        "kind": "loop-trace",
-        "target": "count",
-        "iterations": 5
+        "kind": "terminal-transcript",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "循环体和 in_range 各执行了几次？"
+      "observationPrompt": "为什么报告里同时有 first 和 second？把第二个 >> 改为 > 会发生什么？640 的三组 rwx 各是什么？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么把范围规则放在 in_range 中，比直接在循环里重复写条件更容易检查和修改？",
+      "prompt": "解释 640 的三组权限、> 与 >> 的差别、管道如何连接两个进程，以及 ps/kill 为什么通常先查 PID 再操作。",
       "referencePoints": [
-        "循环只负责读入和累计",
-        "边界规则集中在一个函数",
-        "函数可以用独立边界用例验证"
+        "权限位分为所有者、组、其他人",
+        "> 覆盖，>> 追加",
+        "管道把左侧标准输出交给右侧标准输入",
+        "PID 标识一次具体运行"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "程序应该读取 5 个整数，当前循环只读取 4 个。只修复循环边界，保留 in_range 的规则。",
-      "runtimeId": "c17-console",
+      "prompt": "脚本应先显示 logger，终止 logger，再证明 editor 仍在运行。修复错误的 PID 和最后筛选目标。",
+      "runtimeId": "linux-shell-sim",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint in_range(int value) { return value >= 4 && value <= 7; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 4; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += in_range(value);\n  }\n  printf(\"count=%d\\n\", count);\n  return 0;\n}\n"
+        "session.sh": "ps | grep logger\nkill 205\nps | grep logger\n"
       },
       "grader": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "4\n3\n7\n8\n6\n",
-            "stdout": "count=3\n"
-          },
-          {
-            "stdin": "0\n0\n0\n0\n5\n",
-            "stdout": "count=1\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "318 logger\n205 editor\n",
+        "requirements": {
+          "commands": [
+            "ps",
+            "grep",
+            "kill"
+          ],
+          "commandSequence": [
+            "ps",
+            "grep",
+            "kill",
+            "ps",
+            "grep"
+          ],
+          "absentProcesses": [
+            318
+          ],
+          "presentProcesses": [
+            205
+          ],
+          "commandEvidence": [
+            {
+              "command": "grep",
+              "args": [
+                "logger"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            },
+            {
+              "command": "kill",
+              "args": [
+                "318"
+              ]
+            },
+            {
+              "command": "grep",
+              "args": [
+                "editor"
+              ],
+              "pipedFrom": "ps",
+              "visibleOutput": true
+            }
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "第二组用例只有第五个输入有效。"
+          "text": "第一行显示的 PID 才是应终止的目标。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 for 的终止条件，而不是修改判定函数。"
+          "text": "检查 kill 的数字和第二次 grep 的名称。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "i 从 0 开始时，i < 5 正好执行五轮。"
+          "text": "终止 318，再用 ps | grep editor 证明 205 仍在。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "把循环条件 i < 4 改为 i < 5。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "ps | grep logger\nkill 318\nps | grep editor",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立完成“函数判定一次、循环统计多次”的新问题。",
-      "runtimeId": "c17-console",
-      "variantSetId": "chicken-round-function-v1",
+      "prompt": "独立组合输入、文件、重定向和管道；用不同日志输入验证。",
+      "runtimeId": "linux-shell-sim",
+      "variantSetId": "chicken-linux-pipes-v3",
       "variants": [
         {
-          "id": "three-bounces",
-          "prompt": "实现 is_valid(value)：value >= 6 返回 1。读取 4 个整数并输出 valid=N。",
+          "id": "filter-errors",
+          "prompt": "把标准输入保存为 input.txt，筛选 ERROR 到 errors.txt，设为 640；先输出权限和错误行数，再输出全部错误行。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint is_valid(int value) {\n  /* 完成判定 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 4 次并统计 */\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
+            "session.sh": "cat > input.txt\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
+            "requirements": {
+              "commands": [
+                "cat",
+                "grep",
+                "chmod",
+                "stat",
+                "wc"
+              ],
+              "commandSequence": [
+                "cat",
+                "cat",
+                "grep",
+                "chmod",
+                "stat",
+                "wc",
+                "cat"
+              ],
+              "commandEvidence": [
+                {
+                  "command": "cat",
+                  "args": [],
+                  "redirect": ">",
+                  "redirectPath": "/home/learner/input.txt"
+                },
+                {
+                  "command": "grep",
+                  "args": [
+                    "ERROR"
+                  ],
+                  "pipedFrom": "cat",
+                  "redirect": ">",
+                  "redirectPath": "/home/learner/errors.txt"
+                },
+                {
+                  "command": "chmod",
+                  "args": [
+                    "640",
+                    "errors.txt"
+                  ]
+                },
+                {
+                  "command": "stat",
+                  "args": [
+                    "-c",
+                    "%a",
+                    "errors.txt"
+                  ],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "wc",
+                  "args": [
+                    "-l",
+                    "errors.txt"
+                  ],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "cat",
+                  "args": [
+                    "errors.txt"
+                  ],
+                  "visibleOutput": true
+                }
+              ]
+            },
             "cases": [
               {
-                "stdin": "5\n6\n8\n2\n",
-                "stdout": "valid=2\n"
+                "stdin": "INFO boot\nERROR sensor\nERROR timeout\n",
+                "stdout": "640\n2\nERROR sensor\nERROR timeout\n",
+                "requirements": {
+                  "files": {
+                    "/home/learner/errors.txt": {
+                      "mode": "640",
+                      "content": "ERROR sensor\nERROR timeout\n"
+                    }
+                  }
+                }
               },
               {
-                "stdin": "6\n6\n6\n6\n",
-                "stdout": "valid=4\n"
+                "stdin": "INFO only\n",
+                "stdout": "640\n0\n",
+                "requirements": {
+                  "files": {
+                    "/home/learner/errors.txt": {
+                      "mode": "640",
+                      "content": ""
+                    }
+                  }
+                }
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint is_valid(int value) { return value >= 6; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 4; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_valid(value);\n  }\n  printf(\"valid=%d\\n\", count);\n  return 0;\n}\n"
+          "fullSolution": "cat > input.txt\ncat input.txt | grep ERROR > errors.txt\nchmod 640 errors.txt\nstat -c %a errors.txt\nwc -l errors.txt\ncat errors.txt"
         },
         {
-          "id": "three-spring-boards",
-          "prompt": "实现 is_safe(value)：2–5（含端点）返回 1。读取 5 个整数并输出 safe=N。",
+          "id": "first-warnings",
+          "prompt": "把标准输入保存为 input.txt，不区分大小写筛选 warning，取前两条覆盖写入 report.txt，再追加 reviewed；设为 640 后输出权限和报告。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint is_safe(int value) {\n  /* 完成判定 */\n}\nint main(void) {\n  int count = 0;\n  /* 读取 5 次并统计 */\n  printf(\"safe=%d\\n\", count);\n  return 0;\n}\n"
+            "session.sh": "cat > input.txt\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
+            "requirements": {
+              "commands": [
+                "cat",
+                "grep",
+                "head",
+                "echo",
+                "chmod",
+                "stat"
+              ],
+              "commandSequence": [
+                "cat",
+                "cat",
+                "grep",
+                "head",
+                "echo",
+                "chmod",
+                "stat",
+                "cat"
+              ],
+              "commandEvidence": [
+                {
+                  "command": "cat",
+                  "args": [],
+                  "redirect": ">",
+                  "redirectPath": "/home/learner/input.txt"
+                },
+                {
+                  "command": "grep",
+                  "args": [
+                    "-i",
+                    "warning"
+                  ],
+                  "pipedFrom": "cat",
+                  "pipedTo": "head"
+                },
+                {
+                  "command": "head",
+                  "args": [
+                    "-n",
+                    "2"
+                  ],
+                  "pipedFrom": "grep",
+                  "redirect": ">",
+                  "redirectPath": "/home/learner/report.txt"
+                },
+                {
+                  "command": "echo",
+                  "args": [
+                    "reviewed"
+                  ],
+                  "redirect": ">>",
+                  "redirectPath": "/home/learner/report.txt"
+                },
+                {
+                  "command": "chmod",
+                  "args": [
+                    "640",
+                    "report.txt"
+                  ]
+                },
+                {
+                  "command": "stat",
+                  "args": [
+                    "-c",
+                    "%a",
+                    "report.txt"
+                  ],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "cat",
+                  "args": [
+                    "report.txt"
+                  ],
+                  "visibleOutput": true
+                }
+              ]
+            },
             "cases": [
               {
-                "stdin": "1\n2\n5\n6\n3\n",
-                "stdout": "safe=3\n"
+                "stdin": "warning disk\nINFO ok\nWARNING cpu\nWarning net\n",
+                "stdout": "640\nwarning disk\nWARNING cpu\nreviewed\n",
+                "requirements": {
+                  "files": {
+                    "/home/learner/report.txt": {
+                      "mode": "640",
+                      "content": "warning disk\nWARNING cpu\nreviewed\n"
+                    }
+                  }
+                }
               },
               {
-                "stdin": "0\n0\n0\n0\n0\n",
-                "stdout": "safe=0\n"
+                "stdin": "INFO ok\n",
+                "stdout": "640\nreviewed\n",
+                "requirements": {
+                  "files": {
+                    "/home/learner/report.txt": {
+                      "mode": "640",
+                      "content": "reviewed\n"
+                    }
+                  }
+                }
               }
             ]
           },
-          "fullSolution": "#include <stdio.h>\nint is_safe(int value) { return value >= 2 && value <= 5; }\nint main(void) {\n  int count = 0;\n  for (int i = 0; i < 5; i++) {\n    int value;\n    scanf(\"%d\", &value);\n    count += is_safe(value);\n  }\n  printf(\"safe=%d\\n\", count);\n  return 0;\n}\n"
+          "fullSolution": "cat > input.txt\ncat input.txt | grep -i warning | head -n 2 > report.txt\necho reviewed >> report.txt\nchmod 640 report.txt\nstat -c %a report.txt\ncat report.txt"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先单独写出一次输入返回 0 还是 1。"
+          "text": "先分别验证保存、筛选、覆盖/追加、权限和最终读取。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "函数负责规则，main 中的循环负责读入和累加。"
+          "text": "确认 > 创建结果文件，>> 只追加，chmod 后用 stat 验证。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "确认循环上界与题目要求的输入个数一致。"
+          "text": "cat 读取 stdin；grep/head 组成管道；chmod 640；stat -c %a。"
         }
       ],
       "fullSolutionPolicy": {
@@ -219,7 +428,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -241,6 +450,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

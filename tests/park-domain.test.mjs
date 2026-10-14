@@ -147,8 +147,9 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
   run.project(projectInput(project.id, project.boss.id, `clear-${project.id}-${project.boss.id}`, { performancePoints }, course));
 }
 
-test('the checked-in rich v2 documents validate and hydrate every indexed online level', () => {
+test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
+  assert.equal(indexOnly.publishedRevision, 3);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
@@ -159,6 +160,81 @@ test('the checked-in rich v2 documents validate and hydrate every indexed online
   assert.equal(COURSE.ranks[8].title, '无敌凤凰蛋');
   assert.doesNotThrow(() => sanitizeProgress(indexOnly, INITIAL_PROGRESS));
   assert.doesNotThrow(() => sanitizeWeekCard(indexOnly, INITIAL_WEEK_CARD));
+});
+
+test('V3 binds the first two ranks to C17 and the third rank to the deterministic Linux terminal', () => {
+  const expectedThemes = new Map([
+    ['quail', ['C', '流程', '函数']],
+    ['pigeon', ['C', '指针', '内存', '文件']],
+    ['chicken', ['Linux', '目录', '权限', '进程']]
+  ]);
+  for (const [rankId, terms] of expectedThemes) {
+    const rank = COURSE.ranks.find(item => item.id === rankId);
+    assert.ok(rank, `缺少 ${rankId} 段位`);
+    for (const term of terms) assert.match(rank.technologyTheme, new RegExp(term), `${rank.title} 技术主题应覆盖 ${term}`);
+  }
+
+  const onlineLessons = COURSE.levels.filter(level => level.kind === 'interactive-lesson');
+  assert.equal(onlineLessons.length, 9);
+  for (const level of onlineLessons) {
+    assert.equal(level.version, 3, `${level.id} 应发布为 V3`);
+    const executableSteps = level.content.steps.filter(step => step.runtimeId);
+    assert.ok(executableSteps.length >= 3, `${level.id} 应保留可运行的观察、编辑和独立变式`);
+    const expectedRuntime = level.rankId === 'chicken' ? 'linux-shell-sim' : 'c17-console';
+    assert.ok(executableSteps.every(step => step.runtimeId === expectedRuntime), `${level.id} 运行时应为 ${expectedRuntime}`);
+  }
+
+  for (const boss of COURSE.levels.filter(level => level.kind === 'rank-boss' && EARLY_RANK_IDS.has(level.rankId))) {
+    assert.equal(boss.version, 3, `${boss.id} 应发布为 V3`);
+    const executableCheckpoints = boss.content.checkpoints.filter(checkpoint => checkpoint.runtimeId);
+    const expectedRuntime = boss.rankId === 'chicken' ? 'linux-shell-sim' : 'c17-console';
+    assert.ok(executableCheckpoints.every(checkpoint => checkpoint.runtimeId === expectedRuntime), `${boss.id} 运行时应为 ${expectedRuntime}`);
+  }
+});
+
+test('V3 independent and Boss graders require implementation evidence beyond matching stdout', () => {
+  const earlyLevels = COURSE.levels.filter(level => EARLY_RANK_IDS.has(level.rankId));
+  let cVariants = 0;
+  let linuxVariants = 0;
+  let nonzeroExitCases = 0;
+  let linuxFileStateGraders = 0;
+  let linuxProcessStateGraders = 0;
+  let linuxCommandEvidenceGraders = 0;
+
+  for (const level of earlyLevels) {
+    const executableItems = level.kind === 'rank-boss'
+      ? level.content.checkpoints.filter(checkpoint => checkpoint.runtimeId)
+      : level.content.steps.filter(step => step.type === 'independent-variation');
+    for (const item of executableItems) {
+      const graders = item.variants?.map(variant => variant.grader) || [item.grader];
+      for (const grader of graders) {
+        assert.ok(grader, `${level.id}/${item.id} 应声明评分器`);
+        if (item.runtimeId === 'c17-console') {
+          assert.ok(grader.requirements?.requiredIdentifiers?.length >= 3, `${level.id}/${item.id} 应要求关键 C 标识符`);
+          if (item.variants) {
+            assert.ok(grader.cases?.length >= 2, `${level.id}/${item.id} 的独立变式应使用多个输入防止固定输出蒙混`);
+            cVariants++;
+          }
+          nonzeroExitCases += (grader.cases || []).filter(testCase => Number.isInteger(testCase.exitCode) && testCase.exitCode !== 0).length;
+        } else {
+          assert.ok(grader.requirements?.commands?.length > 0, `${level.id}/${item.id} 应要求实际执行 Linux 命令`);
+          assert.ok(grader.requirements?.commandSequence?.length > 0, `${level.id}/${item.id} 应验证 Linux 命令顺序`);
+          if (item.variants) linuxVariants++;
+          const requirementSets = [grader.requirements, ...(grader.cases || []).map(testCase => testCase.requirements)].filter(Boolean);
+          if (requirementSets.some(requirements => Object.keys(requirements.files || {}).length > 0)) linuxFileStateGraders++;
+          if (requirementSets.some(requirements => (requirements.absentProcesses || []).length || (requirements.presentProcesses || []).length)) linuxProcessStateGraders++;
+          if (requirementSets.some(requirements => (requirements.commandEvidence || []).length)) linuxCommandEvidenceGraders++;
+        }
+      }
+    }
+  }
+
+  assert.equal(cVariants, 12);
+  assert.equal(linuxVariants, 6);
+  assert.equal(nonzeroExitCases, 2, '两个输入边界变式应验证非法输入的非零退出状态');
+  assert.ok(linuxFileStateGraders >= 3, 'Linux 独立题和 Boss 应检查文件内容或权限状态');
+  assert.ok(linuxProcessStateGraders >= 2, 'Linux 流程题和 Boss 应检查进程保留与终止状态');
+  assert.ok(linuxCommandEvidenceGraders >= 7, '关键 Linux 独立题和 Boss 应验证参数、管道、重定向或可见输出来源');
 });
 
 test('the first three online ranks keep empty compatibility locations while every later project keeps real locations', () => {
@@ -220,9 +296,58 @@ test('course validation rejects incomplete hydration, index/detail drift, mirror
   themedOnlineRank.ranks[0].locationIds = [RAW_COURSE.locations[0].id];
   assert.throws(() => sanitizeCourse(themedOnlineRank), /在线互动段位，不能绑定作品场景/);
 
+  const unknownBossRuntime = clone(LEVEL_DOCS);
+  unknownBossRuntime.find(item => item.id === 'chicken-rules-boss').checkpoints[1].runtimeId = 'host-shell';
+  assert.throws(() => sanitizeCourse(RAW_COURSE, unknownBossRuntime), /引用未知运行环境/);
+
   const locationlessProjectRank = clone(RAW_COURSE);
   locationlessProjectRank.ranks[3].locationIds = [];
   assert.throws(() => sanitizeCourse(locationlessProjectRank), /段位作品缺少场景/);
+});
+
+test('course validation rejects malformed runtime requirements and exit-code contracts before grading', () => {
+  function invalidDetail(mutator, pattern) {
+    const details = clone(LEVEL_DOCS);
+    mutator(details);
+    assert.throws(() => sanitizeCourse(RAW_COURSE, details), pattern);
+  }
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'quail-fountain-sequence');
+    level.steps.find(step => step.id === 'independent-variation').variants[0].grader.requirements.requiredIdentifiers = 'scanf';
+  }, /C 标识符须为列表/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'quail-fountain-sequence');
+    level.steps.find(step => step.id === 'independent-variation').variants[0].grader.cases[3].exitCode = -1;
+  }, /退出状态须为 0–255 的整数/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'chicken-football-rounds');
+    level.steps.find(step => step.id === 'independent-variation').variants[0].grader.cases[0].requirements.files = null;
+  }, /文件状态须为普通对象/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'chicken-football-rounds');
+    const requirements = level.steps.find(step => step.id === 'short-edit').grader.requirements;
+    requirements.presentProcesses.push(requirements.absentProcesses[0]);
+  }, /不能同时要求同一进程存在与消失/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'chicken-teleport-state');
+    level.steps.find(step => step.id === 'independent-variation').variants[0].grader.requirements.requiredIdentifiers = ['printf'];
+  }, /不适用于 Linux 练习终端/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'chicken-football-rounds');
+    level.steps.find(step => step.id === 'short-edit').grader.requirements.commandEvidence[0].redirectPath = 'relative.txt';
+  }, /重定向路径须为绝对路径/);
+
+  invalidDetail(details => {
+    const level = details.find(item => item.id === 'chicken-bomb-boundary');
+    const requirements = level.steps.find(step => step.id === 'independent-variation').variants.find(variant => variant.grader.requirements.absentFiles).grader.requirements;
+    requirements.absentFiles.push(Object.keys(requirements.files)[0]);
+  }, /不能同时要求同一文件存在与不存在/);
 });
 
 test('independent variants require a non-empty full solution', () => {
@@ -298,10 +423,10 @@ test('XP cannot be farmed and the first independent clear awards exactly one per
   );
   playToIndependentVariation(run, levelId, 'first-clear');
   const first = run.level(levelInput(levelId, 'first-clear'));
-  assert.equal(first.result.xpAwarded, 20);
+  assert.equal(first.result.xpAwarded, 25);
   assert.equal(first.result.starAwarded, true);
   assert.equal(first.result.levelCompleted, true);
-  assert.equal(run.progress.xp.total, 30);
+  assert.equal(run.progress.xp.total, 35);
   assert.equal(run.progress.current.activityId, 'quail-piano-output');
   assert.equal(run.progress.current.stepId, 'predict');
 
@@ -311,7 +436,7 @@ test('XP cannot be farmed and the first independent clear awards exactly one per
   assert.equal(repeated.result.xpAwarded, 0);
   assert.equal(repeated.result.starAwarded, false);
   assert.equal(repeated.result.levelCompleted, false);
-  assert.equal(run.progress.xp.total, 30);
+  assert.equal(run.progress.xp.total, 35);
   assert.equal(run.progress.awardLedger.filter(item => item.kind === 'star').length, 1);
   assert.equal(run.progress.current.activityId, 'quail-piano-output');
 });
@@ -343,7 +468,7 @@ test('viewing a complete answer requires an unused equivalent variation before a
   const recovered = run.level(levelInput(levelId, 'clear-replacement', { variantId: replacement.id }));
   assert.equal(recovered.result.levelCompleted, true);
   assert.equal(recovered.result.starAwarded, true);
-  assert.equal(recovered.result.xpAwarded, 20);
+  assert.equal(recovered.result.xpAwarded, 25);
   assert.equal(run.progress.current.activityId, 'quail-piano-output');
   assert.equal(run.progress.awardLedger.find(item => item.kind === 'star').sourceId, replacement.id);
 });
@@ -460,20 +585,20 @@ test('earned XP, stars, and rank tokens survive a compatible course revision', (
   assert.deepEqual(after.tokens.map(item => item.key), before.tokens.map(item => item.key));
 });
 
-test('a v1 full-solution view cannot taint the same variant after the lesson is revised to v2', () => {
+test('a V2 full-solution view cannot taint the same variant after the lesson is revised to V3', () => {
   const levelId = 'quail-fountain-sequence';
   const checkedInLevel = COURSE.levels.find(item => item.id === levelId);
-  assert.equal(checkedInLevel.version, 2, '仓库内前三段位内容应已发布为 v2');
-  const v1Draft = clone(COURSE);
-  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
-  const v1DraftLevel = v1Draft.levels.find(item => item.id === levelId);
-  v1DraftLevel.version = 1;
-  v1DraftLevel.content.version = 1;
-  const v1Course = sanitizeCourse(v1Draft);
-  const v1Level = v1Course.levels.find(item => item.id === levelId);
-  const completionStep = v1Level.content.steps.find(item => item.type === 'independent-variation');
+  assert.equal(checkedInLevel.version, 3, '仓库内前三段位内容应已发布为 V3');
+  const v2Draft = clone(COURSE);
+  v2Draft.publishedRevision = 2;
+  const v2DraftLevel = v2Draft.levels.find(item => item.id === levelId);
+  v2DraftLevel.version = 2;
+  v2DraftLevel.content.version = 2;
+  const v2Course = sanitizeCourse(v2Draft);
+  const v2Level = v2Course.levels.find(item => item.id === levelId);
+  const completionStep = v2Level.content.steps.find(item => item.type === 'independent-variation');
   const variant = completionStep.variants[0];
-  let progress = freshProgress(v1Course, 'learner-1');
+  let progress = freshProgress(v2Course, 'learner-1');
   let clock = 1;
 
   const submit = (course, step, overrides = {}) => {
@@ -497,8 +622,8 @@ test('a v1 full-solution view cannot taint the same variant after the lesson is 
     return output;
   };
 
-  for (const step of v1Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v1Course, step);
-  submit(v1Course, completionStep, {
+  for (const step of v2Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v2Course, step);
+  submit(v2Course, completionStep, {
     variantId: variant.id,
     action: 'reveal',
     answer: '',
@@ -507,50 +632,51 @@ test('a v1 full-solution view cannot taint the same variant after the lesson is 
     passed: false,
     independent: false
   });
-  assert.equal(progress.attempts.at(-1).payload.contentVersion, 1);
+  assert.equal(progress.attempts.at(-1).payload.contentVersion, 2);
 
-  const v2Course = COURSE;
-  const v2Level = v2Course.levels.find(item => item.id === levelId);
-  progress = sanitizeProgress(v2Course, progress);
+  const v3Course = COURSE;
+  const v3Level = v3Course.levels.find(item => item.id === levelId);
+  progress = sanitizeProgress(v3Course, progress);
 
-  assert.equal(progress.attempts.some(attempt => attempt.payload.contentVersion === 1 && attempt.payload.viewedFullAnswer), true, '历史尝试应作为不可变记录保留');
-  for (const step of v2Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v2Course, step);
-  const cleared = submit(v2Course, v2Level.content.steps.find(step => step.id === completionStep.id), {
+  assert.equal(progress.attempts.some(attempt => attempt.payload.contentVersion === 2 && attempt.payload.viewedFullAnswer), true, '历史尝试应作为不可变记录保留');
+  for (const step of v3Level.content.steps.filter(step => step.id !== completionStep.id)) submit(v3Course, step);
+  const cleared = submit(v3Course, v3Level.content.steps.find(step => step.id === completionStep.id), {
     variantId: variant.id,
     action: 'submit',
     independent: true
   });
 
-  assert.equal(cleared.result.levelCompleted, true, 'v1 查看答案不应阻止 v2 的同名变式完成');
+  assert.equal(cleared.result.levelCompleted, true, 'V2 查看答案不应阻止 V3 的同名变式完成');
   assert.equal(cleared.result.starAwarded, true, '只有当前 contentVersion 的答案曝光才会影响星星');
 });
 
-test('a v1 Boss checkpoint cannot unlock the following checkpoint in Boss contentVersion 2', () => {
+test('a V2 Boss checkpoint cannot unlock the following checkpoint in Boss contentVersion 3', () => {
   const bossId = 'quail-opening-boss';
   const checkedInBoss = COURSE.levels.find(item => item.id === bossId);
-  assert.equal(checkedInBoss.version, 2, '仓库内前三段位 Boss 应已发布为 v2');
-  const v1Draft = clone(COURSE);
-  v1Draft.publishedRevision = Math.max(1, v1Draft.publishedRevision - 1);
-  const v1DraftBoss = v1Draft.levels.find(item => item.id === bossId);
-  v1DraftBoss.version = 1;
-  v1DraftBoss.content.version = 1;
-  const v1Course = sanitizeCourse(v1Draft);
-  const run = flow(freshProgress(v1Course, 'learner-1'), v1Course);
-  for (const levelId of ['quail-fountain-sequence', 'quail-piano-output', 'quail-opening-broadcast']) {
-    completeLesson(run, levelId, `boss-version-${levelId}`, v1Course);
+  assert.equal(checkedInBoss.version, 3, '仓库内前三段位 Boss 应已发布为 V3');
+  const v2Draft = clone(COURSE);
+  v2Draft.publishedRevision = 2;
+  for (const level of v2Draft.levels.filter(item => EARLY_RANK_IDS.has(item.rankId))) {
+    level.version = 2;
+    level.content.version = 2;
   }
-  const bossV1 = v1Course.levels.find(item => item.id === bossId);
-  run.level(bossInput(bossV1.id, bossV1.content.checkpoints[0].id, 'boss-version-v1-first', { independent: false }, v1Course));
-
-  const v2Course = COURSE;
+  const v2Course = sanitizeCourse(v2Draft);
+  const run = flow(freshProgress(v2Course, 'learner-1'), v2Course);
+  for (const levelId of ['quail-fountain-sequence', 'quail-piano-output', 'quail-opening-broadcast']) {
+    completeLesson(run, levelId, `boss-version-${levelId}`, v2Course);
+  }
   const bossV2 = v2Course.levels.find(item => item.id === bossId);
-  const progress = sanitizeProgress(v2Course, run.progress);
-  const second = bossV2.content.checkpoints[1];
+  run.level(bossInput(bossV2.id, bossV2.content.checkpoints[0].id, 'boss-version-v2-first', { independent: false }, v2Course));
+
+  const v3Course = COURSE;
+  const bossV3 = v3Course.levels.find(item => item.id === bossId);
+  const progress = sanitizeProgress(v3Course, run.progress);
+  const second = bossV3.content.checkpoints[1];
 
   assert.throws(
-    () => submitAttempt(v2Course, progress, {
-      ...bossInput(bossV2.id, second.id, 'boss-version-v2-skip', { independent: false }, v2Course)
-    }, { id: 'boss-version-v2-skip-attempt', submittedAt: iso(58) }),
+    () => submitAttempt(v3Course, progress, {
+      ...bossInput(bossV3.id, second.id, 'boss-version-v3-skip', { independent: false }, v3Course)
+    }, { id: 'boss-version-v3-skip-attempt', submittedAt: iso(58) }),
     error => error.status === 409 && error.code === 'checkpoint_locked'
   );
 });

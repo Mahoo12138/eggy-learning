@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "chicken-bomb-boundary",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "chicken",
   "subrankId": "chicken-ii",
   "sequence": 2,
-  "title": "判断数值是否落在闭区间",
-  "estimatedMinutes": 22,
+  "title": "在 Linux 目录树中定位与管理文件",
+  "estimatedMinutes": 24,
   "prerequisiteLevelIds": [
     "chicken-teleport-state"
   ],
@@ -18,12 +18,12 @@
       "smoke-bomb",
       "ink-bomb"
     ],
-    "intro": "用成组边界值验证闭区间条件，并单独处理不合法的负数输入。",
-    "success": "区间内、两个端点、区间外和非法值都得到正确结果。"
+    "intro": "通过可运行示例逐步掌握“在 Linux 目录树中定位与管理文件”。",
+    "success": "能够独立完成“在 Linux 目录树中定位与管理文件”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "写出同时包含上下界的布尔表达式",
-    "用端点内外的测试值区分 <、<=、> 与 >="
+    "使用绝对路径、相对路径、点号、双点号和波浪号定位文件",
+    "认识 /home、/etc、/var、/tmp、/dev、/proc 的常见职责，并安全执行基础文件操作"
   ],
   "teachingLoop": [
     "predict",
@@ -36,214 +36,276 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "哪一个条件准确表示 value 位于闭区间 [10, 20]？",
+      "prompt": "当前目录是 /home/learner。要查看 /var/log/app.log，请排列不会依赖猜测的命令。",
       "interaction": {
-        "kind": "single-choice",
-        "options": [
-          "value >= 10 && value <= 20",
-          "value >= 10 || value <= 20",
-          "value > 10 && value < 20"
+        "kind": "reorder",
+        "items": [
+          "pwd",
+          "cd /var/log",
+          "pwd",
+          "ls",
+          "cat app.log"
         ]
       },
       "evaluator": {
-        "kind": "choice",
-        "expectedIndex": 0
+        "kind": "exact-order",
+        "expected": [
+          "pwd",
+          "cd /var/log",
+          "pwd",
+          "ls",
+          "cat app.log"
+        ]
       },
       "feedback": {
-        "correct": "闭区间同时要求满足下界和上界，并且包含两个端点。",
-        "incorrect": "把 9、10、20、21 依次代入三个表达式，找出只接受 10 到 20 的那个。"
+        "correct": "绝对路径导航与验证顺序正确。",
+        "incorrect": "先确认当前位置，再用绝对路径到达目标目录；到达后用 pwd 和 ls 验证。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
-      "runtimeId": "c17-console",
-      "prompt": "用端点内外四个值运行，观察闭区间条件的结果。",
+      "runtimeId": "linux-shell-sim",
+      "prompt": "观察 ./ 从当前目录出发、.. 返回上级目录，以及相对文件名如何随 cwd 改变。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int value;\n  scanf(\"%d\", &value);\n  if (value >= 10 && value <= 20) puts(\"in\");\n  else puts(\"out\");\n  return 0;\n}\n"
+        "session.sh": "pwd\ncd ./work\npwd\ncd ..\npwd\ncat ./tasks.txt\n"
       },
-      "stdin": "10\n",
+      "stdin": "",
       "evaluator": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "9\n",
-            "stdout": "out\n"
-          },
-          {
-            "stdin": "10\n",
-            "stdout": "in\n"
-          },
-          {
-            "stdin": "20\n",
-            "stdout": "in\n"
-          },
-          {
-            "stdin": "21\n",
-            "stdout": "out\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "/home/learner\n/home/learner/work\n/home/learner\nlearn C\nlearn Linux\n"
       },
       "visualizer": {
-        "kind": "range-check",
-        "target": "value",
-        "minimum": 10,
-        "maximum": 20,
-        "inclusive": true
+        "kind": "terminal-transcript",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "哪两个输入专门检查了等号是否正确？"
+      "observationPrompt": "./work、.. 和 ./tasks.txt 分别以哪个目录为起点？同一个相对路径为什么会随 cwd 改变含义？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么只测试 15 和 30，无法发现把 <= 20 错写成 < 20 的问题？",
+      "prompt": "解释绝对路径与相对路径的解析起点，并说明 /home、/etc、/var、/tmp、/dev、/proc 各自通常放什么。",
       "referencePoints": [
-        "15 在两种写法中都通过",
-        "30 在两种写法中都不通过",
-        "必须测试上界 20 才能区分是否包含端点"
+        "绝对路径从根目录开始",
+        "相对路径从当前目录开始",
+        "/home 放用户数据，/etc 放配置，/var 放变化数据",
+        "/dev 与 /proc 暴露设备和内核状态"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "加入输入规则：负数输出 invalid；否则 10–20 输出 in，其余输出 out。",
-      "runtimeId": "c17-console",
+      "prompt": "脚本进入 ./work 后错误地停在原地。修复它：使用 .. 回到上级目录，输出当前位置并读取 ./tasks.txt。",
+      "runtimeId": "linux-shell-sim",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int value;\n  scanf(\"%d\", &value);\n  if (value >= 10 && value <= 20) puts(\"in\");\n  else puts(\"out\");\n  return 0;\n}\n"
+        "session.sh": "cd ./work\ncd .\npwd\ncat tasks.txt\n"
       },
       "grader": {
-        "kind": "stdin-stdout-cases",
-        "cases": [
-          {
-            "stdin": "-1\n",
-            "stdout": "invalid\n"
-          },
-          {
-            "stdin": "9\n",
-            "stdout": "out\n"
-          },
-          {
-            "stdin": "10\n",
-            "stdout": "in\n"
-          },
-          {
-            "stdin": "20\n",
-            "stdout": "in\n"
-          },
-          {
-            "stdin": "21\n",
-            "stdout": "out\n"
-          }
-        ]
+        "kind": "stdout-exact",
+        "expected": "/home/learner\nlearn C\nlearn Linux\n",
+        "requirements": {
+          "commands": [
+            "cd",
+            "pwd",
+            "cat"
+          ],
+          "commandSequence": [
+            "cd",
+            "cd",
+            "pwd",
+            "cat"
+          ],
+          "pathForms": [
+            "dot",
+            "dotdot"
+          ],
+          "cwd": "/home/learner"
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "负数不能进入普通的区间内外判断。"
+          "text": ". 与 .. 对当前目录的影响有什么不同？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "把非法值判断放在闭区间判断之前。"
+          "text": "检查第二条 cd 和 cat 使用的相对路径。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "使用 if (value < 0)，再 else if 检查两个边界。"
+          "text": "使用 cd .. 返回 /home/learner，再读取 ./tasks.txt。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "先处理 value < 0；其余值再用 value >= 10 && value <= 20 判断。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "cd ./work\ncd ..\npwd\ncat ./tasks.txt",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立实现另一组带非法值处理的闭区间规则。",
-      "runtimeId": "c17-console",
-      "variantSetId": "chicken-radius-rule-v1",
+      "prompt": "独立完成一段可验证的目录与文件操作。",
+      "runtimeId": "linux-shell-sim",
+      "variantSetId": "chicken-linux-paths-v3",
       "variants": [
         {
-          "id": "smoke-radius-three",
-          "prompt": "读取 sample：负数输出 invalid，5–12（含端点）输出 accepted，其余输出 rejected。",
+          "id": "inspect-log-directory",
+          "prompt": "进入 /var/log 并输出位置；再用 .. 回到根目录，输出位置并读取 ./etc/hostname。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int sample;\n  scanf(\"%d\", &sample);\n  /* 完成规则 */\n  return 0;\n}\n"
+            "session.sh": "pwd\n"
           },
           "grader": {
-            "kind": "stdin-stdout-cases",
-            "cases": [
-              {
-                "stdin": "-1\n",
-                "stdout": "invalid\n"
-              },
-              {
-                "stdin": "5\n",
-                "stdout": "accepted\n"
-              },
-              {
-                "stdin": "12\n",
-                "stdout": "accepted\n"
-              },
-              {
-                "stdin": "13\n",
-                "stdout": "rejected\n"
-              }
-            ]
+            "kind": "stdout-exact",
+            "expected": "/var/log\n/\neggy-lab\n",
+            "requirements": {
+              "commands": [
+                "cd",
+                "pwd",
+                "cat"
+              ],
+              "commandSequence": [
+                "cd",
+                "pwd",
+                "cd",
+                "pwd",
+                "cat"
+              ],
+              "pathForms": [
+                "dot",
+                "dotdot"
+              ],
+              "cwd": "/"
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int sample;\n  scanf(\"%d\", &sample);\n  if (sample < 0) puts(\"invalid\");\n  else if (sample >= 5 && sample <= 12) puts(\"accepted\");\n  else puts(\"rejected\");\n  return 0;\n}\n"
+          "fullSolution": "cd /var/log\npwd\ncd ../..\npwd\ncat ./etc/hostname"
         },
         {
-          "id": "ink-radius-one",
-          "prompt": "读取 count：负数输出 invalid，1–100（含端点）输出 valid，其余输出 out-of-range。",
+          "id": "organize-work-note",
+          "prompt": "从 ~ 出发：创建 /tmp/archive，把 ./work/notes.txt 复制到 /tmp/staging.txt 后移动为 /tmp/archive/notes.txt；创建并删除 /tmp/scratch.txt。最终进入 archive，输出位置、列表和 notes.txt 内容。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int count;\n  scanf(\"%d\", &count);\n  /* 完成规则 */\n  return 0;\n}\n"
+            "session.sh": "cd ~\n"
           },
           "grader": {
-            "kind": "stdin-stdout-cases",
-            "cases": [
-              {
-                "stdin": "-2\n",
-                "stdout": "invalid\n"
+            "kind": "stdout-exact",
+            "expected": "/tmp/archive\nnotes.txt\nbuild\nrun\ndebug\n",
+            "requirements": {
+              "commands": [
+                "cd",
+                "mkdir",
+                "cp",
+                "mv",
+                "touch",
+                "rm",
+                "pwd",
+                "ls",
+                "cat"
+              ],
+              "commandSequence": [
+                "cd",
+                "mkdir",
+                "cp",
+                "mv",
+                "touch",
+                "rm",
+                "cd",
+                "pwd",
+                "ls",
+                "cat"
+              ],
+              "pathForms": [
+                "home",
+                "dot"
+              ],
+              "cwd": "/tmp/archive",
+              "files": {
+                "/tmp/archive/notes.txt": {
+                  "content": "build\nrun\ndebug\n"
+                }
               },
-              {
-                "stdin": "1\n",
-                "stdout": "valid\n"
-              },
-              {
-                "stdin": "100\n",
-                "stdout": "valid\n"
-              },
-              {
-                "stdin": "101\n",
-                "stdout": "out-of-range\n"
-              }
-            ]
+              "absentFiles": [
+                "/tmp/staging.txt",
+                "/tmp/scratch.txt"
+              ],
+              "commandEvidence": [
+                {
+                  "command": "mkdir",
+                  "args": [
+                    "/tmp/archive"
+                  ]
+                },
+                {
+                  "command": "cp",
+                  "args": [
+                    "./work/notes.txt",
+                    "/tmp/staging.txt"
+                  ]
+                },
+                {
+                  "command": "mv",
+                  "args": [
+                    "/tmp/staging.txt",
+                    "/tmp/archive/notes.txt"
+                  ]
+                },
+                {
+                  "command": "touch",
+                  "args": [
+                    "/tmp/scratch.txt"
+                  ]
+                },
+                {
+                  "command": "rm",
+                  "args": [
+                    "/tmp/scratch.txt"
+                  ]
+                },
+                {
+                  "command": "pwd",
+                  "args": [],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "ls",
+                  "args": [],
+                  "visibleOutput": true
+                },
+                {
+                  "command": "cat",
+                  "args": [
+                    "./notes.txt"
+                  ],
+                  "visibleOutput": true
+                }
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int count;\n  scanf(\"%d\", &count);\n  if (count < 0) puts(\"invalid\");\n  else if (count >= 1 && count <= 100) puts(\"valid\");\n  else puts(\"out-of-range\");\n  return 0;\n}\n"
+          "fullSolution": "cd ~\nmkdir /tmp/archive\ncp ./work/notes.txt /tmp/staging.txt\nmv /tmp/staging.txt /tmp/archive/notes.txt\ntouch /tmp/scratch.txt\nrm /tmp/scratch.txt\ncd /tmp/archive\npwd\nls\ncat ./notes.txt"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "至少检查非法值、下界、上界和界外值。"
+          "text": "每次 cd 后都能用 pwd 证明当前位置；注意路径从哪里开始。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "先写非法分支，再写闭区间条件。"
+          "text": "检查 /、~/、./ 与 ../ 分别以哪里为起点。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "闭区间上下界用 && 连接，并在两个比较中保留等号。"
+          "text": "绝对路径从根开始，~ 指向家目录，./ 指当前目录，../ 返回上级。"
         }
       ],
       "fullSolutionPolicy": {
@@ -261,7 +323,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -283,6 +345,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

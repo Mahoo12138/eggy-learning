@@ -73,6 +73,118 @@ function validateHints(value, name = '提示阶梯') {
   return hints;
 }
 
+function validateProgramRequirements(value, name, runtimeId) {
+  object(value, name);
+  const allowed = ['requiredIdentifiers', 'commands', 'commandSequence', 'commandEvidence', 'cwd', 'pathForms', 'files', 'absentFiles', 'absentProcesses', 'presentProcesses'];
+  const keys = Object.keys(value);
+  if (!keys.length || keys.some(item => !allowed.includes(item))) fail(`${name}为空或包含未知字段`);
+  if (runtimeId === 'c17-console' && keys.some(item => item !== 'requiredIdentifiers')) fail(`${name}包含不适用于 C 运行环境的字段`);
+  if (runtimeId === 'linux-shell-sim' && own(value, 'requiredIdentifiers')) fail(`${name}包含不适用于 Linux 练习终端的字段`);
+  if (own(value, 'requiredIdentifiers')) {
+    const identifiers = strings(value.requiredIdentifiers, `${name} C 标识符`, 100);
+    if (!identifiers.length || identifiers.some(item => !/^[A-Za-z_]\w*$/.test(item))) fail(`${name} C 标识符格式无效`);
+    unique(identifiers, item => item, `${name} C 标识符`);
+  }
+  for (const field of ['commands', 'commandSequence']) {
+    if (!own(value, field)) continue;
+    const commands = strings(value[field], `${name}命令`, 100);
+    if (!commands.length || commands.some(item => !/^[a-z][a-z0-9_-]*$/.test(item))) fail(`${name}命令格式无效`);
+    if (field === 'commands') unique(commands, item => item, `${name}命令`);
+  }
+  if (own(value, 'commandEvidence')) {
+    const evidence = list(value.commandEvidence, `${name}命令证据`, 100);
+    if (!evidence.length) fail(`${name}命令证据不能为空`);
+    for (const item of evidence) {
+      object(item, `${name}命令证据`);
+      const allowedEvidence = ['command', 'args', 'pipedFrom', 'pipedTo', 'redirect', 'redirectPath', 'visibleOutput', 'exitStatusExpanded'];
+      const evidenceKeys = Object.keys(item);
+      if (!own(item, 'command') || evidenceKeys.some(field => !allowedEvidence.includes(field))) fail(`${name}命令证据字段无效`);
+      if (!/^[a-z][a-z0-9_-]*$/.test(text(item.command, `${name}命令证据命令`, true))) fail(`${name}命令证据命令格式无效`);
+      if (own(item, 'args')) strings(item.args, `${name}命令证据参数`, 50);
+      for (const field of ['pipedFrom', 'pipedTo']) {
+        if (own(item, field) && !/^[a-z][a-z0-9_-]*$/.test(text(item[field], `${name}命令证据管道`, true))) fail(`${name}命令证据管道格式无效`);
+      }
+      if (own(item, 'redirect')) oneOf(item.redirect, ['>', '>>'], `${name}命令证据重定向`);
+      if (own(item, 'redirectPath')) {
+        text(item.redirectPath, `${name}命令证据重定向路径`, true, 500);
+        if (!item.redirectPath.startsWith('/')) fail(`${name}命令证据重定向路径须为绝对路径`);
+      }
+      if (own(item, 'visibleOutput')) bool(item.visibleOutput, `${name}命令证据可见输出`);
+      if (own(item, 'exitStatusExpanded')) bool(item.exitStatusExpanded, `${name}命令证据退出状态展开`);
+    }
+  }
+  if (own(value, 'cwd')) {
+    text(value.cwd, `${name}最终目录`, true, 500);
+    if (!value.cwd.startsWith('/')) fail(`${name}最终目录须为绝对路径`);
+  }
+  if (own(value, 'pathForms')) {
+    const forms = list(value.pathForms, `${name}路径写法`, 3).map(item => oneOf(item, ['dot', 'dotdot', 'home'], `${name}路径写法`));
+    if (!forms.length) fail(`${name}路径写法不能为空`);
+    unique(forms, item => item, `${name}路径写法`);
+  }
+  if (own(value, 'files')) {
+    object(value.files, `${name}文件状态`);
+    if (!Object.keys(value.files).length) fail(`${name}文件状态不能为空`);
+    for (const [path, state] of Object.entries(value.files)) {
+      text(path, `${name}文件路径`, true, 500);
+      if (!path.startsWith('/')) fail(`${name}文件路径须为绝对路径`);
+      object(state, `${name}文件 ${path}`);
+      const stateKeys = Object.keys(state);
+      if (!stateKeys.length || stateKeys.some(item => !['mode', 'content'].includes(item))) fail(`${name}文件 ${path} 为空或包含未知字段`);
+      if (own(state, 'mode') && (typeof state.mode !== 'string' || !/^[0-7]{3}$/.test(state.mode))) fail(`${name}文件 ${path} 权限须为三位八进制文本`);
+      if (own(state, 'content')) text(state.content, `${name}文件 ${path} 内容`);
+    }
+  }
+  if (own(value, 'absentFiles')) {
+    const paths = strings(value.absentFiles, `${name}应不存在文件`, 100);
+    if (!paths.length || paths.some(path => !path.startsWith('/'))) fail(`${name}应不存在文件须为非空绝对路径列表`);
+    unique(paths, path => path, `${name}应不存在文件`);
+    if (own(value, 'files') && paths.some(path => own(value.files, path))) fail(`${name}不能同时要求同一文件存在与不存在`);
+  }
+  const processSets = [];
+  for (const field of ['absentProcesses', 'presentProcesses']) {
+    if (!own(value, field)) { processSets.push(new Set()); continue; }
+    const processes = list(value[field], `${name}进程`, 100).map(item => integer(item, `${name}进程 PID`, 1));
+    unique(processes, item => item, `${name}进程 PID`);
+    processSets.push(new Set(processes));
+  }
+  if ([...processSets[0]].some(pid => processSets[1].has(pid))) fail(`${name}不能同时要求同一进程存在与消失`);
+}
+
+function validateGradingRule(value, name, runtimeId = '') {
+  object(value, name);
+  const kind = oneOf(value.kind, ['exact-order', 'object-exact', 'mapping-exact', 'stdout-exact', 'stdin-stdout-cases'], `${name}类型`);
+  if (kind === 'exact-order') {
+    fields(value, ['kind', 'expected'], name);
+    if (!strings(value.expected, `${name}预期顺序`, 500).length) fail(`${name}预期顺序不能为空`);
+    return;
+  }
+  if (kind === 'object-exact' || kind === 'mapping-exact') {
+    fields(value, ['kind', 'expected'], name);
+    object(value.expected, `${name}预期对象`);
+    return;
+  }
+  const hasRequirements = own(value, 'requirements');
+  if (kind === 'stdout-exact') {
+    fields(value, hasRequirements ? ['kind', 'expected', 'requirements'] : ['kind', 'expected'], name);
+    text(value.expected, `${name}预期输出`);
+  } else {
+    fields(value, hasRequirements ? ['kind', 'cases', 'requirements'] : ['kind', 'cases'], name);
+    const cases = list(value.cases, `${name}用例`, 100);
+    if (!cases.length) fail(`${name}至少需要一个用例`);
+    for (const item of cases) {
+      object(item, `${name}用例`);
+      const hasExitCode = own(item, 'exitCode'), hasCaseRequirements = own(item, 'requirements');
+      const expected = ['stdin', 'stdout', ...(hasExitCode ? ['exitCode'] : []), ...(hasCaseRequirements ? ['requirements'] : [])];
+      fields(item, expected, `${name}用例`);
+      text(item.stdin, `${name}用例输入`); text(item.stdout, `${name}用例输出`);
+      if (hasExitCode) integer(item.exitCode, `${name}用例退出状态`, 0, 255);
+      if (hasCaseRequirements) validateProgramRequirements(item.requirements, `${name}用例实现要求`, runtimeId);
+    }
+  }
+  if (hasRequirements) validateProgramRequirements(value.requirements, `${name}实现要求`, runtimeId);
+}
+
 function sanitizeLessonContent(raw) {
   const lessonFields = ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'subrankId', 'sequence', 'title', 'estimatedMinutes', 'prerequisiteLevelIds', 'scene', 'objectives', 'teachingLoop', 'steps', 'rewards', 'aiContext'];
   fields(raw, lessonFields, '在线关卡详情');
@@ -97,6 +209,8 @@ function sanitizeLessonContent(raw) {
     const stepId = id(step.id, '步骤编号');
     if (stepIds.has(stepId)) fail(`步骤编号重复：${stepId}`); stepIds.add(stepId);
     text(step.type, '步骤类型', true); text(step.prompt, '步骤提示', true);
+    if (own(step, 'evaluator')) validateGradingRule(step.evaluator, '步骤评分器', step.runtimeId || '');
+    if (own(step, 'grader')) validateGradingRule(step.grader, '步骤评分器', step.runtimeId || '');
     if (own(step, 'hints')) validateHints(step.hints);
     if (step.type === 'independent-variation') {
       id(step.variantSetId, '变式集编号');
@@ -106,7 +220,7 @@ function sanitizeLessonContent(raw) {
         fields(variant, ['id', 'prompt', 'starterFiles', 'grader', 'fullSolution'], '变式');
         text(variant.prompt, '变式提示', true);
         object(variant.starterFiles, '变式初始文件');
-        object(variant.grader, '变式评分器');
+        validateGradingRule(variant.grader, '变式评分器', step.runtimeId);
         text(variant.fullSolution, '变式完整解法', true);
         return id(variant.id, '变式编号');
       }, '变式编号');
@@ -143,6 +257,8 @@ function sanitizeBossContent(raw) {
     fields(checkpoint, checkpointFields[checkpoint.kind], 'Boss 检查点');
     text(checkpoint.kind, '检查点类型', true); text(checkpoint.title, '检查点标题', true);
     if (own(checkpoint, 'prompt')) text(checkpoint.prompt, '检查点提示', true);
+    if (own(checkpoint, 'evaluator')) validateGradingRule(checkpoint.evaluator, 'Boss 评分器', checkpoint.runtimeId || '');
+    if (own(checkpoint, 'grader')) validateGradingRule(checkpoint.grader, 'Boss 评分器', checkpoint.runtimeId || '');
     if (own(checkpoint, 'hints')) validateHints(checkpoint.hints, 'Boss 提示阶梯');
     return id(checkpoint.id, '检查点编号');
   }, 'Boss 检查点编号');
@@ -296,7 +412,7 @@ export function sanitizeCourse(value, levelDocs) {
       const scene = level.content.scene;
       if (scene.locationId !== level.locationId || !same(scene.propIds || [], level.propIds)) fail(`关卡 ${level.id} 的场景索引与详情不一致`);
       if (level.kind === 'interactive-lesson' && !same(content.teachingLoop, content.steps.map(step => step.id))) fail(`关卡 ${level.id} 的教学循环与步骤不一致`);
-      for (const step of content.steps || []) if (own(step, 'runtimeId') && !course.runtimeProfiles.some(profile => profile.id === step.runtimeId)) fail(`关卡 ${level.id} 引用未知运行环境`);
+      for (const step of content.steps || content.checkpoints || []) if (own(step, 'runtimeId') && !course.runtimeProfiles.some(profile => profile.id === step.runtimeId)) fail(`关卡 ${level.id} 引用未知运行环境`);
     }
   }
   for (const project of course.projects) {

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-salty-fish-counter",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "pigeon",
   "subrankId": "pigeon-iii",
   "sequence": 1,
-  "title": "追踪多次赋值后的变量",
-  "estimatedMinutes": 22,
+  "title": "用数组与结构体组织记录",
+  "estimatedMinutes": 25,
   "prerequisiteLevelIds": [
     "quail-opening-boss"
   ],
@@ -16,13 +16,12 @@
     "propIds": [
       "salty-fish"
     ],
-    "intro": "同一变量连续经过扣减和更新，必须按时间顺序追踪每一次写入。",
-    "success": "每次赋值后的状态都与手工追踪表一致。"
+    "intro": "通过可运行示例逐步掌握“用数组与结构体组织记录”。",
+    "success": "能够独立完成“用数组与结构体组织记录”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "追踪复合赋值前后的变量状态",
-    "区分旧值与更新后的当前值",
-    "用中间输出定位第一次偏差"
+    "用数组容量和下标管理一组同类数据",
+    "用结构体表达一条记录，并遍历结构体数组完成查找与统计"
   ],
   "teachingLoop": [
     "predict",
@@ -35,141 +34,178 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "balance=20，cost=6。依次执行 balance -= cost；cost += 2；balance -= cost。写出最终 balance 与 cost。",
+      "prompt": "records[0]={id:12,score:80}，records[1]={id:7,score:95}。代码先把 records[0].score 加 5，再比较两条记录。填写最终字段。",
       "interaction": {
-        "kind": "structured"
+        "kind": "mapping",
+        "fields": [
+          "records[0].score",
+          "records[1].score",
+          "higher_id"
+        ]
       },
       "evaluator": {
         "kind": "object-exact",
         "expected": {
-          "balance": 6,
-          "cost": 8
+          "records[0].score": 85,
+          "records[1].score": 95,
+          "higher_id": 7
         }
       },
       "feedback": {
-        "correct": "第一次扣减后 balance=14，cost 更新为 8，第二次扣减得到 6。",
-        "incorrect": "每执行一条赋值就重写一次变量表，第二次扣减使用的是更新后的 cost。"
+        "correct": "数组下标与结构体字段都追踪正确。",
+        "incorrect": "先定位记录，再定位字段；不要把 id 和 score 混在一起。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行程序，比较三个时刻的 balance 和 cost，找出每次写入发生在哪里。",
+      "prompt": "运行结构体数组统计，观察同一索引如何把 id 与 score 保持在一条记录中。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 20;\n  int cost = 6;\n  printf(\"start=%d,cost=%d\\n\", balance, cost);\n  balance -= cost;\n  printf(\"after-first=%d,cost=%d\\n\", balance, cost);\n  cost += 2;\n  balance -= cost;\n  printf(\"after-second=%d,cost=%d\\n\", balance, cost);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\ntypedef struct { int id; int score; } Record;\nint main(void) {\n  Record records[3] = {{12, 80}, {7, 95}, {21, 88}};\n  int best = 0;\n  int total = 0;\n  for (int i = 0; i < 3; i++) {\n    total += records[i].score;\n    if (records[i].score > records[best].score) best = i;\n  }\n  printf(\"total=%d,best_id=%d\\n\", total, records[best].id);\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "start=20,cost=6\nafter-first=14,cost=6\nafter-second=6,cost=8\n"
+        "expected": "total=263,best_id=7\n"
       },
       "visualizer": {
-        "kind": "variable-trace",
-        "target": "balance",
-        "variables": [
-          "balance",
-          "cost"
-        ]
+        "kind": "stdout-sequence",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "哪条语句使第二次扣减使用 8 而不是 6？"
+      "observationPrompt": "best 保存的是记录、id 还是数组下标？为什么最后要写 records[best].id？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么不能把两次 balance -= cost 简单理解为都减去最初的 6？",
+      "prompt": "解释数组容量、有效元素个数、下标和结构体字段之间的关系，并说明 best 保存下标相对于复制整条记录的好处。",
       "referencePoints": [
-        "cost 在两次扣减之间被重新赋值",
-        "后续表达式读取变量的当前值",
-        "执行顺序决定每次读取到的状态"
+        "容量限制可写入范围",
+        "有效元素个数控制遍历范围",
+        "下标可以重新定位原记录"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "修复状态更新，使程序按“扣 6、把 cost 增加到 8、再扣 8”输出 final=6,cost=8。",
+      "prompt": "程序漏掉第三条记录。修复遍历范围，让 total=263,best_id=7。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 20;\n  int cost = 6;\n  balance -= cost;\n  /* 这里缺少一次状态更新 */\n  balance -= cost;\n  printf(\"final=%d,cost=%d\\n\", balance, cost);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\ntypedef struct { int id; int score; } Record;\nint main(void) {\n  Record records[3] = {{12, 80}, {7, 95}, {21, 88}};\n  int best = 0, total = 0;\n  for (int i = 0; i < 2; i++) {\n    total += records[i].score;\n    if (records[i].score > records[best].score) best = i;\n  }\n  printf(\"total=%d,best_id=%d\\n\", total, records[best].id);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdout-exact",
-        "expected": "final=6,cost=8\n"
+        "expected": "total=263,best_id=7\n"
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "当前程序两次都减去了 6。"
+          "text": "数组有三条记录，但循环处理了几条？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "缺失语句位于两次 balance 更新之间。"
+          "text": "检查 for 的上界。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "在第二次扣减前执行 cost += 2。"
+          "text": "下标 0、1、2 都有效，因此条件应覆盖 i < 3。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "在注释位置加入 cost += 2;，其余语句保持原顺序。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "把循环条件从 i < 2 改为 i < 3。",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立追踪另一组连续赋值，并输出最终两个变量。",
+      "prompt": "独立完成结构体数组的读取与聚合。",
       "runtimeId": "c17-console",
-      "variantSetId": "pigeon-salty-fish-count-v1",
+      "variantSetId": "pigeon-struct-array-v3",
       "variants": [
         {
-          "id": "five-use-three",
-          "prompt": "start=30、delta=7：先减 delta，再令 delta += 3，再减新的 delta；输出 value=N,delta=N。",
+          "id": "record-best",
+          "prompt": "读取 3 条 id score 记录，输出最高分记录 best_id 与 best_score；同分保留先出现者。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int value = 30;\n  int delta = 7;\n  /* 按顺序更新 */\n  printf(\"value=%d,delta=%d\\n\", value, delta);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\ntypedef struct { int id; int score; } Record;\nint main(void) {\n  Record records[3];\n  /* 读取、查找并输出 */\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "value=13,delta=10\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "12 80\n7 95\n21 88\n",
+                "stdout": "best_id=7,best_score=95\n"
+              },
+              {
+                "stdin": "4 -2\n9 -2\n1 -8\n",
+                "stdout": "best_id=4,best_score=-2\n"
+              }
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "struct",
+                "scanf",
+                "for",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int value = 30;\n  int delta = 7;\n  value -= delta;\n  delta += 3;\n  value -= delta;\n  printf(\"value=%d,delta=%d\\n\", value, delta);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\ntypedef struct { int id; int score; } Record;\nint main(void) {\n  Record records[3];\n  for (int i = 0; i < 3; i++) if (scanf(\"%d %d\", &records[i].id, &records[i].score) != 2) return 1;\n  int best = 0;\n  for (int i = 1; i < 3; i++) if (records[i].score > records[best].score) best = i;\n  printf(\"best_id=%d,best_score=%d\\n\", records[best].id, records[best].score);\n  return 0;\n}\n"
         },
         {
-          "id": "four-use-one",
-          "prompt": "score=50、penalty=8：先减 penalty，再令 penalty *= 2，再减新的 penalty；输出 score=N,penalty=N。",
+          "id": "inventory-total",
+          "prompt": "读取 4 条 code quantity 记录，输出 total 数量和 first_empty 的 code；没有空库存时输出 -1。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int score = 50;\n  int penalty = 8;\n  /* 按顺序更新 */\n  printf(\"score=%d,penalty=%d\\n\", score, penalty);\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\ntypedef struct { int code; int quantity; } Item;\nint main(void) {\n  Item items[4];\n  /* 读取、统计并输出 */\n  return 0;\n}\n"
           },
           "grader": {
-            "kind": "stdout-exact",
-            "expected": "score=26,penalty=16\n"
+            "kind": "stdin-stdout-cases",
+            "cases": [
+              {
+                "stdin": "11 3\n12 0\n13 5\n14 0\n",
+                "stdout": "total=8,first_empty=12\n"
+              },
+              {
+                "stdin": "1 1\n2 2\n3 3\n4 4\n",
+                "stdout": "total=10,first_empty=-1\n"
+              }
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "struct",
+                "scanf",
+                "for",
+                "printf"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int score = 50;\n  int penalty = 8;\n  score -= penalty;\n  penalty *= 2;\n  score -= penalty;\n  printf(\"score=%d,penalty=%d\\n\", score, penalty);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\ntypedef struct { int code; int quantity; } Item;\nint main(void) {\n  Item items[4];\n  int total = 0, first_empty = -1;\n  for (int i = 0; i < 4; i++) {\n    if (scanf(\"%d %d\", &items[i].code, &items[i].quantity) != 2) return 1;\n    total += items[i].quantity;\n    if (items[i].quantity == 0 && first_empty == -1) first_empty = items[i].code;\n  }\n  printf(\"total=%d,first_empty=%d\\n\", total, first_empty);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "为每条赋值写一行变量表。"
+          "text": "先明确有效记录数与数组容量。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "先更新左侧变量，再进入下一条语句。"
+          "text": "读取时使用 records[i].field，遍历时不要混用字段。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "第二次减法必须读取已经变化的 delta 或 penalty。"
+          "text": "最值从第一条真实记录开始；“第一个”需要只在尚未找到时更新。"
         }
       ],
       "fullSolutionPolicy": {
@@ -187,7 +223,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -209,6 +245,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
   "id": "pigeon-blind-box-balance",
-  "version": 2,
+  "version": 3,
   "activityType": "interactive-lesson",
   "rankId": "pigeon",
   "subrankId": "pigeon-i",
   "sequence": 3,
-  "title": "拆解多步表达式与预算",
-  "estimatedMinutes": 24,
+  "title": "用文件保存并恢复结构化记录",
+  "estimatedMinutes": 25,
   "prerequisiteLevelIds": [
     "pigeon-shrink-milk-timer"
   ],
@@ -16,13 +16,12 @@
     "propIds": [
       "teleport-ball"
     ],
-    "intro": "把乘法、附加费用、折扣和余额拆成可检查的中间结果。",
-    "success": "复杂表达式被拆解后，使用量与剩余量都能独立核对。"
+    "intro": "通过可运行示例逐步掌握“用文件保存并恢复结构化记录”。",
+    "success": "能够独立完成“用文件保存并恢复结构化记录”的等价任务并解释关键原理。"
   },
   "objectives": [
-    "用中间变量表达多步计算",
-    "检查运算优先级和正负方向",
-    "用守恒关系复核结果"
+    "正确处理 fopen 失败、读写模式、EOF 与格式错误",
+    "用稳定文本格式写入记录、重新定位并恢复数据，确保所有 FILE 都关闭"
   ],
   "teachingLoop": [
     "predict",
@@ -35,78 +34,85 @@
     {
       "id": "predict",
       "type": "prediction",
-      "prompt": "balance=50、unit=7、count=4、fee=3。used=unit*count+fee，left=balance-used。写出 used 与 left。",
+      "prompt": "程序要新建 records.txt，写入两条记录，再从头读回。请排列文件生命周期。",
       "interaction": {
-        "kind": "structured"
+        "kind": "reorder",
+        "items": [
+          "用 w+ 打开并检查 FILE *",
+          "fprintf 写入两条记录",
+          "rewind 回到文件开头",
+          "循环 fscanf 读回记录",
+          "fclose 关闭文件"
+        ]
       },
       "evaluator": {
-        "kind": "object-exact",
-        "expected": {
-          "used": 31,
-          "left": 19
-        }
+        "kind": "exact-order",
+        "expected": [
+          "用 w+ 打开并检查 FILE *",
+          "fprintf 写入两条记录",
+          "rewind 回到文件开头",
+          "循环 fscanf 读回记录",
+          "fclose 关闭文件"
+        ]
       },
       "feedback": {
-        "correct": "unit*count=28，加 fee 得到 used=31，最终 left=19。",
-        "incorrect": "先只算 unit*count，再加 fee，最后从 balance 中扣除 used。"
+        "correct": "读写模式与文件位置顺序正确。",
+        "incorrect": "写完后文件位置在末尾；读回前需要 rewind，所有分支最终都应关闭文件。"
       }
     },
     {
       "id": "run-observe",
       "type": "run-observe",
       "runtimeId": "c17-console",
-      "prompt": "运行分步计算，观察 subtotal、used 与 left 如何逐层形成。",
+      "prompt": "运行一次真实的沙箱文件往返：写入、rewind、读取、统计、关闭。",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance = 50, unit = 7, count = 4, fee = 3;\n  int subtotal = unit * count;\n  int used = subtotal + fee;\n  int left = balance - used;\n  printf(\"subtotal=%d\\nused=%d\\nleft=%d\\n\", subtotal, used, left);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  FILE *file = fopen(\"records.txt\", \"w+\");\n  if (!file) return 1;\n  fprintf(file, \"12 80\\n7 95\\n\");\n  rewind(file);\n  int id, score, count = 0, sum = 0;\n  while (fscanf(file, \"%d %d\", &id, &score) == 2) {\n    count++;\n    sum += score;\n  }\n  fclose(file);\n  printf(\"count=%d,sum=%d\\n\", count, sum);\n  return 0;\n}\n"
       },
       "stdin": "",
       "evaluator": {
         "kind": "stdout-exact",
-        "expected": "subtotal=28\nused=31\nleft=19\n"
+        "expected": "count=2,sum=175\n"
       },
       "visualizer": {
-        "kind": "expression-trace",
-        "target": "budget",
-        "stages": [
-          "subtotal",
-          "used",
-          "left"
-        ]
+        "kind": "stdout-sequence",
+        "target": "execution-trace",
+        "tokenMap": {}
       },
-      "observationPrompt": "如果 left 错了，哪两个中间值能帮助判断错误发生在哪一步？"
+      "observationPrompt": "fscanf 返回 2、1、EOF 分别意味着什么？为什么不能只用 while (!feof(file))？"
     },
     {
       "id": "explain",
       "type": "explanation",
-      "prompt": "为什么保留 subtotal 和 used 两个中间变量，比把所有运算塞进一条 printf 更容易调试？",
+      "prompt": "解释文件打开模式、文件位置、格式化读取返回值和 fclose 的责任；区分正常 EOF、缺字段和打开失败。",
       "referencePoints": [
-        "每一步都能单独输出和验证",
-        "变量名表达计算含义",
-        "错误能定位到乘法、费用或扣减中的某一步"
+        "w+ 允许读写但会截断旧内容",
+        "rewind 把当前位置移回开头",
+        "以成功转换字段数控制循环更可靠",
+        "每个成功打开的 FILE 都要关闭"
       ],
       "answerPolicy": {
-        "minimumCharacters": 16,
+        "minimumCharacters": 28,
         "managerVisible": true
       }
     },
     {
       "id": "short-edit",
       "type": "code-edit",
-      "prompt": "加入 discount：used=unit*count+fee-discount，left=balance-used。读取五个整数并输出 used 与 left。",
+      "prompt": "程序要把输入的两个整数写进 snapshot.txt，再立即读回。修复错误的打开模式和缺失的回卷操作。",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\nint main(void) {\n  int balance, unit, count, fee, discount;\n  scanf(\"%d%d%d%d%d\", &balance, &unit, &count, &fee, &discount);\n  int used = unit * count + fee;\n  int left = balance - used;\n  printf(\"used=%d,left=%d\\n\", used, left);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint main(void) {\n  int left, right;\n  if (scanf(\"%d %d\", &left, &right) != 2) return 1;\n  FILE *file = fopen(\"snapshot.txt\", \"r\");\n  if (!file) return 2;\n  fprintf(file, \"%d %d\\n\", left, right);\n  int saved_left, saved_right;\n  if (fscanf(file, \"%d %d\", &saved_left, &saved_right) != 2) { fclose(file); return 3; }\n  fclose(file);\n  printf(\"saved=%d,%d\\n\", saved_left, saved_right);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "50 7 4 3 5\n",
-            "stdout": "used=26,left=24\n"
+            "stdin": "4 9\n",
+            "stdout": "saved=4,9\n"
           },
           {
-            "stdin": "80 9 6 4 10\n",
-            "stdout": "used=48,left=32\n"
+            "stdin": "-2 0\n",
+            "stdout": "saved=-2,0\n"
           }
         ]
       },
@@ -114,90 +120,108 @@
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "discount 已读入，却没有参与 used。"
+          "text": "r 模式能否创建文件并写入？写完后的文件位置在哪里？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 used 的表达式。"
+          "text": "检查 fopen 模式，并在 fscanf 前移动文件位置。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "费用做加法，折扣做减法，再用 balance 减去 used。"
+          "text": "使用 w+，fprintf 后调用 rewind(file)。"
         }
       ],
       "fullSolution": {
         "availableAfterTier": 3,
-        "text": "把 used 改为 unit * count + fee - discount，left 继续等于 balance - used。",
-        "effect": "当前练习仍可完成；只有独立变式查看完整解法时才需要更换等价变式。"
+        "text": "把打开模式改成 w+，并在 fprintf 成功后、fscanf 之前调用 rewind(file)。",
+        "effect": "当前练习仍可完成；若在独立变式查看完整解法，系统会改派一道未见过的等价题。"
       }
     },
     {
       "id": "independent-variation",
       "type": "independent-variation",
-      "prompt": "独立实现另一组包含单价、数量、费用与优惠的预算计算。",
+      "prompt": "独立完成一次有错误处理的文件写入与恢复。",
       "runtimeId": "c17-console",
-      "variantSetId": "pigeon-checkout-v1",
+      "variantSetId": "pigeon-file-io-v3",
       "variants": [
         {
-          "id": "twenty-three-items",
-          "prompt": "读取 budget、unit、count、fee、coupon，输出 spent=N,left=N。",
+          "id": "file-product",
+          "prompt": "读取两个整数，写入 snapshot.txt，回卷读回后输出 product；检查每一步返回值。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int budget, unit, count, fee, coupon;\n  scanf(\"%d%d%d%d%d\", &budget, &unit, &count, &fee, &coupon);\n  /* 分步计算 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int a, b;\n  if (scanf(\"%d %d\", &a, &b) != 2) return 1;\n  /* 写入文件、读回并输出乘积 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "60 9 4 2 5\n",
-                "stdout": "spent=33,left=27\n"
+                "stdin": "6 7\n",
+                "stdout": "product=42\n"
               },
               {
-                "stdin": "40 5 3 1 0\n",
-                "stdout": "spent=16,left=24\n"
+                "stdin": "-3 5\n",
+                "stdout": "product=-15\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "fopen",
+                "fprintf",
+                "rewind",
+                "fscanf",
+                "fclose"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int budget, unit, count, fee, coupon;\n  scanf(\"%d%d%d%d%d\", &budget, &unit, &count, &fee, &coupon);\n  int spent = unit * count + fee - coupon;\n  int left = budget - spent;\n  printf(\"spent=%d,left=%d\\n\", spent, left);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int a, b;\n  if (scanf(\"%d %d\", &a, &b) != 2) return 1;\n  FILE *file = fopen(\"snapshot.txt\", \"w+\");\n  if (!file) return 2;\n  if (fprintf(file, \"%d %d\\n\", a, b) < 0) { fclose(file); return 3; }\n  rewind(file);\n  if (fscanf(file, \"%d %d\", &a, &b) != 2) { fclose(file); return 4; }\n  fclose(file);\n  printf(\"product=%d\\n\", a * b);\n  return 0;\n}\n"
         },
         {
-          "id": "eighteen-two-items",
-          "prompt": "读取 limit、price、amount、extra、rebate，输出 used=N,remain=N。",
+          "id": "file-series",
+          "prompt": "读取 n（0–8）与 n 个整数，写入 values.txt；回卷后逐项读回并输出 count 与 sum。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int limit, price, amount, extra, rebate;\n  scanf(\"%d%d%d%d%d\", &limit, &price, &amount, &extra, &rebate);\n  /* 分步计算 */\n  return 0;\n}\n"
+            "main.c": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 0 || n > 8) return 1;\n  /* 保存 n 个值，再从文件恢复统计 */\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
             "cases": [
               {
-                "stdin": "45 6 5 4 3\n",
-                "stdout": "used=31,remain=14\n"
+                "stdin": "4\n2 4 6 8\n",
+                "stdout": "count=4,sum=20\n"
               },
               {
-                "stdin": "100 12 7 5 9\n",
-                "stdout": "used=80,remain=20\n"
+                "stdin": "0\n",
+                "stdout": "count=0,sum=0\n"
               }
-            ]
+            ],
+            "requirements": {
+              "requiredIdentifiers": [
+                "fopen",
+                "fprintf",
+                "rewind",
+                "fscanf",
+                "fclose"
+              ]
+            }
           },
-          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int limit, price, amount, extra, rebate;\n  scanf(\"%d%d%d%d%d\", &limit, &price, &amount, &extra, &rebate);\n  int used = price * amount + extra - rebate;\n  int remain = limit - used;\n  printf(\"used=%d,remain=%d\\n\", used, remain);\n  return 0;\n}\n"
+          "fullSolution": "#include <stdio.h>\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 0 || n > 8) return 1;\n  FILE *file = fopen(\"values.txt\", \"w+\");\n  if (!file) return 2;\n  for (int i = 0; i < n; i++) {\n    int value;\n    if (scanf(\"%d\", &value) != 1) { fclose(file); return 3; }\n    if (fprintf(file, \"%d\\n\", value) < 0) { fclose(file); return 4; }\n  }\n  rewind(file);\n  int count = 0, sum = 0, value;\n  while (fscanf(file, \"%d\", &value) == 1) { count++; sum += value; }\n  fclose(file);\n  printf(\"count=%d,sum=%d\\n\", count, sum);\n  return 0;\n}\n"
         }
       ],
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先写乘法得到小计，再处理费用和优惠。"
+          "text": "把文件生命周期写成打开、检查、写、定位、读、关闭。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "为总使用量和剩余量各保留一个变量。"
+          "text": "每个失败分支都检查是否需要 fclose。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "最后核对“剩余量 + 使用量 = 初始上限”。"
+          "text": "用 w+ 创建读写文件；写完 rewind；以 fscanf 成功转换数控制读取。"
         }
       ],
       "fullSolutionPolicy": {
@@ -215,7 +239,7 @@
   "rewards": {
     "xp": {
       "firstMeaningfulAttempt": 10,
-      "firstClear": 20,
+      "firstClear": 25,
       "repeatDailyCap": 5
     },
     "star": {
@@ -237,6 +261,6 @@
       "attemptSummary",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "先提问帮助学习者定位原因，不直接给完整答案；若必须展示完整答案，请提醒学习者返回后完成新的等价变式。"
+    "tutorInstruction": "先追问学习者的预测、实际结果和原因；不要直接替学习者完成独立变式。若展示完整思路，提醒学习者返回后完成新的等价变式。"
   }
 }

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
   "id": "quail-opening-boss",
-  "version": 2,
+  "version": 3,
   "activityType": "rank-boss",
   "rankId": "quail",
   "sequence": 4,
-  "title": "程序执行与输入输出诊断",
-  "estimatedMinutes": 24,
+  "title": "C 基础与流程控制综合检查",
+  "estimatedMinutes": 35,
   "prerequisiteLevelIds": [
     "quail-fountain-sequence",
     "quail-piano-output",
@@ -15,7 +15,7 @@
   "scene": {
     "locationId": "central-fountain",
     "propIds": [],
-    "intro": "综合追踪函数调用、修复输入检查，并独立完成一段带格式合同的程序。"
+    "intro": "综合运用本段能力完成“C 基础与流程控制综合检查”，每一步都要留下可复现结果。"
   },
   "resumePolicy": {
     "checkpointed": true,
@@ -25,112 +25,119 @@
     {
       "id": "predict-show",
       "kind": "prediction",
-      "title": "追踪跨函数执行路径",
-      "prompt": "程序先在 main 输出“进入 main”，随后调用 read_value；read_value 输出“调用 read_value”并返回 8；main 最后输出“结果:8”。请排列输出顺序。",
+      "title": "推演批量统计状态",
+      "prompt": "依次处理 4、-2、7、0；只有正数计入 valid 与 sum，并持续更新 max。填写最终 valid、sum、max。",
       "evaluator": {
-        "kind": "exact-order",
-        "expected": [
-          "进入 main",
-          "调用 read_value",
-          "结果:8"
-        ]
+        "kind": "object-exact",
+        "expected": {
+          "valid": 2,
+          "sum": 11,
+          "max": 7
+        }
       }
     },
     {
       "id": "repair-broadcast",
       "kind": "code-repair",
-      "title": "修复双整数读取与求和",
+      "title": "修复函数合同、分支与循环边界",
       "runtimeId": "c17-console",
       "starterFiles": {
-        "main.c": "#include <stdio.h>\n\nint main(void) {\n  int left, right;\n  if (scanf(\"%d\", &left) != 1) {\n    printf(\"input-error\\n\");\n    return 0;\n  }\n  printf(\"sum:%d\\n\", left + right);\n  return 0;\n}\n"
+        "main.c": "#include <stdio.h>\nint accepted(int value) { return value >= 0; }\nint main(void) {\n  int n;\n  if (scanf(\"%d\", &n) != 1 || n < 1 || n > 8) return 1;\n  int count = 0, sum = 0;\n  for (int i = 0; i <= n; i++) {\n    int value;\n    if (scanf(\"%d\", &value) != 1) return 1;\n    if (!accepted(value)) { count++; sum += value; }\n  }\n  printf(\"count=%d,sum=%d\\n\", count, sum);\n  return 0;\n}\n"
       },
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "7 5\n",
-            "stdout": "sum:12\n"
+            "stdin": "4\n4 -2 7 0\n",
+            "stdout": "count=2,sum=11\n"
           },
           {
-            "stdin": "7 x\n",
-            "stdout": "input-error\n"
+            "stdin": "3\n-1 0 -2\n",
+            "stdout": "count=0,sum=0\n"
           },
           {
-            "stdin": "x 5\n",
-            "stdout": "input-error\n"
-          },
-          {
-            "stdin": "-4 9\n",
-            "stdout": "sum:5\n"
+            "stdin": "1\n5\n",
+            "stdout": "count=1,sum=5\n"
           }
-        ]
+        ],
+        "requirements": {
+          "requiredIdentifiers": [
+            "for",
+            "scanf",
+            "accepted",
+            "printf"
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "两个整数都必须成功赋值，才能计算总和。"
+          "text": "分别追踪 0、负数与最后一轮：当前函数、分支和循环各自把什么算错了？"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 scanf 的格式字符串、参数数量和返回值。"
+          "text": "依次检查 accepted 的边界、if 的真假方向，以及 for 是否恰好读取 n 次。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "一次读取两个 %d，并要求返回值等于 2。"
+          "text": "只有 value > 0 才接受；接受时才累加；i 应从 0 到 n-1。"
         }
       ]
     },
     {
       "id": "transfer-new-show",
       "kind": "independent-transfer",
-      "title": "独立实现输入回显与最大值",
-      "prompt": "编写 C 程序读取两个整数。读取失败输出 input-error；成功时先输出 input:a,b，再输出 max:n。相等时 max 输出该值。",
+      "title": "独立实现命令行数据统计器",
+      "prompt": "从零编写程序：读取 n（1–8）与 n 个整数；用函数 accepted 判断 -100..100；只统计有效值，输出 valid、sum、min、max。至少处理全无效输入并输出 valid=0,sum=0。",
       "runtimeId": "c17-console",
       "grader": {
         "kind": "stdin-stdout-cases",
         "cases": [
           {
-            "stdin": "3 9\n",
-            "stdout": "input:3,9\nmax:9\n"
+            "stdin": "5\n4 -2 700 7 0\n",
+            "stdout": "valid=4,sum=9,min=-2,max=7\n"
           },
           {
-            "stdin": "8 -2\n",
-            "stdout": "input:8,-2\nmax:8\n"
+            "stdin": "3\n101 -500 800\n",
+            "stdout": "valid=0,sum=0\n"
           },
           {
-            "stdin": "5 5\n",
-            "stdout": "input:5,5\nmax:5\n"
-          },
-          {
-            "stdin": "4 ?\n",
-            "stdout": "input-error\n"
+            "stdin": "1\n-100\n",
+            "stdout": "valid=1,sum=-100,min=-100,max=-100\n"
           }
-        ]
+        ],
+        "requirements": {
+          "requiredIdentifiers": [
+            "accepted",
+            "for",
+            "if",
+            "scanf",
+            "printf"
+          ]
+        }
       },
       "hints": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先把读取失败路径单独处理，再写成功路径。"
+          "text": "先定义“第一个有效值出现前”和“出现后”两种状态。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "成功路径需要两条 printf，最大值可用 if 或条件表达式。"
+          "text": "accepted 只判断范围；main 负责循环与统计。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "要求 scanf 返回 2；用 left >= right 选择最大值。"
+          "text": "用 has_value 标记 min/max 是否已经由真实有效输入初始化。"
         }
       ],
       "fullSolutionPolicy": {
-        "availableAfterTier": 3,
-        "revealedSolutionDisablesStarForCurrentVariant": true,
-        "assignUnusedEquivalentVariant": true
+        "revealRequiresNewEquivalentCheckpoint": true
       }
     }
   ],
@@ -140,11 +147,11 @@
     "managerApprovalRequired": false
   },
   "rewards": {
-    "xp": 80,
+    "xp": 100,
     "rankPromotion": true,
     "coreToken": {
       "id": "token-square-start-key",
-      "title": "程序追踪徽章",
+      "title": "C 程序通行证",
       "wallCategory": "ability-token"
     },
     "neverRevoke": true
@@ -159,6 +166,6 @@
       "actualResult",
       "viewedHintTiers"
     ],
-    "tutorInstruction": "用问题引导学习者追踪调用、输入与输出；不要代替学习者完成最后的独立检查点。"
+    "tutorInstruction": "用问题帮助学习者缩小问题范围；不要替学习者完成最后的独立迁移检查点。"
   }
 }
