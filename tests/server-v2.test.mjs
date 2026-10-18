@@ -224,7 +224,7 @@ test('大厅、关卡和岛务状态来自 schema V2 的同一份 V3 课程；�
 
   const home = expect(await request(app, '/api/play/home'), 200);
   assert.equal(home.body.course.schemaVersion, 2);
-  assert.equal(home.body.course.publishedRevision, 7);
+  assert.equal(home.body.course.publishedRevision, 8);
   assert.equal(home.body.course.ranks.length, 9);
   assert.equal(home.body.progress.revision, 0);
   assert.equal(home.body.summary.currentActivityId, 'quail-fountain-sequence');

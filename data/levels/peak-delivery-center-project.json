@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "id": "peak-delivery-center-project",
-  "version": 1,
+  "version": 2,
   "activityType": "rank-project",
   "rankId": "peak-phoenix",
   "title": "蛋仔商城道具配送中心",
-  "technologyTheme": "C++ 工程、资源管理、线程、任务队列、互斥量、条件变量、竞态、死锁与安全停机",
+  "technologyTheme": "C++20 封装与不变量、RAII 与值语义、CPU 密集路线计算、数据局部性、线程池、共享状态与安全停机",
   "languages": [
     "cpp"
   ],
@@ -27,13 +27,13 @@
     "bouncy-ball"
   ],
   "estimatedSessions": {
-    "minimum": 22,
-    "typical": 30
+    "minimum": 50,
+    "typical": 54
   },
   "prerequisiteActivityIds": [
     "dinosaur-night-patrol-project"
   ],
-  "story": "商城订单不断进入，道具仓库由多个工作人员线程共同处理，必须避免重复发货、负库存和关店死锁。",
+  "story": "商城节日前夜，大量道具订单需要计算配送路线、争用库存并转仓。你将从受保护的 C++ 订单对象开始，在同一个配送中心工程中建立可信的串行计算基准，再加入并行计算、有界任务队列和安全停机，使每笔已接收任务都得到可解释的结果。",
   "oneProjectRule": {
     "allChaptersModifySameArtifact": true,
     "chapterExercisesAreNotSeparateProjects": true
@@ -42,13 +42,23 @@
     "kind": "cpp-terminal-service",
     "workingTitle": "蛋仔商城道具配送中心",
     "entryFile": "src/main.cpp",
-    "runTarget": "linux-cpp20"
+    "runTarget": "cpp20-terminal",
+    "requiredDeliverables": [
+      "同一个 C++20 工程：Makefile、src/ 和 tests/，不用第三方库即可构建",
+      "30 个连续代码增量和 10 个章末完整快照；按顺序复制后得到最终可运行配送中心",
+      "串行与并行逐项相等的计算结果、可复现输入和本机性能记录",
+      "库存幂等、冲突、反向转仓、任务异常、排空与取消的本地测试证据"
+    ]
   },
   "coreContract": [
-    "订单进入线程安全任务队列",
-    "库存更新满足不重复发货且不为负数",
-    "工作线程可等待、被唤醒、取消任务并安全退出",
-    "异常与资源由 RAII 管理，关店不会泄漏线程或锁"
+    "业务字段由类的 public 接口进入，private 状态始终满足编号非空、数量合法和库存非负等不变量",
+    "CPU 路线评分必须由真实运算产生；串行结果作为优化和并行实现的逐项正确性基准",
+    "计算输入只读、输出预先分配且每个任务只写自己的位置；不依赖线程完成顺序决定路线或统计",
+    "队列容量有界；等待使用受锁保护的谓词，关闭后生产者和消费者都能结束",
+    "库存检查、扣减及订单处理记录在同一临界区内完成；同号同内容幂等，同号不同内容明确冲突",
+    "转仓共同持有两仓库的锁并保持总库存守恒；耗时计算不占用库存锁",
+    "任务异常通过结果通道传给调用者；关闭入口、排空或取消、唤醒和回收线程具有明确顺序",
+    "30 个步骤的完整文件能依次累积成一个作品；每步与每章都有可独立恢复的完整代码"
   ],
   "chapterTeachingLoop": [
     "experience",
@@ -62,297 +72,2485 @@
   "chapters": [
     {
       "id": "cpp-domain-model",
-      "title": "建立订单与库存模型",
-      "goal": "用 string、vector、unordered_map 和值语义表达业务数据。",
+      "title": "把订单规则封装在对象内部",
+      "phase": "封装与对象边界",
+      "estimatedSessions": 5,
+      "goal": "通过 Order(id, units, routeSeed) 的构造校验、private 字段、const 读取与值语义，保护合法订单状态。",
       "concepts": [
-        "C++ 类型",
-        "容器",
-        "const",
+        "封装与不变量",
+        "public 与 private",
+        "const 与只读引用",
         "值语义"
       ],
-      "guidedBuild": "建立 Item、Order 和 Inventory，并验证查找失败。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：建立受约束的订单模型；让配送入口使用模型；验证边界与值语义。",
+      "milestone": "封装规则由测试约束，模型能被后续计算章节直接复用。",
+      "filesTouched": [
+        "Makefile",
+        "README.md",
+        ".gitignore",
+        "src/domain.hpp",
+        "src/main.cpp",
+        "tests/tests.cpp"
+      ],
+      "conceptModule": {
+        "title": "为什么一笔订单不应允许任意改成负数",
+        "learningGoal": "能沿构造、读取和修改入口解释不变量，而不是只把 struct 换成 class。",
+        "phenomenon": {
+          "title": "一次直接赋值破坏整笔订单",
+          "observation": "如果订单字段完全开放，调用者能把数量写成 -3，或把编号清空；后续算法即使能够编译，业务输入也已失效。现在 Order 把这些字段收为 private，构造入口统一校验，调用者通过 const 读取函数使用合法对象。",
+          "question": "哪些状态必须始终成立？哪些调用应该允许改变这些状态？"
+        },
+        "mentalModel": {
+          "summary": "封装不是把每个字段加一对 getter/setter，而是把状态与允许的操作放在同一个边界里。构造入口验证不可缺少的条件，public 表达业务操作，private 保存实现细节；const 读取承诺不改变这个对象的可观察状态。值语义让每份订单有清楚的生命期和复制行为。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "外部输入",
+              "explanation": "订单编号、数量和路线种子只是待验证数据。"
+            },
+            {
+              "id": "stage-2",
+              "title": "构造校验",
+              "explanation": "拒绝空编号、非法数量或不满足约定的输入。"
+            },
+            {
+              "id": "stage-3",
+              "title": "保持不变量",
+              "explanation": "内部字段不允许被调用方绕过接口写坏。"
+            },
+            {
+              "id": "stage-4",
+              "title": "只读使用",
+              "explanation": "通过 const 引用读取合法对象，计算函数无需担心运行中被改成另一笔订单。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "封装与不变量",
+            "plainMeaning": "不变量是对象在公开操作前后都必须成立的条件；封装让检查规则只有一个可信入口。",
+            "codeMapping": "阅读 src/domain.hpp 中 Order(id, units, routeSeed) 的 private 字段和构造校验，列出类外禁止的写入。"
+          },
+          {
+            "term": "public 与 private",
+            "plainMeaning": "public 是调用者能用的接口，private 是类自己维护的内部状态；访问限制发生在编译期。",
+            "codeMapping": "尝试在练习副本中直接修改私有字段，观察编译器拒绝，再恢复文件。"
+          },
+          {
+            "term": "const 与只读引用",
+            "plainMeaning": "const T& 借用对象并限制通过这个引用修改对象，避免不必要的复制；它不自动保证其他线程不能修改同一对象。",
+            "codeMapping": "查看 getter 的 const 修饰和接收订单的 const 引用参数。"
+          },
+          {
+            "term": "值语义",
+            "plainMeaning": "复制一个值后得到独立对象；修改副本不应意外改变原对象。移动则转移资源，不是两份共享所有权。",
+            "codeMapping": "在 tests/tests.cpp 比较复制前后的订单字段和独立生存期。"
+          }
+        ],
+        "workedExample": {
+          "title": "合法订单跨过边界后如何被使用",
+          "steps": [
+            "构造数量为 2 的 Order，读取接口返回已校验的编号、数量和路线种子。",
+            "尝试构造数量为 0 或编号为空的 Order，构造阶段报告错误，不留下半合法对象。",
+            "通过 const Order& 读取订单，避免为只读使用复制整笔对象。",
+            "把有效订单复制到待计算列表，原订单与副本各自拥有数据；后续生命周期清楚。"
+          ],
+          "takeaway": "先让非法状态难以进入，再让后续模块依赖这个合同。"
+        },
+        "misconceptions": [
+          {
+            "claim": "字段全改 private，再提供任意 setter 就完成封装。",
+            "correction": "如果 setter 能写入负数量，业务不变量依然能被破坏；接口应表达受校验的业务动作。"
+          },
+          {
+            "claim": "const 对象天然线程安全。",
+            "correction": "const 限制特定访问路径，并不替代共享可变数据的同步协议。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "invariant-boundary",
+            "question": "订单数量只能大于 0，最可靠的约束放在哪里？",
+            "options": [
+              {
+                "id": "a",
+                "text": "在构造或受控业务修改入口统一校验"
+              },
+              {
+                "id": "b",
+                "text": "仅在 main 打印前检查一次"
+              },
+              {
+                "id": "c",
+                "text": "让每个调用者自觉避免负数"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "类的所有公开修改入口必须维护同一不变量，否则新调用者很容易绕过零散检查。"
+          },
+          {
+            "id": "immutable-input",
+            "question": "计算函数读取数量时，哪种接口最能维护对象边界？",
+            "options": [
+              {
+                "id": "b",
+                "text": "返回数量字段的可修改引用给任意调用方"
+              },
+              {
+                "id": "c",
+                "text": "公开所有字段，调用前临时检查"
+              },
+              {
+                "id": "a",
+                "text": "通过 const 读取接口获得经过构造校验的数据"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "只读接口让算法使用合法状态，同时避免外部直接绕过校验修改内部字段。"
+          },
+          {
+            "id": "const-boundary",
+            "question": "函数接收 const Order& 最直接表达什么？",
+            "options": [
+              {
+                "id": "c",
+                "text": "自动复制一份订单"
+              },
+              {
+                "id": "a",
+                "text": "借用这笔订单，不能通过该引用修改其可观察状态"
+              },
+              {
+                "id": "b",
+                "text": "这笔订单被永久锁住，任何线程都不能改"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "只读引用建立接口约束并减少复制，不提供互斥或拥有关系。"
+          }
+        ],
+        "bridgeToCode": "第一个增量交付模型完整头文件，第二个把对象接入真实 main，第三个补齐合法、非法与只读查询测试。"
+      },
+      "guidedSteps": [
+        {
+          "id": "cpp-domain-model-step-1",
+          "codeStepId": "cpp-domain-model-step-1-code",
+          "title": "建立受约束的订单模型",
+          "targetFiles": [
+            "Makefile",
+            "README.md",
+            ".gitignore",
+            "src/domain.hpp",
+            "src/main.cpp",
+            "tests/tests.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读构造函数、private 字段和 const 读取接口，对照合法数量和编号规则。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "cpp-domain-model-step-2",
+          "codeStepId": "cpp-domain-model-step-2-code",
+          "title": "让配送入口使用模型",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "复制本小节提供的完整 src/main.cpp，在同一工程里构造 Order(id, units, routeSeed)，跟踪 const 读取接口。按代码包文件列表保留前节内容，不需要补写其他函数。",
+          "verify": "执行 make test 和 make run；入口展示真实订单数据，非法编号和数量由构造入口拒绝。"
+        },
+        {
+          "id": "cpp-domain-model-step-3",
+          "codeStepId": "cpp-domain-model-step-3-code",
+          "title": "验证边界与值语义",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "复制本小节完整 tests/tests.cpp，阅读非法数量、空编号和复制行为断言；选择一个边界输入手算预期，运行全部测试。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；封装规则由测试约束，模型能被后续计算章节直接复用。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察不存在的道具是否被隐式创建。"
+          "text": "先找出究竟是哪一个公开操作允许非法状态进入。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 map 查询和修改接口。"
+          "text": "对照 domain.hpp 的构造校验、private 字段和 const 读取接口。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "读取与插入应使用不同接口，避免查询产生副作用。"
+          "text": "让构造与受控修改维护不变量，读取接口不暴露可随意写入的内部引用。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "独立增加订单校验并拒绝未知道具。",
-        "evidence": "单元测试与错误输出",
-        "automatedChecks": [
-          "unknown-item",
-          "zero-quantity",
-          "valid-order"
+        "task": "从章末完整代码出发，在现有测试表增加“空编号”或“数量边界”中的另一组输入；只补输入与预期结果，不增加新业务模块。",
+        "evidence": "新增合法/非法输入、构造结果、只读调用与复制行为的本地测试摘要",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "能指出类的两条不变量以及维护它们的入口",
+          "新增非法输入被拒绝，合法输入行为保持不变"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "并发库存章节复用同一模型，不改变公开合同。"
+      "laterReencounter": "后续线程只能读取这些已经校验的订单；库存更新依然通过公开业务接口。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "从章末完整代码出发，在现有测试表增加“空编号”或“数量边界”中的另一组输入；只补输入与预期结果，不增加新业务模块。"
+        ],
+        "expectedResults": [
+          "封装规则由测试约束，模型能被后续计算章节直接复用。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "cpp-domain-model-3"
     },
     {
       "id": "raii-ownership",
-      "title": "让资源自动回收",
-      "goal": "使用 RAII 管理线程、文件和锁的生命周期。",
+      "title": "用对象生命期管理资源",
+      "phase": "封装与对象边界",
+      "estimatedSessions": 5,
+      "goal": "理解 RAII、独占所有权、移动语义与异常展开，让正常返回和异常路径遵守同一清理规则。",
       "concepts": [
-        "构造析构",
-        "智能指针",
+        "RAII",
+        "独占所有权",
+        "移动语义",
         "异常安全"
       ],
-      "guidedBuild": "把手动清理路径收束到对象生命周期。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：建立 RAII 拥有者；在入口展示所有权转移；覆盖异常退出。",
+      "milestone": "拥有者移动后源访问被拒绝，异常可传播到调用边界；资源回收依据标准容器与 unique_ptr 的 RAII 合同解释。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/ownership.hpp"
+      ],
+      "conceptModule": {
+        "title": "抛出异常后谁负责清理资源",
+        "learningGoal": "能区分对象拥有资源与临时借用，并解释为什么移动后不能出现两个清理者。",
+        "phenomenon": {
+          "title": "每加一个提前退出都要补一处清理",
+          "observation": "手动申请资源后，正常路径会释放，但中间的 return 或 throw 容易绕过释放。把资源交给有析构行为的对象后，离开作用域会统一触发回收。",
+          "question": "怎样让资源回收取决于对象生命期，而不取决于程序走了哪条分支？"
+        },
+        "mentalModel": {
+          "summary": "RAII 把“获得资源”和“建立拥有者”绑定，把“离开作用域”和“释放资源”绑定。局部对象按构造的逆序析构，异常展开也遵守这一规则。独占资源不能被随意复制，移动可以把唯一拥有权交给新对象；借用者不负责释放。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "成功获得资源",
+              "explanation": "拥有者建立后才宣布可用，失败直接抛出或返回失败。"
+            },
+            {
+              "id": "stage-2",
+              "title": "受控使用",
+              "explanation": "业务代码借用资源，不复制拥有权。"
+            },
+            {
+              "id": "stage-3",
+              "title": "转移或退出",
+              "explanation": "移动转移唯一责任；普通退出和异常都结束相应对象生命期。"
+            },
+            {
+              "id": "stage-4",
+              "title": "一次性清理",
+              "explanation": "由最终拥有者释放，析构路径不再抛出新的异常。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "RAII",
+            "plainMeaning": "Resource Acquisition Is Initialization：资源在对象初始化时获得，在对象析构时释放。资源包括内存、锁、文件和线程生命期。",
+            "codeMapping": "ownership.hpp 中 RouteTable 拥有 vector 数据，DispatchSession 用 unique_ptr<RouteTable> 独占表并拥有 vector<Order>。"
+          },
+          {
+            "term": "独占所有权",
+            "plainMeaning": "同一份资源在同一时刻只有一个负责释放的对象，其他引用只是借用。",
+            "codeMapping": "DispatchSession 禁止复制，移动后原会话不能再读取已转走的 RouteTable；访问时报告错误。"
+          },
+          {
+            "term": "移动语义",
+            "plainMeaning": "std::move 只是把表达式转换为可供移动的类别，是否真正转移资源取决于类型的构造或赋值操作。独占拥有者移动后不再拥有原资源，但仍能安全析构。",
+            "codeMapping": "对照 Order 显式复制操作与 DispatchSession 移动操作：std::move(order) 仍调用复制，原订单有效；移动 DispatchSession 则转走 unique_ptr 和 vector。"
+          },
+          {
+            "term": "异常安全",
+            "plainMeaning": "操作失败后仍维护对象不变量并释放已获得资源；它不意味着所有失败都能自动回滚。",
+            "codeMapping": "在 DispatchSession 创建后抛出异常，验证拥有对象随栈展开清理；RAII 不等于自动回滚业务记录。"
+          }
+        ],
+        "workedExample": {
+          "title": "一个资源跨过移动与异常边界",
+          "steps": [
+            "创建拥有者 A，此时资源有且只有一个负责释放者。",
+            "把 DispatchSession A 移动给 B，A.routes() 被明确拒绝，B 接手 RouteTable 和订单列表。",
+            "在 B 所在作用域抛出一个受测试捕获的异常。",
+            "栈展开先析构 B，释放资源；随后析构空的 A，不发生二次释放。"
+          ],
+          "takeaway": "清理责任跟着拥有权走，不跟着变量名称或正常执行路径走。"
+        },
+        "misconceptions": [
+          {
+            "claim": "RAII 只等于智能指针。",
+            "correction": "智能指针是 RAII 的一种实现；lock_guard、线程守卫和文件对象同样利用生命期管理资源。"
+          },
+          {
+            "claim": "析构能清理资源，所以失败时业务状态一定自动回滚。",
+            "correction": "RAII 保证相应资源的释放；库存与订单记录是否一致仍需设计事务式修改边界。"
+          },
+          {
+            "claim": "写出 std::move 就一定发生资源转移。",
+            "correction": "std::move 不直接移动任何数据；本工程 Order 因显式复制操作抑制隐式移动，std::move(order) 仍然复制。DispatchSession 才拥有真正的移动操作。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "raii-throw",
+            "question": "资源建立后立即 throw，什么保证已建立的局部拥有者被清理？",
+            "options": [
+              {
+                "id": "b",
+                "text": "catch 必须手动寻找每个资源"
+              },
+              {
+                "id": "c",
+                "text": "操作系统一定在函数返回时回收所有堆对象"
+              },
+              {
+                "id": "a",
+                "text": "异常展开调用其析构函数"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "局部 RAII 对象在异常展开时析构；进程仍在运行时不能依赖进程退出替代资源管理。"
+          },
+          {
+            "id": "owner-move",
+            "question": "把独占拥有者 A 移动到 B 后，谁负责原资源？",
+            "options": [
+              {
+                "id": "c",
+                "text": "资源永远不再释放"
+              },
+              {
+                "id": "a",
+                "text": "B，A 保持可析构但不再拥有原资源"
+              },
+              {
+                "id": "b",
+                "text": "A 和 B 各释放一次"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "移动必须转移唯一责任；具体被移动对象状态遵循类型合同。"
+          },
+          {
+            "id": "borrow-lifetime",
+            "question": "返回指向局部拥有者内部数据的引用后局部对象被析构，会怎样？",
+            "options": [
+              {
+                "id": "a",
+                "text": "引用可能悬空，不能继续读取"
+              },
+              {
+                "id": "b",
+                "text": "引用会自动延长所有类型的生命期"
+              },
+              {
+                "id": "c",
+                "text": "const 引用总是安全"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "借用必须短于被借用资源的生命期，const 不改变这一基本要求。"
+          }
+        ],
+        "bridgeToCode": "先观察代码中的资源拥有者，再跟踪 main 的移动过程，最后让测试在中途抛出异常并验证清理。"
+      },
+      "guidedSteps": [
+        {
+          "id": "raii-ownership-step-1",
+          "codeStepId": "raii-ownership-step-1-code",
+          "title": "建立 RAII 拥有者",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/ownership.hpp"
+          ],
+          "instruction": "复制本节完整 ownership.hpp，阅读 RouteTable 的 vector 所有权和 DispatchSession 的 unique_ptr<RouteTable>、订单列表、禁用复制与移动操作；标出唯一拥有者。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "raii-ownership-step-2",
+          "codeStepId": "raii-ownership-step-2-code",
+          "title": "在入口展示所有权转移",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "复制完整 main，跟踪 DispatchSession 创建、移动及 moved-from 读取拒绝；const 引用只是借用，不接管资源。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；移动后只有新拥有者承担清理责任。"
+        },
+        {
+          "id": "raii-ownership-step-3",
+          "codeStepId": "raii-ownership-step-3-code",
+          "title": "覆盖异常退出",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "复制本节完整测试，检查 DispatchSession 禁止复制、移动后源对象读取被拒绝，以及构造后 throw 的路径。标准容器和 unique_ptr 按 RAII 析构；本测试验证行为与异常合同，并未提供独立泄漏检测器。",
+          "verify": "执行 make test 和 make run；测试确认禁止复制、移动后源访问拒绝、边界异常及构造后异常传播。源码中的标准容器与 unique_ptr 负责回收；本节不把未计数的析构次数或未执行的泄漏检测写成测试结果。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "从每个提前返回和异常出口检查资源。"
+          "text": "先画出资源和当前拥有者的一对一关系。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查拥有资源的类及其析构函数。"
+          "text": "检查 ownership.hpp 中复制、移动和析构路径。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "所有权明确后，控制流变化也能触发释放。"
+          "text": "借用不释放；移动转走责任，离开作用域由最终拥有者清理。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "在处理中抛出异常仍能关闭日志并回收对象。",
-        "evidence": "异常测试与资源检查",
-        "automatedChecks": [
-          "exception-cleanup",
-          "no-double-free"
+        "task": "在完整异常测试中把 throw 移到第二个 DispatchSession 构造之后，确认调用边界捕获预期异常，并根据局部对象和成员的生命期说明回收顺序；只调整已给出的测试代码。",
+        "evidence": "移动前后可访问对象、异常被捕获后的测试结果，以及根据成员所有权解释的析构次序",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "能说明正常退出和异常展开为何执行同一清理规则",
+          "移动后的源对象不会再次释放已转移资源"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "安全停机章节让线程守卫处理 join。"
+      "laterReencounter": "线程守卫、unique_lock 和线程池的停止流程会继续采用相同所有权原则。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在完整异常测试中把 throw 移到第二个 DispatchSession 构造之后，确认调用边界捕获预期异常，并根据局部对象和成员的生命期说明回收顺序；只调整已给出的测试代码。"
+        ],
+        "expectedResults": [
+          "拥有者移动后源访问被拒绝，异常可传播到调用边界；资源回收依据标准容器与 unique_ptr 的 RAII 合同解释。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "raii-ownership-3"
+    },
+    {
+      "id": "compute-baseline",
+      "title": "建立 CPU 密集计算的可信基准",
+      "phase": "计算与性能",
+      "estimatedSessions": 5,
+      "goal": "实现确定性的配送候选路线评分，先用串行参考结果定义正确性，再讨论性能。",
+      "concepts": [
+        "CPU 密集计算",
+        "确定性与串行基准",
+        "稳定择优",
+        "复杂度与工作量",
+        "整数边界"
+      ],
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：写出确定性串行评分；连接真实计算入口；用边界用例锁定基准。",
+      "milestone": "串行基准有逐项断言，可作为后续优化的参照。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/compute.hpp"
+      ],
+      "conceptModule": {
+        "title": "让 CPU 真的算路线，而不是用等待假装忙碌",
+        "learningGoal": "能解释计算输入、候选评分、稳定择优、结果校验与工作量之间的关系。",
+        "phenomenon": {
+          "title": "同样的订单，候选路线越多就要做更多运算",
+          "observation": "每个订单需要逐一评估候选路线并累加代价。循环里的整数运算会消耗 CPU；sleep 只让线程等待，无法代表计算密集负载。",
+          "question": "如果把评估顺序换掉，怎样保证选出的路线仍然相同？"
+        },
+        "mentalModel": {
+          "summary": "把评分写成由输入唯一决定输出的计算核：RouteWorkload 按候选编号 0、1、2… 保存每条路线的路段；segmentCost 对每段做 24 轮无符号整数混合，累加为候选代价。串行按编号升序遍历，只在代价严格更小时更新，因此平局保留最小编号。工作量由订单数×候选数×路段数×24 决定。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "确定输入",
+              "explanation": "固定生成规则和规模，保存用于比较的同一批订单与候选路线。"
+            },
+            {
+              "id": "stage-2",
+              "title": "枚举并评分",
+              "explanation": "串行逐项计算，禁止用随机结果或 sleep 替代运算。"
+            },
+            {
+              "id": "stage-3",
+              "title": "稳定择优",
+              "explanation": "相同代价时按明确编号规则决胜，不依赖遍历偶然顺序。"
+            },
+            {
+              "id": "stage-4",
+              "title": "建立参考答案",
+              "explanation": "保存每笔订单的候选编号和代价，供布局与并行实现逐项比较。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "CPU 密集计算",
+            "plainMeaning": "时间主要花在处理器执行运算，而非等待磁盘、网络或人为延迟；工作量必须有实际业务计算。",
+            "codeMapping": "阅读 src/compute.hpp 的候选路线循环和整数代价计算。"
+          },
+          {
+            "term": "确定性与串行基准",
+            "plainMeaning": "确定性意味着同一合法输入得到同一输出；直观串行实现作为其他实现的正确性参照。",
+            "codeMapping": "同一订单集重复串行计算，比较每个结果而不仅比较打印总数。"
+          },
+          {
+            "term": "稳定择优",
+            "plainMeaning": "多个候选代价相等时还需要固定规则，例如选择编号较小者，否则输出可能随调度变化。",
+            "codeMapping": "scoreBaseline 依次访问编号 0 到 candidates-1，使用 total < best.cost，所以平局保留较小索引；优化版必须保留该语义。"
+          },
+          {
+            "term": "复杂度与工作量",
+            "plainMeaning": "订单数与候选数相乘决定基本评估次数，额外轮次增加每次评估的计算成本；这些量不能只靠耗时推断。",
+            "codeMapping": "改变一个规模参数时先计算预期评估次数，再观察运行时间变化。"
+          },
+          {
+            "term": "整数边界",
+            "plainMeaning": "无符号整数混合有意使用定义明确的模 2^64 回绕；业务代价累加则不能溢出。每段结果最多 65535，路段最多 4096，因此总和最多 268431360，uint64_t 足够。",
+            "codeMapping": "segmentCost 用 uint64_t 做混合并取低 16 位；RouteWorkload 限制候选数与路段数各为 1..4096，大小不匹配时拒绝。"
+          }
+        ],
+        "workedExample": {
+          "title": "按固定编号逐步保留最优候选",
+          "steps": [
+            "用简化代价表推演择优：候选 0 得 34、候选 1 得 34、候选 2 得 41；这些数用于理解比较器，真实数值由 segmentCost 产生。",
+            "候选 0 首次替换初始最大代价，best={0,34}。",
+            "候选 1 相等，total < best.cost 为假，因此保留编号 0。",
+            "候选 2 更贵，继续保留编号 0。测试以重复路段构造真实平局，断言结果 route==0。",
+            "候选或路段为 0 不是一条有效路线，构造时拒绝；空订单批次的处理将在并行批次章节验证。"
+          ],
+          "takeaway": "基准规定候选索引与平局规则；不能任意重排候选后还把变化的索引当作相同业务编号。"
+        },
+        "misconceptions": [
+          {
+            "claim": "加一个 sleep 就得到真实的 CPU 压力测试。",
+            "correction": "sleep 测量等待调度，与路线运算的 CPU 使用模式不同。"
+          },
+          {
+            "claim": "结果总和相同就表示逐笔都算对。",
+            "correction": "两笔错误可能抵消；总和可辅助观察，但正确性测试应比较完整结果。"
+          },
+          {
+            "claim": "任何整数回绕都是同一种错误。",
+            "correction": "本工程混合函数特意使用定义明确的无符号回绕；业务代价另有上界证明。不能把这种做法随意推广到有符号算术或真实金额。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "tie-break",
+            "question": "路线 2 和路线 7 代价相同，多个线程完成顺序不同，如何保证结果一致？",
+            "options": [
+              {
+                "id": "c",
+                "text": "增加 sleep 让编号 2 先完成"
+              },
+              {
+                "id": "a",
+                "text": "使用固定编号决胜规则，而非先完成者优先"
+              },
+              {
+                "id": "b",
+                "text": "直接保留先返回的结果"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "调度顺序不属于业务合同；比较器必须提供稳定的等价处理。"
+          },
+          {
+            "id": "serial-oracle",
+            "question": "并行版总校验和与串行版相同，足以证明什么？",
+            "options": [
+              {
+                "id": "a",
+                "text": "只能辅助检查，仍需逐订单比较路线和代价"
+              },
+              {
+                "id": "b",
+                "text": "每笔结果一定完全相同"
+              },
+              {
+                "id": "c",
+                "text": "并行版一定更快"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "校验和存在碰撞或抵消，不能替代语义结果的逐项相等。"
+          },
+          {
+            "id": "wide-before-multiply",
+            "question": "要避免两个较大整数相乘时先在窄类型内溢出，应怎么做？",
+            "options": [
+              {
+                "id": "b",
+                "text": "先用 int 相乘，最后把结果转成大类型"
+              },
+              {
+                "id": "c",
+                "text": "发生溢出后重试一次"
+              },
+              {
+                "id": "a",
+                "text": "在乘法前转到已验证足够宽的类型并检查输入范围"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "运算类型决定溢出发生的位置；事后转换无法恢复丢失信息。"
+          }
+        ],
+        "bridgeToCode": "逐行读完整 RouteWorkload、segmentCost 与 scoreBaseline；真实评分采用可重复整数模型，用于学习计算性能，不是真实地图导航算法。"
+      },
+      "guidedSteps": [
+        {
+          "id": "compute-baseline-step-1",
+          "codeStepId": "compute-baseline-step-1-code",
+          "title": "写出确定性串行评分",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/compute.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读候选生成、完整评分和稳定比较规则，标出输入范围检查。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "compute-baseline-step-2",
+          "codeStepId": "compute-baseline-step-2-code",
+          "title": "连接真实计算入口",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。让 main 调用计算核并输出由结果推导的摘要，确认输出不是硬编码。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，观察真实计算结果；改变合法候选数或路段数会改变实际运算，零维度在构造边界拒绝。"
+        },
+        {
+          "id": "compute-baseline-step-3",
+          "codeStepId": "compute-baseline-step-3-code",
+          "title": "用边界用例锁定基准",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "复制完整 tests/tests.cpp，运行单候选、重复计算、平局、零维度、超过上限和样本数不符测试；对照每段代价与总和上界。",
+          "verify": "执行 make test 和 make run；串行基准的合法维度、固定择优和代价边界均有断言。"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先取一笔订单和少量候选，手算每一步代价。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查 compute.hpp 的累加类型、循环边界和相同代价比较。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "不要用计时判断正确性；先确认输入合法、每个候选算过且平局规则固定。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "在已给出的平局测试中，把两条相同路线扩展为三条相同路线，保持路段数与样本数匹配，断言仍选择编号 0；只补输入和预期值。",
+        "evidence": "小输入手算表、完整逐项结果、边界测试输出",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "能指出真正消耗 CPU 的循环，而不是把等待当计算",
+          "相等代价的候选按明确规则决胜",
+          "输入范围和累加类型相互匹配"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "局部性优化和多线程必须逐项等于这一串行结果，任何性能结论都在正确性之后。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在已给出的平局测试中，把两条相同路线扩展为三条相同路线，保持路段数与样本数匹配，断言仍选择编号 0；只补输入和预期值。"
+        ],
+        "expectedResults": [
+          "串行基准有逐项断言，可作为后续优化的参照。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "compute-baseline-3"
+    },
+    {
+      "id": "data-locality",
+      "title": "先让数据走得更近",
+      "phase": "计算与性能",
+      "estimatedSessions": 5,
+      "goal": "在单线程中调整数据布局与遍历方式，理解局部性、分配成本和公平计时。",
+      "concepts": [
+        "数据局部性",
+        "热路径与分配",
+        "等价优化",
+        "基准测量"
+      ],
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：加入连续数据表示；并排运行两种计算；覆盖布局转换边界。",
+      "milestone": "等价性测试通过；没有把固定加速倍数写成测试目标。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/locality.hpp"
+      ],
+      "conceptModule": {
+        "title": "同样做加法，为什么换一种数据访问方式会变快或变慢",
+        "learningGoal": "能区分改变计算含义和改善数据访问，并用同一基准约束优化。",
+        "phenomenon": {
+          "title": "循环次数相同，耗时却不同",
+          "observation": "本工程的 RouteWorkload 已经用连续 vector 保存 RouteSample{x,y,toll}，PackedRoutes 再把三个字段分为三个连续数组。二者访问相同路段、调用同一 segmentCost；变化是 AoS/SoA 布局，不是删掉计算。由于本循环同时需要全部字段且混合运算很重，SoA 未必更快。",
+          "question": "怎样证明优化保留了路线含义？怎样避免把准备数据时间误当作计算速度差异？"
+        },
+        "mentalModel": {
+          "summary": "CPU 运算需要读取数据。RouteSample 数组把每个路段的 x/y/toll 放在一起（AoS）；PackedRoutes 把同种字段放在各自数组（SoA）。哪种更合适取决于实际访问模式，本工程每段都读取三项，因此不能预设 SoA 获胜。保留同一评分函数并逐项比较，再在最终章分开记录布局准备成本和真实计算。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "建立相同输入",
+              "explanation": "两种实现从同一份合法订单和候选生成。"
+            },
+            {
+              "id": "stage-2",
+              "title": "准备连续数据",
+              "explanation": "提取热循环需要的字段，减少不必要的对象追踪和重复分配。"
+            },
+            {
+              "id": "stage-3",
+              "title": "逐项比结果",
+              "explanation": "优化结果与串行参考的编号、代价完全一致。"
+            },
+            {
+              "id": "stage-4",
+              "title": "重复测量",
+              "explanation": "同一构建配置下多次计时，说明是否包含转换成本。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "数据局部性",
+            "plainMeaning": "时间局部性是近期用过的数据又被使用；空间局部性是接近的数据被连续访问。它们影响缓存利用。",
+            "codeMapping": "locality.hpp 中 PackedRoutes 将 RouteSample{x,y,toll} 转成分离的连续字段，scoreOptimized 保持与 scoreBaseline 相同计算。"
+          },
+          {
+            "term": "热路径与分配",
+            "plainMeaning": "热路径是重复执行最多的代码；在里面创建容器或重复准备相同数据会放大管理成本。",
+            "codeMapping": "把数据准备和评分循环分开，检查循环内是否发生不必要的分配。"
+          },
+          {
+            "term": "等价优化",
+            "plainMeaning": "优化只改变实现成本，不改变输入含义、择优规则、输出顺序或边界行为。",
+            "codeMapping": "逐项比较局部性版本和串行版本的完整结果。"
+          },
+          {
+            "term": "基准测量",
+            "plainMeaning": "计时是对特定机器、规模和编译配置的一次观测；需重复运行并说明测量边界。",
+            "codeMapping": "本章先做逐项等价检查；最终章 make benchmark 使用单调时钟比较串行、连续与并行真实计算。"
+          }
+        ],
+        "workedExample": {
+          "title": "转换成本是否值得",
+          "steps": [
+            "同一批订单先用原始表示串行计算，得到参考结果。",
+            "把候选的热字段整理成连续数据，记录这段准备过程。",
+            "连续版本计算后逐项比较，任何不相等都先修正确性。",
+            "对较小与较大工作量分别重复计时；小批次可能由准备成本主导。",
+            "报告本机观测及是否包含转换，不把一次更快推广为所有机器都更快。"
+          ],
+          "takeaway": "布局优化需要语义证据与成本证据，两个问题不能相互代替。"
+        },
+        "misconceptions": [
+          {
+            "claim": "连续数组在任何规模上都保证更快。",
+            "correction": "缓存、输入规模、转换成本和编译优化共同决定结果，必须测量。"
+          },
+          {
+            "claim": "优化后丢掉某个代价项也属于局部性优化。",
+            "correction": "这改变了问题含义；优化必须保留所有评分项与平局规则。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "layout-equivalence",
+            "question": "连续版本更快，但一笔订单的最优路线不同，首先做什么？",
+            "options": [
+              {
+                "id": "a",
+                "text": "停止性能结论并检查等价性错误"
+              },
+              {
+                "id": "b",
+                "text": "把较快版本作为新的标准答案"
+              },
+              {
+                "id": "c",
+                "text": "只对比最终耗时"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "性能改进以相同语义为前提；更快地算出另一问题的答案不算优化。"
+          },
+          {
+            "id": "setup-cost",
+            "question": "布局转换花费明显时间，怎样报告更公平？",
+            "options": [
+              {
+                "id": "b",
+                "text": "只隐藏转换时间"
+              },
+              {
+                "id": "c",
+                "text": "只测一次最漂亮的结果"
+              },
+              {
+                "id": "a",
+                "text": "说明是否计入转换，并分别给出准备和计算范围"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "测量边界决定数字含义，清楚区分一次性准备和重复计算。"
+          },
+          {
+            "id": "small-workload",
+            "question": "小批次连续版本比原版慢，能得出什么？",
+            "options": [
+              {
+                "id": "c",
+                "text": "测试应删掉所有小输入"
+              },
+              {
+                "id": "a",
+                "text": "当前规模与配置下额外成本可能超过收益，需要分规模观察"
+              },
+              {
+                "id": "b",
+                "text": "数据局部性理论一定错误"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "优化有盈亏平衡点，小输入仍是有效且必要的场景。"
+          }
+        ],
+        "bridgeToCode": "阅读完整 PackedRoutes 和 scoreOptimized，并用现有串行答案做逐项差分测试。统一计时入口将在最终章交付，本章不要求自行编写基准框架。"
+      },
+      "guidedSteps": [
+        {
+          "id": "data-locality-step-1",
+          "codeStepId": "data-locality-step-1-code",
+          "title": "加入连续数据表示",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/locality.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读热字段提取与连续访问的完整实现，确认没有删除任何评分项。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "data-locality-step-2",
+          "codeStepId": "data-locality-step-2-code",
+          "title": "并排运行两种计算",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "复制本节完整 main，把同一 Order 分别送入 scoreBaseline 与 scoreOptimized，输出并比对两份真实结果。本节先学习表示与等价性；统一基准命令在最后一章交付。",
+          "verify": "执行 make test 和 make run，确认相同输入的路线编号和代价一致；不要把最终章才提供的 make benchmark 当成本节已有命令。"
+        },
+        {
+          "id": "data-locality-step-3",
+          "codeStepId": "data-locality-step-3-code",
+          "title": "覆盖布局转换边界",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "复制完整测试，对照 1×1、3×7、19×31 等合法维度以及不同 seed 的逐项一致性；平局仍选编号 0，越界候选访问应失败。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；等价性测试通过；没有把固定加速倍数写成测试目标。"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先确认两种实现输入逐项相同。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "查看 locality.hpp 的转换过程、循环字段和输出顺序。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "一次只改表示或遍历，保留评分逻辑，用逐项比较定位首个差异。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "在已有等价测试表增加一组合法候选数与路段数，或增加一个 routeSeed；断言 scoreOptimized 与 scoreBaseline 完整 Score 相等，平局仍选编号 0。计时留到最终章。",
+        "evidence": "输入规模、连续布局说明、两版完整结果与逐项差分测试输出",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "能区分数据准备、计算与输出三个阶段",
+          "最小合法维度、普通规模、平局和越界候选都按合同处理",
+          "不把一次测量或固定倍数当普遍结论"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "下一章增加工作线程前，保持计算核只读输入和稳定输出，使并行收益能独立分析。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在已有等价测试表增加一组合法候选数与路段数，或增加一个 routeSeed；断言 scoreOptimized 与 scoreBaseline 完整 Score 相等，平局仍选编号 0。计时留到最终章。"
+        ],
+        "expectedResults": [
+          "等价性测试通过；没有把固定加速倍数写成测试目标。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "data-locality-3"
     },
     {
       "id": "worker-threads",
-      "title": "让多个工作人员领取订单",
-      "goal": "创建工作线程并用 join 管理结束。",
+      "title": "让多个工作人员并行算路线",
+      "phase": "并行与调度",
+      "estimatedSessions": 5,
+      "goal": "把独立订单划分给真实线程，使用不重叠输出和结束同步，保持与串行基准一致。",
       "concepts": [
-        "std::thread",
-        "join",
-        "线程生命周期"
+        "并发与并行",
+        "不重叠写入",
+        "join 与生命期",
+        "线程异常汇合",
+        "原子领取索引"
       ],
-      "guidedBuild": "启动固定数量工作线程处理只读订单列表。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：封装可回收的工作线程；并行调用现有评分核；检查边界和异常。",
+      "milestone": "边界行为明确，异常能传回调用者且不遗留线程。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/workers.hpp"
+      ],
+      "conceptModule": {
+        "title": "几个线程真的能同时算，却不能同时乱改一个容器",
+        "learningGoal": "能解释并发与并行、只读输入、独占输出槽位、生命期和异常汇合。",
+        "phenomenon": {
+          "title": "输出顺序变了，答案却不应该变",
+          "observation": "多个工作线程完成订单的先后顺序由调度决定。若它们一起 push_back 到同一个 vector，即使处理的是不同订单也可能争用容器内部状态。预先分配结果，再让每个索引只有一个写入者，可以消除这类冲突。",
+          "question": "怎样让任意完成顺序都只影响速度，不影响结果？"
+        },
+        "mentalModel": {
+          "summary": "订单输入在全部工作线程结束前保持有效且只读，输出提前分配。parallelFor 用 atomic<size_t>::fetch_add 为每次领取返回唯一旧值，所以每个合法索引只交给一个线程；不是预先分配固定连续区间。std::jthread 在离开作用域时完成回收，之后主线程才读结果或重新抛出捕获的异常。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "准备输入输出",
+              "explanation": "确定总工作量并提前分配固定大小结果容器。"
+            },
+            {
+              "id": "stage-2",
+              "title": "原子领取唯一索引",
+              "explanation": "fetch_add(1) 每次返回不同的旧值；达到 count 即停止，不同线程不会领取同一个有效槽位。"
+            },
+            {
+              "id": "stage-3",
+              "title": "真实线程运算",
+              "explanation": "共享只读数据，各写各的元素；不在热循环里共同扩容。"
+            },
+            {
+              "id": "stage-4",
+              "title": "回收并合并",
+              "explanation": "等待所有线程完成，再读取结果或重新抛出任务异常。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "并发与并行",
+            "plainMeaning": "并发是多个任务的生命期交叠，并行是多个任务在不同执行资源上同时计算；线程存在不等于总能获得多个核心。",
+            "codeMapping": "workers.hpp 使用 std::jthread 建立真实线程；可用核心与调度决定是否真正同时运算。"
+          },
+          {
+            "term": "不重叠写入",
+            "plainMeaning": "多个线程可分别写普通容器中不同的已有元素，前提是不同时改变容器结构且每个元素只有一个写入者。",
+            "codeMapping": "parallelScores 预先分配输出，再通过索引写入；不在 worker 中共享 push_back。"
+          },
+          {
+            "term": "join 与生命期",
+            "plainMeaning": "join 等待目标线程完成，同时使已完成线程的效果可以在同步后的主线程中读取；被借用数据必须活到工作结束。",
+            "codeMapping": "parallelFor 的 jthread 容器退出作用域时逐一 join，完成后才读 first_error 并重新抛出。"
+          },
+          {
+            "term": "线程异常汇合",
+            "plainMeaning": "工作线程中的未捕获异常不会自动从 main 的 try/catch 出现，必须在工作边界捕获并通过明确通道返回。",
+            "codeMapping": "保存 exception_ptr，在完成 join 后由调用线程重新抛出。"
+          },
+          {
+            "term": "原子领取索引",
+            "plainMeaning": "fetch_add 把读取旧值和递增作为一个不可分割操作，因此竞争领取者获得不同索引。这里的 relaxed 用于唯一分配，不承担结果发布，结果可见性由结束同步建立。",
+            "codeMapping": "next.fetch_add(1, memory_order_relaxed) 分配槽位；不要用普通 size_t++ 替代并发领取。"
+          }
+        ],
+        "workedExample": {
+          "title": "五笔订单分给两个线程",
+          "steps": [
+            "准备 5 个结果槽位，索引是 0 到 4。",
+            "线程 A、B 通过 next.fetch_add(1) 逐个领取唯一索引，例如 A 得 0、B 得 1、B 又得 2；分工取决于调度，但不会重复领取。",
+            "即使 B 先结束，它也只写属于自己的槽位，不移动其他结果。",
+            "主线程等待 A、B 完成，再按索引与串行基准逐项比较。",
+            "若 A 某次评分抛出异常，先回收所有已启动线程，再让调用者看到失败。"
+          ],
+          "takeaway": "共享只读数据与独占输出位置把同步需求缩小到生命期和汇合边界。"
+        },
+        "misconceptions": [
+          {
+            "claim": "每个线程处理不同订单，就可以同时向同一个 vector push_back。",
+            "correction": "push_back 会修改共享 size 和存储结构；不同订单并不能自动保护容器。"
+          },
+          {
+            "claim": "主线程 catch 能捕获任意工作线程异常。",
+            "correction": "异常不会跨线程自动传播；未捕获异常可能终止进程，需要工作边界捕获。"
+          },
+          {
+            "claim": "线程越多就必然越快。",
+            "correction": "启动、调度、缓存和有限核心都有成本，小输入常被管理开销主导。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "parallel-output",
+            "question": "每个线程计算一笔不同订单，哪种输出方式最清楚地避免容器结构竞争？",
+            "options": [
+              {
+                "id": "b",
+                "text": "所有线程同时 push_back 到一个 vector"
+              },
+              {
+                "id": "c",
+                "text": "每次写入前 sleep 一会儿"
+              },
+              {
+                "id": "a",
+                "text": "先分配结果数组，每个线程只写指定的独立索引"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "结构不变且槽位不重叠时，写不同普通元素可避免这类共享结构竞争；sleep 不提供同步。"
+          },
+          {
+            "id": "join-before-read",
+            "question": "主线程什么时候可以汇总工作线程写入的普通结果？",
+            "options": [
+              {
+                "id": "c",
+                "text": "只要屏幕上出现一行日志就可以"
+              },
+              {
+                "id": "a",
+                "text": "完成相应 join 或其他明确同步之后"
+              },
+              {
+                "id": "b",
+                "text": "线程刚创建就可以读全部结果"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "输出日志不替代对结果写入的同步协议。"
+          },
+          {
+            "id": "worker-exception",
+            "question": "一个评分函数抛出异常时，健壮的并行封装怎么处理？",
+            "options": [
+              {
+                "id": "a",
+                "text": "捕获并保存错误，回收线程后传给调用者"
+              },
+              {
+                "id": "b",
+                "text": "让异常逃出线程函数"
+              },
+              {
+                "id": "c",
+                "text": "忽略该订单并伪造成功值"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "调用者应看到明确失败，所有已创建线程仍要完成生命期管理。"
+          }
+        ],
+        "bridgeToCode": "完整 parallelFor 负责启动、分配和回收，parallelScores 只描述每个索引如何评分；先比较结果，再测量线程数。"
+      },
+      "guidedSteps": [
+        {
+          "id": "worker-threads-step-1",
+          "codeStepId": "worker-threads-step-1-code",
+          "title": "封装可回收的工作线程",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/workers.hpp"
+          ],
+          "instruction": "复制完整 workers.hpp，阅读 atomic fetch_add 分配唯一索引、jthread 生命期和异常保存路径；这里不把每个线程预先绑定为固定分片。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "worker-threads-step-2",
+          "codeStepId": "worker-threads-step-2-code",
+          "title": "并行调用现有评分核",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。让 parallelScores 为每笔订单填入独占结果槽位，入口复用同一参考输入。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run；本步入口输出并行结果数量与首笔代价，确认真实工作线程已被调用。1 个/多个线程与串行逐项相等的断言，以及异常传播验证，在第三步专项测试接入。"
+        },
+        {
+          "id": "worker-threads-step-3",
+          "codeStepId": "worker-threads-step-3-code",
+          "title": "检查边界和异常",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。执行空批次、订单数小于线程数、非法线程数和工作函数抛异常测试。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；边界行为明确，异常能传回调用者且不遗留线程。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "确认 main 退出前每个线程处于什么状态。"
+          "text": "先为每个输出槽位写下唯一负责的线程。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查线程创建、工作函数和 join。"
+          "text": "检查 workers.hpp 的分工、vector 扩容位置和所有 join 路径。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "可连接线程析构会终止程序，必须明确 join 或安全封装。"
+          "text": "让共享输入只读、输出预分配，主线程在结束同步后统一汇总。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "线程数量从配置读取且 0、1、多线程均可运行。",
-        "evidence": "线程日志与边界测试",
-        "automatedChecks": [
-          "zero-worker-rejected",
-          "one-worker",
-          "four-workers"
+        "task": "在既有测试中把同一批订单分别交给 1、2 和多于订单数量的合法线程数处理，增加逐项相等断言；不改评分算法。",
+        "evidence": "线程数、输入规模、逐项比较结果、异常传播和退出状态",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "能指出输入的生命期为什么覆盖全部工作线程",
+          "所有结果均来自唯一写入者，输出顺序不取决于完成顺序",
+          "非法线程数和异常路径不伪装成成功"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "任务队列章节从静态列表过渡到动态生产消费。"
+      "laterReencounter": "队列和线程池会把一次性分工变成持续提交；只读输入与清楚的结果拥有者仍然不变。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在既有测试中把同一批订单分别交给 1、2 和多于订单数量的合法线程数处理，增加逐项相等断言；不改评分算法。"
+        ],
+        "expectedResults": [
+          "边界行为明确，异常能传回调用者且不遗留线程。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "worker-threads-3"
     },
     {
       "id": "blocking-queue",
-      "title": "建立等待式任务队列",
-      "goal": "使用 mutex 和 condition_variable 实现生产者消费者。",
+      "title": "订单多了怎样等待而不空转",
+      "phase": "并行与调度",
+      "estimatedSessions": 5,
+      "goal": "用有界阻塞队列建立生产消费合同，掌握互斥量、谓词等待、背压和关闭唤醒。",
       "concepts": [
-        "互斥量",
-        "条件变量",
-        "谓词等待"
+        "互斥量与临界区",
+        "条件变量与谓词等待",
+        "有界队列与背压",
+        "关闭协议"
       ],
-      "guidedBuild": "工作线程在无任务时等待，新订单或关店时被唤醒。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：实现有界阻塞队列；连接生产者与消费者；验证满队列与关闭交错。",
+      "milestone": "关闭唤醒所有相关等待者，排空与取消结果符合各自合同。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/queue.hpp"
+      ],
+      "conceptModule": {
+        "title": "通知不是订单，唤醒后还要重新看条件",
+        "learningGoal": "能解释为什么队列状态、关闭标志与等待谓词必须在同一个锁协议中。",
+        "phenomenon": {
+          "title": "队列为空时，反复检查并不会制造订单",
+          "observation": "消费者若一直 while 检查空队列会浪费 CPU；生产者若无限积压则占满内存。条件变量让线程睡到条件可能变化，但醒来时队列可能仍为空，或已被另一消费者取走。",
+          "question": "怎样让空队列等待、满队列等待和关店同时成立，而不遗漏任何等待者？"
+        },
+        "mentalModel": {
+          "summary": "互斥量保护队列内容和关闭状态。消费者等待“有数据或已关闭”，生产者等待“有空间或已关闭”；wait 临时释放锁，醒来重新取得锁并检查谓词。容量把积压限制住，形成背压。关闭是状态转换，必须唤醒等待的两类线程，并明确排空或取消。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "持锁检查状态",
+              "explanation": "push/pop 都在同一互斥量下观察容量、元素和关闭标志。"
+            },
+            {
+              "id": "stage-2",
+              "title": "条件不满足则等待",
+              "explanation": "wait 释放锁，其他线程才能入队、出队或关闭。"
+            },
+            {
+              "id": "stage-3",
+              "title": "唤醒后重检",
+              "explanation": "醒来不代表已获得任务；重新检查谓词后再操作。"
+            },
+            {
+              "id": "stage-4",
+              "title": "关闭并收束",
+              "explanation": "Drain 允许取完旧任务，Cancel 移除尚未取出的任务；两者拒绝新入队。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "互斥量与临界区",
+            "plainMeaning": "mutex 让同一时刻只有一个线程操作受保护共享状态；检查与修改必须处于一致边界。",
+            "codeMapping": "queue.hpp 的队列、容量和关闭标志使用同一互斥协议。"
+          },
+          {
+            "term": "条件变量与谓词等待",
+            "plainMeaning": "条件变量只是等待通知的机制；谓词表达真正可继续的状态，wait 醒来后必须重检。",
+            "codeMapping": "pop 等待非空或关闭，push 等待未满或关闭，使用 wait(lock,predicate)。"
+          },
+          {
+            "term": "有界队列与背压",
+            "plainMeaning": "容量限制积压量；队列满时生产者等待或得到明确拒绝，防止任务无限吞噬内存。",
+            "codeMapping": "BoundedQueue<T>(capacity) 拒绝零容量，push(T) 等到有空间或返回关闭结果。 本示例队列要求元素可 noexcept 移动，使用 int 或线程池提供的任务包装；不要直接换成可能抛异常复制的 Order。"
+          },
+          {
+            "term": "关闭协议",
+            "plainMeaning": "关闭要同时定义是否接收新任务、如何处理已有元素，以及等待者如何退出。",
+            "codeMapping": "close(Drain) 排空已入队任务，close(Cancel) 清掉待领取元素，pop 结束返回 nullopt。"
+          }
+        ],
+        "workedExample": {
+          "title": "容量为 1 的队列在关闭时发生什么",
+          "steps": [
+            "生产者先把任务 A 放入队列，队列已满。",
+            "生产者想提交 B，发现没有空间，进入条件变量等待并释放锁。",
+            "控制线程执行 Drain 关闭，改变关闭状态并通知生产者与消费者。",
+            "生产者醒来发现已关闭，B 提交失败，不再等待空间。",
+            "消费者仍可取出 A；再次 pop 时看到关闭且为空，返回结束。"
+          ],
+          "takeaway": "关闭通知必须覆盖两种等待者；排空保留已接收任务，拒绝尚未入队任务。"
+        },
+        "misconceptions": [
+          {
+            "claim": "notify_one 表示某个线程已经得到一个订单。",
+            "correction": "通知不携带任务拥有权，另一个线程可能先取走数据；只有持锁检查成功才能领取。"
+          },
+          {
+            "claim": "队列满了让生产者 sleep 再试即可保证正确。",
+            "correction": "sleep 没有建立同步或关闭协议，仍可能无限等待或竞争。"
+          },
+          {
+            "claim": "关店只需要唤醒消费者。",
+            "correction": "生产者可能阻塞在满队列上，同样需要被关闭状态唤醒。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "queue-predicate",
+            "question": "消费者被唤醒时，为什么不能直接弹出队首？",
+            "options": [
+              {
+                "id": "c",
+                "text": "条件变量自动复制了队首"
+              },
+              {
+                "id": "a",
+                "text": "可能虚假唤醒，或任务已被另一消费者取走，必须重新检查谓词"
+              },
+              {
+                "id": "b",
+                "text": "被唤醒后锁会自动永久丢失"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "唤醒只说明需要再次观察状态，并不授予元素。"
+          },
+          {
+            "id": "close-full",
+            "question": "容量已满且有生产者等待时，close 必须做什么？",
+            "options": [
+              {
+                "id": "a",
+                "text": "设置关闭状态并唤醒生产者和消费者"
+              },
+              {
+                "id": "b",
+                "text": "只清空队列，不通知任何线程"
+              },
+              {
+                "id": "c",
+                "text": "只等待生产者自己超时"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "谓词包含关闭状态才能让没有空间的生产者也结束等待。"
+          },
+          {
+            "id": "drain-empty",
+            "question": "Drain 关闭后，pop 应在何时返回结束？",
+            "options": [
+              {
+                "id": "b",
+                "text": "只要收到过一次通知就结束"
+              },
+              {
+                "id": "c",
+                "text": "永远等待下一笔任务"
+              },
+              {
+                "id": "a",
+                "text": "已关闭且队列为空时"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "Drain 先兑现已接收任务；Cancel 则另有清空待领取任务的合同。"
+          }
+        ],
+        "bridgeToCode": "直接阅读已交付的完整 BoundedQueue，画出两种谓词；用容量 1 的多步测试验证状态，而不靠日志先后猜测。"
+      },
+      "guidedSteps": [
+        {
+          "id": "blocking-queue-step-1",
+          "codeStepId": "blocking-queue-step-1-code",
+          "title": "实现有界阻塞队列",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/queue.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 push、pop、容量校验以及两类条件变量的完整实现。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "blocking-queue-step-2",
+          "codeStepId": "blocking-queue-step-2-code",
+          "title": "连接生产者与消费者",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。入口创建真实线程，通过 push 交出任务，经 pop 取得任务；检查返回值而不假设必定成功。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；每个已接收元素只被一个消费者取出，关闭后能结束。"
+        },
+        {
+          "id": "blocking-queue-step-3",
+          "codeStepId": "blocking-queue-step-3-code",
+          "title": "验证满队列与关闭交错",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。运行容量 1、空队列关闭、满队列阻塞生产者、重复关闭、Drain 与 Cancel 测试。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；关闭唤醒所有相关等待者，排空与取消结果符合各自合同。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察虚假唤醒后是否会读取空队列。"
+          "text": "先判断卡住的是等任务的消费者，还是等空间的生产者。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 wait 的谓词和关闭标志。"
+          "text": "对照 queue.hpp 的两个 wait 谓词和 close 通知路径。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "谓词必须同时覆盖“有任务”和“已关闭”。"
+          "text": "所有等待都要包含关闭出口，并在同一把锁下读取共享状态。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "空队列关店时所有线程都能退出。",
-        "evidence": "压力测试与退出日志",
-        "automatedChecks": [
-          "spurious-wakeup-safe",
-          "close-empty-queue",
-          "all-workers-joined"
+        "task": "从完整测试选择一组已学的 Drain 场景，把容量改为 1 或把任务数改为 0，再增加被接收数量与被取出数量的断言。",
+        "evidence": "队列容量、接收/取出数量、关闭返回值与线程结束证据",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "两类等待者关闭后都能结束，不依赖固定 sleep",
+          "Drain 只排空已接收元素，关闭后的 push 返回拒绝",
+          "Cancel 不承诺停止已经离开队列的任务"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 在订单到达与关店同时发生时复用队列合同。"
+      "laterReencounter": "下一章把队列元素升级为计算任务，并为每个任务建立 future 结果通道。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "从完整测试选择一组已学的 Drain 场景，把容量改为 1 或把任务数改为 0，再增加被接收数量与被取出数量的断言。"
+        ],
+        "expectedResults": [
+          "关闭唤醒所有相关等待者，排空与取消结果符合各自合同。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "blocking-queue-3"
+    },
+    {
+      "id": "task-pool",
+      "title": "把线程、队列和结果封装成线程池",
+      "phase": "并行与调度",
+      "estimatedSessions": 5,
+      "goal": "让固定工作线程持续接收任务，用 future 返回值或异常，避免把线程细节泄漏给业务调用者。",
+      "concepts": [
+        "线程池与封装",
+        "packaged_task 与 future",
+        "有界提交与嵌套调用",
+        "异常传播与取消结果"
+      ],
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：封装固定线程池；提交真实评分任务；检查异常和关闭结果。",
+      "milestone": "每个已提交任务的 future 都有明确结局，工作线程最终被回收。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/pool.hpp"
+      ],
+      "conceptModule": {
+        "title": "提交一次计算，应该拿到结果而不是接管一条线程",
+        "learningGoal": "能解释线程池拥有关系、任务生命期、future 的完成状态，以及嵌套提交的阻塞风险。",
+        "phenomenon": {
+          "title": "每笔订单都新建一个线程，短任务反而更慢",
+          "observation": "一次性线程会反复启动和回收。固定线程池把工作线程保留，让任务通过有界队列进入；调用者得到 future，用它领取值或异常，不需要知道是哪条线程执行。",
+          "question": "任务已经提交但尚未执行时取消队列，它的调用者怎样知道不会再得到正常结果？"
+        },
+        "mentalModel": {
+          "summary": "线程池封装三件事：固定数量工作线程、接收任务的有界队列、每个任务的结果通道。任务从提交者移入队列，再由某个 worker 独占执行。packaged_task 把返回值或异常写入共享结果状态，future.get 读取它。关闭后不再接受提交；排空执行已接收任务，取消销毁排队任务，等待者得到可识别的取消结果。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "提交 callable",
+              "explanation": "调用者提供完整计算，并获得对应 future。"
+            },
+            {
+              "id": "stage-2",
+              "title": "队列承接所有权",
+              "explanation": "有界队列保存待执行任务，工作线程数量保持固定。"
+            },
+            {
+              "id": "stage-3",
+              "title": "工作线程执行",
+              "explanation": "任务返回或抛出都写入结果通道，worker 能继续处理后续任务。"
+            },
+            {
+              "id": "stage-4",
+              "title": "调用者领取结果",
+              "explanation": "future.get 得到值，或重新抛出任务异常；取消的排队任务有明确失败结果。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "线程池与封装",
+            "plainMeaning": "线程池把线程创建、工作循环、排队和关闭协议收在一个对象中，业务只提交任务并领取结果。",
+            "codeMapping": "TaskPool(workers,capacity) 拥有 worker 和 BoundedQueue，业务不手动 join 单个任务线程。"
+          },
+          {
+            "term": "packaged_task 与 future",
+            "plainMeaning": "packaged_task 保存一次可执行任务及结果状态；future 是调用者持有的一次性结果读取端。",
+            "codeMapping": "submit(callable) 返回 future；get 返回计算值或抛出任务内的异常。"
+          },
+          {
+            "term": "有界提交与嵌套调用",
+            "plainMeaning": "有界队列可能阻塞提交者；如果全部 worker 都在向同池提交并等待，可能没有线程继续消费。",
+            "codeMapping": "本工程明确拒绝从同一池的工作线程进行嵌套 submit 或 shutdown，保留简单可验证的合同。"
+          },
+          {
+            "term": "异常传播与取消结果",
+            "plainMeaning": "任务异常是该任务的结果，不能悄悄吞掉；尚未执行的 packaged_task 被销毁后，future 会看到 broken_promise。",
+            "codeMapping": "Cancel 清除排队任务，已运行任务仍执行到结束；调用者用 future_error 区分未执行任务。"
+          }
+        ],
+        "workedExample": {
+          "title": "三个任务中一个失败，线程池是否还活着",
+          "steps": [
+            "提交任务 A、B、C，各得到独立 future。",
+            "A 返回路线结果，future A.get 正常返回。",
+            "B 抛出异常，packaged_task 保存异常；worker 不因这个业务异常退出。",
+            "C 仍能执行并返回，future B.get 在调用线程重新抛出原异常。",
+            "关闭时选择 Drain，已接收任务全部结束，再回收所有固定线程。"
+          ],
+          "takeaway": "异常隔离发生在任务结果边界，不能用一个默认值冒充失败任务。"
+        },
+        "misconceptions": [
+          {
+            "claim": "线程池提交成功就表示订单已经完成。",
+            "correction": "提交只表示接收任务，执行和结果读取发生在后面；业务库存提交还可能另有边界。"
+          },
+          {
+            "claim": "future.get 永远返回普通值。",
+            "correction": "它可能抛出任务异常或 broken_promise 等结果通道错误。"
+          },
+          {
+            "claim": "worker 内继续向同池提交是普通函数调用。",
+            "correction": "有限 worker 和有界队列会形成资源等待环，本工程显式拒绝这类嵌套。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "future-throws",
+            "question": "任务函数抛出业务异常后，调用者从哪里看到它？",
+            "options": [
+              {
+                "id": "a",
+                "text": "在对应 future.get 处重新收到异常"
+              },
+              {
+                "id": "b",
+                "text": "总是由 main 中任意一个 catch 自动捕获"
+              },
+              {
+                "id": "c",
+                "text": "线程池改成一个 0 值并标为成功"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "任务错误必须随其结果通道传播，其他任务可以继续执行。"
+          },
+          {
+            "id": "pool-nested",
+            "question": "两个 worker 都向已满的同池提交并等待，为什么危险？",
+            "options": [
+              {
+                "id": "b",
+                "text": "线程数量会自动无限扩张"
+              },
+              {
+                "id": "c",
+                "text": "互斥量会自动改成递归锁"
+              },
+              {
+                "id": "a",
+                "text": "worker 可能全部阻塞，没人再消费队列"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "队列背压与有限执行资源组合会产生依赖等待；本工程通过明确拒绝避免该用法。"
+          },
+          {
+            "id": "cancel-future",
+            "question": "Cancel 销毁尚未执行的 packaged_task 后，本工程对应 future 的结果是什么？",
+            "options": [
+              {
+                "id": "c",
+                "text": "一定永久阻塞"
+              },
+              {
+                "id": "a",
+                "text": "get 抛出 broken_promise，表示不会得到正常执行结果"
+              },
+              {
+                "id": "b",
+                "text": "静默得到与串行相同的计算结果"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "销毁未兑现的结果提供者使 future 就绪为明确错误，不等于任务曾经执行。"
+          }
+        ],
+        "bridgeToCode": "直接使用完整 TaskPool 实现，把已有评分函数装进 callable；先学会领取成功、异常和取消三种结果，再谈吞吐量。"
+      },
+      "guidedSteps": [
+        {
+          "id": "task-pool-step-1",
+          "codeStepId": "task-pool-step-1-code",
+          "title": "封装固定线程池",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/pool.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 TaskPool 的 worker 工作循环、submit 和结果拥有关系，确认 worker 数量不是任务数量。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "task-pool-step-2",
+          "codeStepId": "task-pool-step-2-code",
+          "title": "提交真实评分任务",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。入口捕获合适生命期的订单与只读路线数据，为每笔任务保存 future 并逐项领取。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run；本步入口通过两个 future 取得真实评分代价并完成 Drain 关店。异常、拒绝与取消结果的断言由第三步专项测试验证，不把成功演示当作异常路径已测。"
+        },
+        {
+          "id": "task-pool-step-3",
+          "codeStepId": "task-pool-step-3-code",
+          "title": "检查异常和关闭结果",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。运行任务抛异常、失败后继续执行、关闭后拒绝提交、嵌套调用拒绝与排队任务取消测试。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；每个已提交任务的 future 都有明确结局，工作线程最终被回收。"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先区分提交、执行和领取结果发生在哪个线程。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "查看 pool.hpp 中任务包装、队列拥有关系及 future.get 的调用方。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "让异常留在单任务结果中；关闭时决定排队任务的结局，并唤醒和回收 worker。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "在已有混合任务测试中增加一个返回固定已知值的任务和一个抛出已知异常的任务，验证二者互不干扰且后续评分仍等于串行。",
+        "evidence": "每个 future 的值或异常、固定 worker 数量、关闭后返回状态",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "不能把提交成功当任务成功，逐个检查 future 结局",
+          "任务异常不阻止后续正常任务",
+          "本工程嵌套同池调用的拒绝规则能够解释"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "订单服务将通过线程池先完成 CPU 评分，再进入短临界区提交库存；计算与共享状态必须分开。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在已有混合任务测试中增加一个返回固定已知值的任务和一个抛出已知异常的任务，验证二者互不干扰且后续评分仍等于串行。"
+        ],
+        "expectedResults": [
+          "每个已提交任务的 future 都有明确结局，工作线程最终被回收。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "task-pool-3"
     },
     {
       "id": "inventory-race",
-      "title": "修复共享库存竞态",
-      "goal": "让检查和扣减成为一个原子临界区。",
+      "title": "让库存与订单记录一起成立",
+      "phase": "一致性与生命周期",
+      "estimatedSessions": 5,
+      "goal": "把库存检查、扣减、幂等记录封装为一个原子业务动作，区分重试与冲突。",
       "concepts": [
-        "数据竞争",
-        "临界区",
-        "锁粒度"
+        "数据竞争与业务竞态",
+        "原子临界区",
+        "幂等性与冲突",
+        "一致性边界"
       ],
-      "guidedBuild": "复现两个订单同时看到同一件库存的错误。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：封装库存与处理记录；把评分与提交分开；覆盖混合并发订单。",
+      "milestone": "库存恒非负；扣减次数和已接受订单相符，结果记录保持一致。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/inventory.hpp"
+      ],
+      "conceptModule": {
+        "title": "只有一个库存，为什么两笔订单都说自己成功",
+        "learningGoal": "能画出检查与扣减分离造成的交错，并用统一临界区维护业务不变量。",
+        "phenomenon": {
+          "title": "两个线程都在扣减前看见库存为 1",
+          "observation": "线程 A 读到 1，线程 B 也读到 1；两者都通过检查后各自发货。即使每次读写单独上锁，整个业务动作仍可能被拆开。同一订单重试还可能再次扣减。",
+          "question": "哪几件事必须一起完成，才能同时避免超卖和重复发货？"
+        },
+        "mentalModel": {
+          "summary": "库存类隐藏数量与订单处理记录，公开 checkout(Order) 表达一次业务动作。先在锁外做耗时计算，再进入一个短临界区：查订单是否处理过、核对内容、检查库存、扣减并记录结果。同号同内容返回原结果，不再次扣减；同号不同内容明确冲突。结果是本进程内记忆，不是跨重启的持久化账本。 如果同一编号的不同内容同时竞争，以先获得库存锁并写下记录的一方为准，不承诺先提交线程池者先处理。Receipt.remaining 是首次结果的历史库存快照，当前值通过 stock() 读取。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "锁外准备",
+              "explanation": "合法订单和路线计算先准备好，不长时间占库存锁。"
+            },
+            {
+              "id": "stage-2",
+              "title": "持锁判定身份",
+              "explanation": "同号同内容是重试，同号不同内容是冲突。"
+            },
+            {
+              "id": "stage-3",
+              "title": "原子业务修改",
+              "explanation": "新订单在同一临界区内完成库存检查、扣减和结果记录。"
+            },
+            {
+              "id": "stage-4",
+              "title": "返回不可混淆结果",
+              "explanation": "Accepted、Insufficient、Conflict 与 duplicate 标志让调用者知道发生了什么。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "数据竞争与业务竞态",
+            "plainMeaning": "数据竞争涉及未同步的共享内存访问；业务竞态还包括每次访问都同步、但多个步骤合起来不原子的情况。",
+            "codeMapping": "仅分别保护读取与写回不够；检查 checkout 的完整锁范围。"
+          },
+          {
+            "term": "原子临界区",
+            "plainMeaning": "业务上不可分割的一组动作由同一锁保护，使其他线程看不到中间状态。",
+            "codeMapping": "inventory.hpp 将结果查询、内容比较、库存检查、扣减和记录放进统一操作。"
+          },
+          {
+            "term": "幂等性与冲突",
+            "plainMeaning": "相同标识和相同内容重试应返回已确定结果；相同标识却更改内容必须拒绝，不能混成新订单。",
+            "codeMapping": "Receipt 的 duplicate 标志与 Conflict 状态区分重试和冲突；比较 units 与 routeSeed。 并发冲突测试只要求一个指纹成为既定结果，不要求固定线程获胜。"
+          },
+          {
+            "term": "一致性边界",
+            "plainMeaning": "内存锁只协调当前进程里的线程；进程退出后，未持久化的订单记录不会自动保留。 结果表在本例中不自动淘汰，长期运行还要设计容量与持久化策略。",
+            "codeMapping": "Inventory 的内存记录覆盖本次运行，课程不把它冒充跨重启的数据库事务。"
+          }
+        ],
+        "workedExample": {
+          "title": "先成功、再重试、再冲突",
+          "steps": [
+            "初始库存为 3，订单 A 请求 2 件，进入 checkout 后成功并记录结果，库存变为 1。",
+            "另一个线程重交相同 A、2 件、相同路线种子，命中原记录，duplicate 为真，库存仍为 1。",
+            "订单编号仍是 A，但数量改为 1，内容与原记录冲突，返回 Conflict，不改库存。",
+            "全新订单 B 请求 2 件，返回 Insufficient 并记录这次明确结果。",
+            "后来重试同一个 B，得到它原先确定的失败结果；需要新业务尝试时使用新订单标识。"
+          ],
+          "takeaway": "幂等不只是成功去重，还要明确重复失败与内容冲突的业务含义。"
+        },
+        "misconceptions": [
+          {
+            "claim": "把库存数字改成 atomic 就能保证不重复发货。",
+            "correction": "库存、订单身份和处理结果必须共同满足合同；单个原子变量不自动形成多字段业务事务。"
+          },
+          {
+            "claim": "重复订单总该重新尝试扣库存。",
+            "correction": "本工程缓存原结果，包括缺货失败；重试同号同内容应返回已确定结果。"
+          },
+          {
+            "claim": "进程内互斥就是数据库持久事务。",
+            "correction": "锁不提供磁盘持久化或多进程协调，重启边界必须另行设计。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "checkout-atomic",
+            "question": "防止超卖和重复扣减，哪组步骤必须在统一临界区？",
+            "options": [
+              {
+                "id": "b",
+                "text": "只有最终库存减法"
+              },
+              {
+                "id": "c",
+                "text": "只有日志输出"
+              },
+              {
+                "id": "a",
+                "text": "查原结果、比内容、检查库存、扣减和记录结果"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "身份判定与库存修改若分离，仍可能出现两次新订单判定或重复扣减。"
+          },
+          {
+            "id": "duplicate-conflict",
+            "question": "同一个订单编号第二次提交时 units 不同，应如何处理？",
+            "options": [
+              {
+                "id": "c",
+                "text": "覆盖原订单记录并宣布成功"
+              },
+              {
+                "id": "a",
+                "text": "返回 Conflict，保持库存与原结果不变"
+              },
+              {
+                "id": "b",
+                "text": "当成重试直接再扣一次"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "相同标识必须指向同一请求内容，不能让去重吞掉内容冲突。"
+          },
+          {
+            "id": "insufficient-repeat",
+            "question": "一笔订单第一次缺货失败，本工程再次收到同号同内容时怎样做？",
+            "options": [
+              {
+                "id": "a",
+                "text": "返回已缓存的原失败结果，不重新扣减"
+              },
+              {
+                "id": "b",
+                "text": "因为未成功所以必然再次执行"
+              },
+              {
+                "id": "c",
+                "text": "自动把数量改成 1"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "缓存所有已确定结果让重试具有明确含义；新业务尝试应使用新标识。"
+          }
+        ],
+        "bridgeToCode": "从完整 Inventory::checkout 逐句标出读写边界，在确定输入的并发测试里验证成功计数、剩余量、重复和冲突。"
+      },
+      "guidedSteps": [
+        {
+          "id": "inventory-race-step-1",
+          "codeStepId": "inventory-race-step-1-code",
+          "title": "封装库存与处理记录",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/inventory.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 Inventory 的 private 库存和结果表，跟踪 checkout 对三个状态和 duplicate 的判定。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "inventory-race-step-2",
+          "codeStepId": "inventory-race-step-2-code",
+          "title": "把评分与提交分开",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "复制本节完整 main，运行 Inventory::checkout 的正常、重复和冲突演示；此处只看库存业务接口。CPU 评分在锁外、之后调用 checkout 的完整流水线将在最终章由 DeliveryCenter 交付。",
+          "verify": "执行 make test 和 make run，正常与重复订单输出明确结果；完整并发争抢断言在本章第三步加入。"
+        },
+        {
+          "id": "inventory-race-step-3",
+          "codeStepId": "inventory-race-step-3-code",
+          "title": "覆盖混合并发订单",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。测试唯一订单争抢、同号重复、内容冲突、库存不足与失败重试交错；核对成功数量与剩余库存。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；库存恒非负；扣减次数和已接受订单相符，结果记录保持一致。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "记录两个线程读取库存和写回的时序。"
+          "text": "把两个订单的“查记录、读库存、扣库存、记结果”按时间交错写出来。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查“检查够不够”和“实际扣减”之间。"
+          "text": "检查 inventory.hpp 中锁是否覆盖整个 checkout，而不是各自保护几个字段。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "逻辑上不可分割的操作必须由同一把锁保护。"
+          "text": "同一个标识先比内容再复用原结果；成功与失败都要有明确的重试合同。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "1000 组并发订单下库存不为负且成功数正确。",
-        "evidence": "竞态复现和压力测试",
-        "automatedChecks": [
-          "no-negative-stock",
-          "exact-success-count",
-          "repeat-1000"
+        "task": "在现有并发测试中新增一笔与旧编号相同但 units 或 routeSeed 不同的订单，只增加输入和结果断言，验证 Conflict 且库存不变。",
+        "evidence": "唯一订单数、成功数、duplicate/Conflict/Insufficient 分布与库存守恒计算",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "检查与扣减及记录同处一个临界区",
+          "同号同内容不再扣减，同号改内容明确冲突",
+          "知道这些结果只在当前进程存续期间保持"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "数据库阶段会比较内存锁与事务的一致性边界。"
+      "laterReencounter": "反向转仓需要同时维护两个对象的不变量；最终关店还要确认哪些已计算订单真正提交了库存。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在现有并发测试中新增一笔与旧编号相同但 units 或 routeSeed 不同的订单，只增加输入和结果断言，验证 Conflict 且库存不变。"
+        ],
+        "expectedResults": [
+          "库存恒非负；扣减次数和已接受订单相符，结果记录保持一致。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "inventory-race-3"
     },
     {
       "id": "deadlock-cancel",
-      "title": "解除双仓库死锁",
-      "goal": "固定锁顺序并支持任务取消。",
+      "title": "同时保护双仓库并及时响应取消",
+      "phase": "一致性与生命周期",
+      "estimatedSessions": 5,
+      "goal": "用 scoped_lock 保证双仓转移不形成等待环，并为计算添加明确的协作取消边界。",
       "concepts": [
-        "死锁",
-        "锁顺序",
-        "scoped_lock",
-        "取消"
+        "死锁与等待环",
+        "多锁 RAII",
+        "守恒与原子转移",
+        "协作取消"
       ],
-      "guidedBuild": "复现两个转仓订单反向加锁导致的等待环。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：封装双仓转移；加入协作取消计算；组合反向转仓与取消测试。",
+      "milestone": "转仓无等待环、总量守恒；取消返回明确状态且不伪造完整答案。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/transfer.hpp"
+      ],
+      "conceptModule": {
+        "title": "互斥量都用对了，为什么程序仍然永远等着",
+        "learningGoal": "能画出持有与等待关系，区分预防死锁、取消排队任务和取消正在运行的计算。",
+        "phenomenon": {
+          "title": "两条转仓路径各拿到一把锁",
+          "observation": "线程 A 从东仓转到西仓，先持东仓锁再等西仓锁；线程 B 反向转仓，先持西仓锁再等东仓锁。每次访问都有锁，却组成了等待环。与此同时，已经开始的长计算也不能靠清空队列立即停止。",
+          "question": "怎样消除双锁等待环？正在计算的任务又在什么位置才可以安全停下？"
+        },
+        "mentalModel": {
+          "summary": "双仓转移是跨两个对象的不变量：减少源仓、增加目的仓必须整体成立。std::scoped_lock 一次接管多把锁并在退出时释放，避免手工相反顺序锁造成的等待环。取消是另一个协议：stop_token 只表达请求，计算要在明确检查点主动观察；尚未形成完整结果时返回取消，而不是提交半份库存修改。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "准备转仓请求",
+              "explanation": "校验数量和同仓转移等边界，确定涉及哪两个对象。"
+            },
+            {
+              "id": "stage-2",
+              "title": "共同持有两锁",
+              "explanation": "在一个 scoped_lock 范围同时保护源仓和目的仓。"
+            },
+            {
+              "id": "stage-3",
+              "title": "整体提交",
+              "explanation": "检查可转数量，更新两仓，保证库存总量守恒。"
+            },
+            {
+              "id": "stage-4",
+              "title": "协作计算取消",
+              "explanation": "正在执行的评分在候选边界检查 stop_token，取消返回无完整结果。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "死锁与等待环",
+            "plainMeaning": "多个线程各持有别人需要的资源并循环等待，导致没有任何一个能继续；数据没被乱写也可能发生。",
+            "codeMapping": "画出“线程 A 持东等西，线程 B 持西等东”的资源图，不通过真实无限挂起来证明。"
+          },
+          {
+            "term": "多锁 RAII",
+            "plainMeaning": "多锁守卫取得相关锁，离开作用域自动释放；参与同一操作的所有路径应使用一致协议。",
+            "codeMapping": "transfer.hpp 的 transfer 使用 std::scoped_lock 同时锁住两仓，避免自行写相反加锁顺序。"
+          },
+          {
+            "term": "守恒与原子转移",
+            "plainMeaning": "一次转仓完成后源减少量等于目的增加量，不能先暴露一边已改、另一边未改的状态。",
+            "codeMapping": "Warehouse 的余额由受控操作维护，测试比较转仓前后总量。"
+          },
+          {
+            "term": "协作取消",
+            "plainMeaning": "取消请求不会强杀线程；任务在自己选择的安全点检查请求并停止继续计算。",
+            "codeMapping": "scoreCancellable(order,PackedRoutes,stop_token) 在候选边界及返回前检查，取消时返回 nullopt。"
+          }
+        ],
+        "workedExample": {
+          "title": "反向转仓与取消如何各自收束",
+          "steps": [
+            "东仓 10、西仓 20，线程 A 要东转西 3，线程 B 要西转东 4。",
+            "两条路径都用同一种双锁协议；任一线程先获得操作权，另一条等待，不形成各握一锁的环。",
+            "两次转仓成功后东仓 11、西仓 19，总量仍是 30。",
+            "另一任务正在评分，控制者发送 stop 请求；它在下一个已定义检查点发现取消并返回 nullopt。",
+            "调用者看到 nullopt，不把尚未完成的评分当正常结果提交库存。"
+          ],
+          "takeaway": "多锁保护业务原子性，协作取消保护生命期；两种机制解决不同问题。"
+        },
+        "misconceptions": [
+          {
+            "claim": "只要每个字段都加锁，程序就不可能死锁。",
+            "correction": "互斥解决同时访问，锁之间的等待顺序还可能组成环。"
+          },
+          {
+            "claim": "请求取消就意味着线程已经退出。",
+            "correction": "请求与观察之间有延迟，调用方仍须等待任务真正结束或 join。"
+          },
+          {
+            "claim": "Cancel 队列能停止已经取出的任务。",
+            "correction": "清空队列只影响尚未领取的任务；运行中的任务需要单独的协作取消点。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "deadlock-cycle",
+            "question": "A 持东锁等西锁，B 持西锁等东锁，这属于什么？",
+            "options": [
+              {
+                "id": "c",
+                "text": "仅仅缺少一次 notify_one"
+              },
+              {
+                "id": "a",
+                "text": "死锁等待环，即使每次数据访问都有锁"
+              },
+              {
+                "id": "b",
+                "text": "普通缓存不命中"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "两个线程都等对方释放资源，没有一方能继续到释放点。"
+          },
+          {
+            "id": "transfer-conservation",
+            "question": "东仓转西仓 3 件时，应在哪个边界维护总量守恒？",
+            "options": [
+              {
+                "id": "a",
+                "text": "同时持有两仓锁的同一个转移操作中"
+              },
+              {
+                "id": "b",
+                "text": "源仓先扣完并释放锁，之后再考虑目的仓"
+              },
+              {
+                "id": "c",
+                "text": "只在程序最终打印时修正总和"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "转移是跨两对象的一个业务动作，公开状态不应暴露半完成更新。"
+          },
+          {
+            "id": "cancel-latency",
+            "question": "scoreCancellable 每个候选边界检查取消，能保证什么？",
+            "options": [
+              {
+                "id": "b",
+                "text": "请求一发出 CPU 就立即终止当前指令"
+              },
+              {
+                "id": "c",
+                "text": "取消时总能得到完整最优路线"
+              },
+              {
+                "id": "a",
+                "text": "观察请求后不再继续后续候选，响应延迟取决于检查点间的工作量"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "协作取消是明确的检查点协议，不是异步强杀；未完成计算应返回取消结果。"
+          }
+        ],
+        "bridgeToCode": "直接阅读已给出的双锁转移与可取消评分，先用纸上等待图解释错误，再运行有限的反向转仓与取消测试。"
+      },
+      "guidedSteps": [
+        {
+          "id": "deadlock-cancel-step-1",
+          "codeStepId": "deadlock-cancel-step-1-code",
+          "title": "封装双仓转移",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/transfer.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 Warehouse、transfer 和 scoped_lock；特别检查同仓、非法数量与库存不足路径。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "deadlock-cancel-step-2",
+          "codeStepId": "deadlock-cancel-step-2-code",
+          "title": "加入协作取消计算",
+          "targetFiles": [
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 scoreCancellable 对候选边界和最终返回的检查，入口明确处理 optional 空结果。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；预先请求取消时不产生正常评分；未取消结果与串行基准一致。"
+        },
+        {
+          "id": "deadlock-cancel-step-3",
+          "codeStepId": "deadlock-cancel-step-3-code",
+          "title": "组合反向转仓与取消测试",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。运行重复的双向转移、同仓输入、余额不足、预取消和正常完成用例，核对线程均结束。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；转仓无等待环、总量守恒；取消返回明确状态且不伪造完整答案。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "画出线程分别持有什么锁、等待什么锁。"
+          "text": "先画每个线程已持有和正在等待的锁，不用随机 sleep 掩盖交错。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查两个转仓路径的加锁顺序。"
+          "text": "检查 transfer.hpp 的双锁范围、同仓分支和 scoreCancellable 检查点。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "所有路径必须遵循一致顺序或一次取得多把锁。"
+          "text": "把两仓修改合成一个受双锁保护的动作；取消请求必须被任务主动观察。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "反向转仓并发 100 次不死锁且总库存不变。",
-        "evidence": "等待图、超时测试、库存校验",
-        "automatedChecks": [
-          "no-deadlock",
-          "stock-conserved"
+        "task": "在完整测试上把反向转仓次数改为另一正整数并保持转出量可用，新增总量守恒断言；或增加一组预取消的路线评分输入并验证 nullopt。",
+        "evidence": "持锁等待图、反向转仓次数、前后总量与取消结果",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "所有转仓路径遵循同一多锁协议",
+          "取消请求与真正结束被明确区分",
+          "未完成评分不进入库存提交"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 将转仓、普通订单和关店并发发生。"
+      "laterReencounter": "最后一章把入口关闭、排队任务取消、运行任务结束和对象析构排成可解释的生命周期。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在完整测试上把反向转仓次数改为另一正整数并保持转出量可用，新增总量守恒断言；或增加一组预取消的路线评分输入并验证 nullopt。"
+        ],
+        "expectedResults": [
+          "转仓无等待环、总量守恒；取消返回明确状态且不伪造完整答案。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "deadlock-cancel-3"
     },
     {
       "id": "graceful-shutdown",
-      "title": "完成商城安全关店",
-      "goal": "拒绝新订单、处理策略明确，并唤醒所有线程退出。",
+      "title": "汇集所有代码，完成配送与安全关店",
+      "phase": "一致性与生命周期",
+      "estimatedSessions": 5,
+      "goal": "整合封装、串行与并行评分、线程池及库存提交，用排空与取消两种策略完成同一作品。",
       "concepts": [
-        "停止协议",
-        "状态转换",
-        "join"
+        "生命周期与成员析构顺序",
+        "Drain 与 Cancel",
+        "计算与提交边界",
+        "结果对账",
+        "性能与正确性分离"
       ],
-      "guidedBuild": "实现 accepting、draining、stopped 三阶段。",
+      "guidedBuild": "在同一个配送中心中按三次完整代码交付推进：组合配送中心与生命期；运行完整配送与基准入口；验证混合负载和两种关店。",
+      "milestone": "最终完整工程从干净目录构建通过，任务结局明确且所有 worker 已回收。",
+      "filesTouched": [
+        "src/main.cpp",
+        "tests/tests.cpp",
+        "src/pipeline.hpp",
+        "src/benchmark.hpp"
+      ],
+      "conceptModule": {
+        "title": "关店不是把一个布尔值改成 true",
+        "learningGoal": "能从任务状态和成员生命期说明关店顺序，逐一核对接收、执行、失败、取消与提交。",
+        "phenomenon": {
+          "title": "关闭入口后，旧任务仍可能引用配送中心的数据",
+          "observation": "停止接受订单不代表队列已空、线程已停或库存已提交。线程池任务可能仍在使用路线表和库存对象；如果先销毁这些数据再等待线程，就会出现悬空访问。",
+          "question": "哪一个动作证明不再接收任务，哪一个动作证明后台已经不再访问数据？"
+        },
+        "mentalModel": {
+          "summary": "DeliveryCenter 把只读路线数据、库存和线程池组合成一个生命期明确的对象。提交任务先评分，再通过库存接口提交；shutdown 先关闭接收，按 Drain 或 Cancel 处理排队项，然后等待正在执行的任务结束。线程池先被销毁并回收 worker，之后才能释放它们引用的数据。关店完成以已接收任务结局与线程回收为证据。",
+          "flow": [
+            {
+              "id": "stage-1",
+              "title": "运行并接收",
+              "explanation": "submit 返回 future，表示任务被接收而非已发货。"
+            },
+            {
+              "id": "stage-2",
+              "title": "关闭入口",
+              "explanation": "后续 submit 明确失败，已有提交与关闭的竞态按队列合同解决。"
+            },
+            {
+              "id": "stage-3",
+              "title": "排空或取消",
+              "explanation": "Drain 执行已接收任务；Cancel 丢弃排队任务，正在执行的任务仍完成。"
+            },
+            {
+              "id": "stage-4",
+              "title": "回收后释放",
+              "explanation": "先等待工作线程结束，再销毁路线数据和库存，最后核对结果。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "生命周期与成员析构顺序",
+            "plainMeaning": "成员按声明顺序构造、按相反顺序析构；后台工作必须先结束，随后才能释放被引用的数据。",
+            "codeMapping": "pipeline.hpp 把线程池成员放在所依赖数据之后声明，使其先析构并完成 join。"
+          },
+          {
+            "term": "Drain 与 Cancel",
+            "plainMeaning": "Drain 兑现所有已接收任务；Cancel 只移除仍排队的任务。已运行任务继续完成，二者都拒绝新提交。",
+            "codeMapping": "DeliveryCenter::shutdown(CloseMode) 复用线程池协议，取消的排队 future 返回 broken_promise。"
+          },
+          {
+            "term": "计算与提交边界",
+            "plainMeaning": "CPU 评分完成不等于业务发货完成；只有库存 checkout 形成明确业务结果才算完成提交。",
+            "codeMapping": "DeliveryResult 同时保留 order_id、Score 和 Receipt，避免把“算过路线”直接计为成功订单。"
+          },
+          {
+            "term": "结果对账",
+            "plainMeaning": "关店后按每个已接收任务的 future 统计值、业务拒绝、异常与取消，不能仅看“线程退出”日志。",
+            "codeMapping": "逐笔比较 score 与 oracle，核对 Accepted、duplicate、Conflict、Insufficient 与最终库存。"
+          },
+          {
+            "term": "性能与正确性分离",
+            "plainMeaning": "线程池吞吐量和密集计算速度要测量，正确性和安全关店则由确定的结果合同验证。",
+            "codeMapping": "make benchmark 输出真实串行、布局优化和并行耗时及校验；不规定必须达到某个加速倍数。"
+          }
+        ],
+        "workedExample": {
+          "title": "五个提交跨过 Cancel 关店",
+          "steps": [
+            "入口已接收 A、B、C、D、E，调用者持有五个 future。",
+            "A、B 已被 worker 取出，C、D、E 仍在队列中。",
+            "控制线程调用 Cancel：入口关闭，C、D、E 被移除，其 future 变为明确错误。",
+            "A、B 继续完成评分和库存提交，然后 worker 退出并被 join。",
+            "调用者读取五个结局：两个已执行结果加三个取消；新提交被拒绝。",
+            "最后检查库存只包含真正完成的 Accepted 订单扣减，不根据排队数量扣减。"
+          ],
+          "takeaway": "任务被接收、开始执行、完成计算、提交库存和线程结束是不同事实。"
+        },
+        "misconceptions": [
+          {
+            "claim": "shutdown 返回前只需设置停止标志。",
+            "correction": "还要兑现相应策略、唤醒等待者、等待运行任务和回收线程，才能释放依赖对象。"
+          },
+          {
+            "claim": "Cancel 可以回滚已经成功发货的订单。",
+            "correction": "本工程 Cancel 仅取消尚未取出的任务，不撤销已提交业务动作，也不强杀运行线程。"
+          },
+          {
+            "claim": "析构顺序只影响风格，不影响并发正确性。",
+            "correction": "若被引用的数据先析构，后台线程会访问失效对象，成员顺序属于生命期合同。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "shutdown-dependencies",
+            "question": "线程池任务引用路线表与库存，析构时最关键的顺序是什么？",
+            "options": [
+              {
+                "id": "a",
+                "text": "先关闭并回收线程池，再释放它引用的路线表和库存"
+              },
+              {
+                "id": "b",
+                "text": "先销毁库存，减少内存占用"
+              },
+              {
+                "id": "c",
+                "text": "声明顺序任意，线程会自行避开无效对象"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "被借用对象必须活到所有借用者结束；成员反向析构需要有意识安排。"
+          },
+          {
+            "id": "cancel-running",
+            "question": "Cancel 关店时，一笔任务已经被 worker 取走，本工程如何处理？",
+            "options": [
+              {
+                "id": "b",
+                "text": "立即强制杀死该 worker"
+              },
+              {
+                "id": "c",
+                "text": "默认回滚它之前所有库存修改"
+              },
+              {
+                "id": "a",
+                "text": "允许它完成；只取消仍在队列里的任务"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "当前合同清楚限定 Cancel 的范围；协作计算取消是另一项显式机制。"
+          },
+          {
+            "id": "accepted-accounting",
+            "question": "判断配送高峰完成，哪份证据最充分？",
+            "options": [
+              {
+                "id": "c",
+                "text": "只看队列长度为 0"
+              },
+              {
+                "id": "a",
+                "text": "所有已接收 future 的明确结局、逐项评分正确和最终库存对账"
+              },
+              {
+                "id": "b",
+                "text": "只有一行“关店成功”文本"
+              }
+            ],
+            "correctOptionId": "a",
+            "explanation": "队列为空不代表运行任务完成，线程结束也不等于每笔业务成功，需要完整结果对账。"
+          }
+        ],
+        "bridgeToCode": "把前九章接口汇集到完整 DeliveryCenter，使用最终 main 和测试运行真实订单；第二步起可执行 make benchmark，展示本机实际结果。"
+      },
+      "guidedSteps": [
+        {
+          "id": "graceful-shutdown-step-1",
+          "codeStepId": "graceful-shutdown-step-1-code",
+          "title": "组合配送中心与生命期",
+          "targetFiles": [
+            "src/main.cpp",
+            "tests/tests.cpp",
+            "src/pipeline.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。阅读 DeliveryCenter 的成员声明顺序、submit 评分后 checkout 流程和 shutdown 委托，不复制另一份库存实现。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "执行 make test 和 make run，确认完整工程编译且此前功能仍通过；本步先引入模块，新行为在第二步入口演示、第三步专项测试中验证。"
+        },
+        {
+          "id": "graceful-shutdown-step-2",
+          "codeStepId": "graceful-shutdown-step-2-code",
+          "title": "运行完整配送与基准入口",
+          "targetFiles": [
+            "src/main.cpp",
+            "src/benchmark.hpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。使用完整 main 提交真实订单、领取结果并关店；此步增加 make benchmark，比对相同输入后再记录实际耗时。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；最终入口可完整运行，基准报告真实测量而非承诺的速度。"
+        },
+        {
+          "id": "graceful-shutdown-step-3",
+          "codeStepId": "graceful-shutdown-step-3-code",
+          "title": "验证混合负载和两种关店",
+          "targetFiles": [
+            "tests/tests.cpp",
+            "src/main.cpp"
+          ],
+          "instruction": "从上一快照继续，复制本小节代码交付列出的完整文件到相同路径；也可从本地 states 目录复制本步完整工程恢复。运行 Drain、Cancel、重复关闭、关闭后提交与正常/重复/冲突订单组合测试，逐项核对结果和库存。 不需要自行猜测未给出的函数；必要的小改动只涉及本节说明的常量或输入。",
+          "verify": "在工程根目录执行 make test 和 make run，确认两条命令退出 0；最终完整工程从干净目录构建通过，任务结局明确且所有 worker 已回收。"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察关闭后新订单是否仍能进入。"
+          "text": "把每笔订单标成未接收、排队、运行、计算完成或库存已提交，先定位卡住的阶段。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查关闭标志、队列关闭和线程 join 顺序。"
+          "text": "检查 pipeline.hpp 的成员顺序、shutdown 和 future 领取；再追到 pool.hpp 与 queue.hpp。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "先关闭入口，再决定排空或取消，最后回收线程。"
+          "text": "先关闭入口并确定排队项策略，再等待运行任务和回收线程，最后释放被引用数据并对账。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "实现“排空队列”和“取消剩余”两种明确策略。",
-        "evidence": "两种关店测试与最终统计",
-        "automatedChecks": [
-          "reject-after-close",
-          "drain-policy",
-          "cancel-policy",
-          "all-joined"
+        "task": "在最终完整代码上使用另一组已学订单输入，分别执行 Drain 和 Cancel；只调整已给出的输入、容量和线程数，逐个记录 future 结局并验证已执行评分等于 oracle。",
+        "evidence": "从干净目录构建的命令、完整测试输出、逐任务结果、最终库存和本机基准记录",
+        "automatedChecks": [],
+        "selfChecks": [
+          "在本地运行本章完整测试并记录真实退出状态；网页只保存自检证据",
+          "30 个代码增量依次应用后能得到并构建同一个最终工程",
+          "Drain 与 Cancel 的已接收任务都有明确结局",
+          "关店后新提交失败，线程回收先于被引用数据释放",
+          "本机计时与正确性证据分开记录，不以固定倍数判定通过"
         ],
-        "selfChecks": [],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 不预告关店发生时刻。"
+      "laterReencounter": "Boss 只组合已经学过并交付完整代码的负载、冲突、转仓和关店，不引入新的底层模块。",
+      "runbook": {
+        "buildCommands": [
+          "make test",
+          "make run"
+        ],
+        "runActions": [
+          "概念课可先阅读本章第一步完整源码并预测行为；引导步骤依次完成模块编译、入口调用与专项测试。",
+          "依次应用三个代码增量，每次构建通过后再继续；独立小节从本章末完整快照开始",
+          "在最终完整代码上使用另一组已学订单输入，分别执行 Drain 和 Cancel；只调整已给出的输入、容量和线程数，逐个记录 future 结局并验证已执行评分等于 oracle。"
+        ],
+        "expectedResults": [
+          "最终完整工程从干净目录构建通过，任务结局明确且所有 worker 已回收。",
+          "本地完整测试通过；应用本小节完整代码后保留前面章节能力，保存本次改动与真实测试摘要。"
+        ]
+      },
+      "snapshotStateId": "graceful-shutdown-3"
     }
   ],
   "boss": {
     "id": "peak-delivery-center-boss",
     "title": "商城节日前夜配送高峰",
-    "story": "订单重复到达、库存争抢、转仓反向加锁，营业中途还收到立即关店指令。",
+    "story": "商城节日前夜，同一配送中心要计算大量路线、处理重复或冲突订单，并在运行期间收到排空或取消关店指令。双仓转移作为同工程独立模块单独检查守恒与多锁协议，不把 Warehouse 与 Inventory 冒充同一笔跨模块库存事务。使用已交付代码解释每个结果。",
     "performancePoints": {
       "maximum": 100,
       "pass": 80,
@@ -365,36 +2563,49 @@
     },
     "phases": [
       {
-        "id": "load",
-        "title": "高并发订单压力",
+        "id": "compute",
+        "title": "用串行基准检查密集计算",
         "successCriteria": [
-          "无重复发货",
-          "库存不为负",
-          "统计可复现"
+          "同一合法输入的串行、连续布局和并行结果逐项相等",
+          "覆盖空输入、平局、非法范围和多种工作量",
+          "提供本机真实计时并说明测量边界，不要求固定加速倍数"
+        ]
+      },
+      {
+        "id": "load",
+        "title": "重复、冲突与库存争抢",
+        "successCriteria": [
+          "同号同内容不重复扣减，同号改内容返回冲突",
+          "并发成功数与最终库存相符，库存不为负",
+          "任务异常通过对应 future 返回且后续任务仍可完成"
         ]
       },
       {
         "id": "deadlock",
-        "title": "转仓死锁注入",
+        "title": "反向转仓与协作取消",
         "successCriteria": [
-          "在期限内完成",
-          "总库存守恒"
+          "转仓线程在有限测试内全部结束",
+          "双仓总量守恒，失败不留下半次转移",
+          "能够区分 stop 请求、观察取消与真正任务结束"
         ]
       },
       {
         "id": "shutdown",
-        "title": "独立处理营业中关店",
+        "title": "独立完成两种安全关店",
         "successCriteria": [
-          "入口关闭",
-          "线程全部回收",
-          "剩余订单结果明确"
+          "Drain 兑现已接收任务，Cancel 明确区分排队取消与运行完成",
+          "关闭后的新任务被拒绝，每个已接收 future 都有可解释结局",
+          "工作线程先回收，再释放引用数据；最终源码在干净目录可构建运行"
         ]
       }
     ],
     "faultScenarios": [
+      "score-mismatch",
       "duplicate-order",
+      "conflicting-order",
       "inventory-race",
       "reverse-lock-order",
+      "task-exception",
       "shutdown-during-work"
     ],
     "resumableByPhase": true,
@@ -423,9 +2634,52 @@
       "expectedBehavior",
       "actualResult",
       "viewedHintTiers",
-      "recentAttempts"
+      "recentAttempts",
+      "currentCodeState",
+      "codeStepId",
+      "sourceFiles",
+      "buildCommand",
+      "compilerVersion",
+      "testOutput"
     ],
-    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+    "tutorInstruction": "先确认学习者所在代码快照和本地真实输出，再让其解释对象不变量、计算结果或线程交错。每个小节都有完整源码；定位错误时只指出当前步骤文件和已教授机制，不要求学习者凭空实现缺失基础设施。不要把网页自检当 C++ 编译结果，不用 sleep、伪造耗时或固定加速倍数证明并发。独立变式看过完整解法后，改用新的等价输入完成。Boss 只整合已交付代码。"
   },
-  "file": "levels/peak-delivery-center-project.json"
+  "file": "levels/peak-delivery-center-project.json",
+  "guidancePolicy": {
+    "mode": "guided-complete-build",
+    "conceptLessonsPerChapter": 1,
+    "guidedLessonsPerChapter": 3,
+    "independentCheckpointPerChapter": true,
+    "cumulativeArtifact": true,
+    "chapterSnapshotRequired": true,
+    "fullSolutionScope": "每个引导小节交付完整可运行文件、命令与预期输出。概念课阅读本章第一步的完整源码；新行为按“模块可编译→接入入口→专项测试”逐步呈现。独立小节从章末完整工程出发，只做已教授的小范围输入或断言变化。Boss 使用最终完整工程。",
+    "learnerFreedomBoundary": "允许调整测试输入、任务规模、工作线程数、队列容量和已教授的业务校验；独立变式不要求从零补写线程池、调度器或未知算法。看过变式完整解法后，用新的等价输入再独立验证。",
+    "codeDeliveryContractVersion": 1
+  },
+  "codeDelivery": {
+    "schemaVersion": 1,
+    "packageFile": "project-code/peak-delivery-center-project.json",
+    "packageSha256": "39501146eedf7a8537f33e7bf96caa00454d19ac13ece22f579f77b2ea06c600",
+    "baselineStateId": "peak-empty",
+    "finalStateId": "graceful-shutdown-3"
+  },
+  "environment": {
+    "platform": "本地终端 C++ 工程；网页负责呈现课程、代码和记录学习证据",
+    "languageStandard": "C++20",
+    "toolchain": "支持 C++20 的 Clang 或 GCC，标准 C++ 库与 POSIX 线程支持",
+    "buildSystem": "Makefile；使用 c++ -std=c++20 -pthread 编译，无第三方依赖",
+    "outputBackend": "真实终端标准输出、标准错误、测试断言及基准计时",
+    "inputBackend": "工程内可复现样例、测试数据及已说明的命令行参数",
+    "requirements": [
+      "先确认 c++ --version 与 make --version 可用；C++20 标准库必须支持本工程使用的线程接口",
+      "每个小节在本地执行 make test 和 make run，保留命令退出状态和测试摘要",
+      "性能比较必须使用相同输入、编译配置和机器，先比结果，再做多次计时；不以固定加速倍数作为通关条件",
+      "网页不会自动编译或运行 C++；勾选自检只记录学习证据，不等同于自动验收"
+    ],
+    "supportedHosts": [
+      "Linux（原生、虚拟机或具备线程运行能力的容器）",
+      "Windows 的 WSL2 Linux 环境",
+      "macOS 配合支持本工程 C++20 接口的 Clang/GCC；具体以本地构建与测试结果为准"
+    ]
+  }
 }
