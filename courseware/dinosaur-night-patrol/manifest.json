@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "courseId": "dinosaur-night-patrol",
+  "title": "恐龙蛋 · 蛋仔岛夜班巡检台",
+  "language": "C17",
+  "platform": "Linux/POSIX",
+  "snapshotModel": "complete-files",
+  "finalRoot": "final",
+  "entrypoints": [
+    "final/src/supervisor/main.c",
+    "final/src/worker/main.c",
+    "final/tools/patrolctl.c"
+  ],
+  "executables": ["patrold", "patrol-worker", "patrolctl", "inline-probe"],
+  "coursePathMapping": {
+    "CMakeLists.txt": "final/CMakeLists.txt",
+    "README.md": "final/README.md",
+    "src/common": "final/src/common",
+    "src/supervisor": "final/src/supervisor",
+    "src/worker": "final/src/worker",
+    "tools": "final/tools",
+    "tests": "final/tests",
+    "config": "final/config"
+  },
+  "verification": {
+    "hostCommand": "./final/verify.sh",
+    "linuxDockerCommand": "./final/verify-docker.sh",
+    "includes": ["configure", "build", "12 unit tests", "3 end-to-end tests", "manual smoke run"]
+  },
+  "completeness": {
+    "emptyFunctions": 0,
+    "pseudocodeFiles": 0,
+    "todoMarkers": 0,
+    "runnableFinalProject": true
+  }
+}

@@ -224,7 +224,7 @@ test('大厅、关卡和岛务状态来自 schema V2 的同一份 V3 课程；�
 
   const home = expect(await request(app, '/api/play/home'), 200);
   assert.equal(home.body.course.schemaVersion, 2);
-  assert.equal(home.body.course.publishedRevision, 6);
+  assert.equal(home.body.course.publishedRevision, 7);
   assert.equal(home.body.course.ranks.length, 9);
   assert.equal(home.body.progress.revision, 0);
   assert.equal(home.body.summary.currentActivityId, 'quail-fountain-sequence');
@@ -1189,9 +1189,105 @@ test('同一课程 ETag 的并发保存只允许一个成功，并且发布版�
   assert.notEqual(after.etag, before.etag);
 });
 
+test('课程保存会先按候选课程校验所有代码包，失败返回 400 且旧课程保持可读', async t => {
+  const { app, root } = await fixture(t);
+  const before = expect(await request(app, '/api/admin/course'), 200);
+  const project = before.body.projects.find(item => item.id === 'dinosaur-night-patrol-project');
+  assert.ok(project?.codeDelivery);
+  expect(await request(app, `/api/play/projects/${project.id}/code-package`), 200);
 
+  const coursePath = join(root, 'data/course.json');
+  const detailPath = join(root, 'data/levels/dinosaur-night-patrol-project.json');
+  const originalCourse = await readFile(coursePath, 'utf8');
+  const originalDetail = await readFile(detailPath, 'utf8');
+  const changed = structuredClone(before.body);
+  changed.projects.find(item => item.id === project.id).chapters[0].guidedSteps[0].targetFiles = ['CMakeLists.txt', 'src/common/os_error.c'];
 
+  const failed = await request(app, '/api/admin/course', {
+    method: 'PUT', data: changed, etag: before.etag
+  });
+  expectError(failed, 400, 'invalid_code_package');
+  assert.match(failed.body.error, /代码包校验失败/);
+  assert.equal(await readFile(coursePath, 'utf8'), originalCourse);
+  assert.equal(await readFile(detailPath, 'utf8'), originalDetail);
 
+  const after = expect(await request(app, '/api/admin/course'), 200);
+  assert.equal(after.etag, before.etag);
+  assert.equal(after.body.publishedRevision, before.body.publishedRevision);
+  assert.deepEqual(after.body.projects.find(item => item.id === project.id).chapters[0].guidedSteps[0].targetFiles, project.chapters[0].guidedSteps[0].targetFiles);
+});
+
+test('课程保存拒绝保留代码引用却删除交付合同，且不改写旧课程或作品版本', async t => {
+  const { app, root } = await fixture(t);
+  const before = expect(await request(app, '/api/admin/course'), 200);
+  const project = before.body.projects.find(item => item.id === 'dinosaur-night-patrol-project');
+  assert.ok(project?.codeDelivery);
+  assert.equal(project.guidancePolicy.codeDeliveryContractVersion, 1);
+  assert.ok(project.chapters.some(chapter => chapter.snapshotStateId));
+  assert.ok(project.chapters.some(chapter => chapter.guidedSteps.some(step => step.codeStepId)));
+
+  const coursePath = join(root, 'data/course.json');
+  const detailPath = join(root, 'data/levels/dinosaur-night-patrol-project.json');
+  const originalCourse = await readFile(coursePath, 'utf8');
+  const originalDetail = await readFile(detailPath, 'utf8');
+  const changed = structuredClone(before.body);
+  const changedProject = changed.projects.find(item => item.id === project.id);
+  delete changedProject.codeDelivery;
+  delete changedProject.guidancePolicy.codeDeliveryContractVersion;
+
+  const failed = await request(app, '/api/admin/course', {
+    method: 'PUT', data: changed, etag: before.etag
+  });
+  expectError(failed, 400, 'invalid_park_data');
+  assert.match(failed.body.error, /代码快照或代码步骤引用时必须显式启用代码交付合同版本/);
+  assert.equal(await readFile(coursePath, 'utf8'), originalCourse);
+  assert.equal(await readFile(detailPath, 'utf8'), originalDetail);
+
+  const after = expect(await request(app, '/api/admin/course'), 200);
+  assert.equal(after.etag, before.etag);
+  assert.equal(after.body.publishedRevision, before.body.publishedRevision);
+  assert.equal(after.body.projects.find(item => item.id === project.id).version, project.version);
+  assert.deepEqual(after.body.projects.find(item => item.id === project.id).codeDelivery, project.codeDelivery);
+});
+
+test('服务在读取代码包内容前按文件大小拒绝超过 16 MB 的包', async t => {
+  const { app, root } = await fixture(t);
+  const course = expect(await request(app, '/api/admin/course'), 200).body;
+  const project = course.projects.find(item => item.id === 'dinosaur-night-patrol-project');
+  const packagePath = join(root, 'data', project.codeDelivery.packageFile);
+  await truncate(packagePath, PROJECT_CODE_MAX_PACKAGE_BYTES + 1);
+
+  const failed = await request(app, `/api/play/projects/${project.id}/code-package`);
+  expectError(failed, 500, 'invalid_code_package');
+  assert.match(failed.body.error, /超过 16 MB/);
+});
+
+test('服务端代码包校验拒绝便携文件系统上会冲突的路径', async t => {
+  const { root, start } = await fixture(t, { start: false });
+  const projectId = 'dinosaur-night-patrol-project';
+  const packagePath = join(root, `data/project-code/${projectId}.json`);
+  const packageValue = JSON.parse(await readFile(packagePath, 'utf8'));
+  packageValue.states[0].files['SRC/common/clock.c'] = 'portable duplicate\n';
+  const packageBytes = `${JSON.stringify(packageValue)}\n`;
+  await writeFile(packagePath, packageBytes, 'utf8');
+  const digest = createHash('sha256').update(packageBytes).digest('hex');
+
+  for (const relative of ['data/course.json', `data/levels/${projectId}.json`]) {
+    const target = join(root, relative);
+    const value = JSON.parse(await readFile(target, 'utf8'));
+    const project = relative === 'data/course.json'
+      ? value.projects.find(item => item.id === projectId)
+      : value;
+    project.codeDelivery.packageSha256 = digest;
+    await writeFile(target, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  }
+
+  await assert.rejects(start(), error => {
+    assert.equal(error.code, 'invalid_code_package');
+    assert.match(error.message, /大小写或 Unicode 归一化后冲突/);
+    return true;
+  });
+});
 
 test('课程多文件发布在提交前失败时保持整套旧版本可读', async t => {
   const failure = new Error('injected course publish failure');

@@ -230,7 +230,7 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
 
 test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
-  assert.equal(indexOnly.publishedRevision, 6);
+  assert.equal(indexOnly.publishedRevision, 7);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
@@ -532,6 +532,74 @@ test('鸵鸟蛋把 STM32 摩天轮拆成十一章且从实体引脚开始解释 
   assert.ok(project.boss.faultScenarios.includes('watchdog-reset-during-running'));
 });
 
+test('恐龙蛋从操作系统边界出发，逐步建成真实 Linux 多进程监督器', () => {
+  const project = COURSE.projects.find(item => item.id === 'dinosaur-night-patrol-project');
+  const rank = COURSE.ranks.find(item => item.id === 'dinosaur');
+
+  assert.equal(project.version, 3);
+  assert.equal(project.guidancePolicy.mode, 'guided-complete-build');
+  assert.deepEqual(project.estimatedSessions, { minimum: 60, typical: 64 });
+  assert.equal(project.chapters.length, 12);
+  assert.equal(rank.promotion.requiredStars, 12);
+  assert.equal(project.rewards.independentCheckpointStar, 1);
+  assert.match(project.environment.platform, /Linux 6/);
+  assert.match(project.environment.buildSystem, /CMake.*CTest/);
+  assert.equal(project.artifact.kind, 'linux-multiprocess-supervisor');
+  assert.deepEqual(project.artifact.components.slice(0, 3).map(item => item.id), ['patrold', 'patrol-worker', 'patrolctl']);
+
+  const expectedChapterIds = [
+    'syscall-boundary',
+    'fd-basics',
+    'filesystem-state',
+    'fork-model',
+    'exec-wait',
+    'process-lifecycle',
+    'pipe-reports',
+    'poll-event-loop',
+    'signals',
+    'deadline-control',
+    'resource-isolation',
+    'supervisor'
+  ];
+  assert.deepEqual(project.chapters.map(chapter => chapter.id), expectedChapterIds);
+
+  for (const chapter of project.chapters) {
+    assert.equal(chapter.estimatedSessions, 5, `${chapter.id} 应由概念、三步代码和独立检查组成`);
+    assert.equal(chapter.guidedSteps.length, 3, `${chapter.id} 应恰有三个累积代码步骤`);
+    assert.equal(chapter.conceptModule.checks.length, 3, `${chapter.id} 应有三道服务端判定理解题`);
+    assert.ok(chapter.runbook.buildCommands.length >= 1, `${chapter.id} 应给出真实构建命令`);
+    assert.ok(chapter.runbook.runActions.length >= 1, `${chapter.id} 应给出真实 Linux 观察动作`);
+    assert.ok(chapter.runbook.expectedResults.length >= 1, `${chapter.id} 应说明可观察结果`);
+    assert.equal(chapter.checkpoint.awardsStar, true, `${chapter.id} 的首次独立变式应授星`);
+    const explained = new Set(chapter.conceptModule.terms.map(item => item.term));
+    assert.equal(chapter.concepts.every(concept => explained.has(concept)), true, `${chapter.id} 的每个概念都应有白话解释和代码映射`);
+    const fileSet = new Set(chapter.filesTouched);
+    assert.equal(chapter.guidedSteps.flatMap(step => step.targetFiles).every(file => fileSet.has(file)), true, `${chapter.id} 的代码步骤只能修改本章文件清单`);
+  }
+
+  const concepts = new Set(project.chapters.flatMap(chapter => chapter.concepts));
+  for (const concept of [
+    '用户态与内核态', '系统调用', 'errno', '文件描述符', '打开文件描述', '原子替换与 fsync',
+    '虚拟地址空间', '写时复制', 'exec 进程映像替换', 'FD_CLOEXEC', 'waitpid', '僵尸进程',
+    '字节流与消息帧', '管道 EOF', 'I/O 就绪', 'poll', '背压', 'sigaction', '异步信号安全',
+    'self-pipe', '单调时钟', '进程组', '资源限制 rlimit', '追加式日志', '重启对账'
+  ]) assert.ok(concepts.has(concept), `操作系统课程缺少关键概念：${concept}`);
+
+  for (const legacyId of ['fd-basics', 'fork-model', 'exec-wait', 'pipe-reports', 'signals', 'supervisor']) {
+    assert.ok(expectedChapterIds.includes(legacyId), `已发布章节身份应保持稳定：${legacyId}`);
+  }
+
+  const contract = project.coreContract.join('\n');
+  assert.match(contract, /patrold.*patrol-worker.*patrolctl/);
+  assert.match(contract, /不能用单进程函数调用冒充多进程隔离/);
+  assert.match(contract, /普通算法程序不能通过/);
+  assert.match(contract, /strace.*ps.*\/proc/);
+
+  for (const fault of [
+    'pipe-writer-leak', 'poll-source-starvation', 'sigterm-storm', 'descendant-ignores-term',
+    'journal-tail-tear', 'crash-after-result-before-commit'
+  ]) assert.ok(project.boss.faultScenarios.includes(fault), `Boss 缺少组合故障：${fault}`);
+});
 
 test('完整引导课程拒绝缺失、未覆盖或不可判定的概念模块', () => {
   function invalid(mutator, pattern) {
