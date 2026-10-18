@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "courseId": "eggy-programming-park",
-  "publishedRevision": 8,
+  "publishedRevision": 11,
   "title": "蛋仔编程乐园",
   "subtitle": "从第一行代码，玩到自己的作品",
   "terminology": {
@@ -496,7 +496,7 @@
       "id": "super-phoenix",
       "order": 8,
       "title": "超级凤凰蛋",
-      "technologyTheme": "C 网络编程与 C++/SQL/SQLite 数据持久化",
+      "technologyTheme": "C17 TCP 网络编程、消息分帧与有界并发、C++20 SQLite 资源封装、事务与持久幂等、重启恢复和稳定查询",
       "languageIds": [
         "c",
         "cpp",
@@ -13743,11 +13743,11 @@
     {
       "schemaVersion": 2,
       "id": "super-arcade-data-center-project",
-      "version": 1,
+      "version": 2,
       "activityType": "rank-project",
       "rankId": "super-phoenix",
       "title": "蛋仔游戏厅联机积分中心",
-      "technologyTheme": "C 网络编程与 C++/SQL/SQLite 数据持久化",
+      "technologyTheme": "C17 TCP 网络编程、消息分帧与有界并发、C++20 SQLite 资源封装、事务与持久幂等、重启恢复和稳定查询",
       "languages": [
         "c",
         "cpp",
@@ -13760,13 +13760,13 @@
       ],
       "propIds": [],
       "estimatedSessions": {
-        "minimum": 26,
-        "typical": 36
+        "minimum": 50,
+        "typical": 54
       },
       "prerequisiteActivityIds": [
         "peak-delivery-center-project"
       ],
-      "story": "足球场和钢琴地毯作为联网终端上报比赛事件，游戏厅负责接收、去重、保存、查询积分并安全兑换奖励。",
+      "story": "足球场与钢琴地毯的 C 终端上报比赛事件，经 C 网关转发到 C++ 积分服务，再由 SQLite 持久保存积分与兑换。你将在同一个工程中理解真实 TCP 字节流和断线后的不确定结果，把安全网络处理与持久事务组合成可查询、可重试、可重启的联机积分中心。",
       "oneProjectRule": {
         "allChaptersModifySameArtifact": true,
         "chapterExercisesAreNotSeparateProjects": true
@@ -13796,13 +13796,25 @@
             "entryFile": "db/schema.sql"
           }
         ],
-        "runTarget": "local-linux-network"
+        "runTarget": "local-linux-network",
+        "requiredDeliverables": [
+          "三个真实可执行进程：C 客户端、C 网关、C++ SQLite 积分服务；通过本地 TCP 连接",
+          "同一工程的 Makefile、完整 C/C++/SQL 源码、30 个连续代码步骤和 10 个章末完整状态",
+          "消息边界、分片、粘连、半帧、超时、连接上限和有限重试测试",
+          "SQLite 约束、绑定参数、事务回滚、持久幂等、重启恢复与稳定排序的本地证据"
+        ]
       },
       "coreContract": [
-        "C 客户端和服务端通过明确消息边界传输事件",
-        "部分读写、断线、超时和重复提交有确定处理",
-        "C++ 服务用 SQLite 事务保存积分与兑换",
-        "多客户端并发写入不产生重复积分或双重兑换"
+        "终端、网关与服务是三个独立进程；监听 socket 与已连接 socket 职责明确",
+        "TCP 仅传输字节流；长度帧有上限，部分读写按偏移继续，半帧断开与合法结束明确区分",
+        "第3章起每条TCP连接使用单调时钟绝对期限；客户端每次尝试有独立1秒I/O预算，最多重试2次，服务从accept计期限且排队计入；该期限不是SQLite事务硬deadline",
+        "多连接的缓冲区与进度相互隔离，连接数和排队/缓冲规模有界，慢终端不能无上限消耗资源",
+        "players保存玩家标识与coins，ledger保存ADD/REDEEM账本，第8章新增requests及ledger事件唯一索引；参数绑定、外键与CHECK共同保护数据",
+        "C++ RAII 明确拥有数据库连接和语句，异常保留错误并结束未提交事务",
+        "加分/兑换的多次写入在一个事务中提交；失败回滚，不留下半条账本或半次余额修改",
+        "幂等标识、请求内容与既定结果持久保存；同号同内容重试不再次改余额，同号改内容明确冲突",
+        "最终schema的数据库在进程停止重开后保留已提交查询和幂等结果；不包含章节间旧数据库自动迁移，不承诺网络exactly-once或物理断电无损",
+        "30 个完整代码步骤累积成一个工程，最后能真实完成上报、查询、兑换、重试和重启验证"
       ],
       "chapterTeachingLoop": [
         "experience",
@@ -13816,343 +13828,2512 @@
       "chapters": [
         {
           "id": "network-model",
-          "title": "找到客户端、服务端和端口",
-          "goal": "理解 IP、端口、连接和请求响应。",
+          "title": "先让 C 终端与网关建立真实连接",
+          "phase": "网络边界",
+          "estimatedSessions": 5,
+          "goal": "理解网络端点和监听/连接描述符，从本地请求模型推进到 C 终端与网关的真实 TCP 往返，为后续 C++ 服务预留边界。",
           "concepts": [
-            "客户端服务端",
-            "IP",
-            "端口",
-            "TCP"
+            "IP 与端口",
+            "监听 socket 与连接 socket",
+            "进程与连接生命周期",
+            "传输确认与业务结果"
           ],
-          "guidedBuild": "完成单客户端回显，并用日志标记连接生命周期。",
+          "guidedBuild": "同一个工程先交付本地PING模型，再接入真实C客户端与网关，最后加入网络边界测试。",
+          "milestone": "真实C终端可通过TCP访问网关，EOF明确结束本章单次请求，会话结束后仍能接受后续客户端。",
+          "filesTouched": [
+            "common/protocol.h",
+            "client/main.c",
+            "tests/unit.c",
+            "README.md",
+            ".gitignore",
+            "tools/demo.py",
+            "tests/check.py",
+            "Makefile",
+            "common/net.h",
+            "gateway/main.c",
+            "tools/harness.py"
+          ],
+          "conceptModule": {
+            "title": "连接成功和业务处理完成为什么不是一回事",
+            "learningGoal": "能画出本章两个进程的监听/连接关系，并区分本地输入验证、真实TCP通信与后续才接入的数据库服务。",
+            "phenomenon": {
+              "title": "服务正在监听，仍然没有处理任何一场比赛",
+              "observation": "第一个代码步骤只在本地验证 PING|player 并输出响应；它不是网络。第二步才让 C 客户端连接 C 网关。本章网关自己回应 PING，C++积分服务直到第六章才加入。connect成功仍只说明传输连接建立，不代表最终数据库业务已经完成。",
+              "question": "一条比赛事件从终端到积分服务，需要经过哪些进程与连接？"
+            },
+            "mentalModel": {
+              "summary": "IP和端口定位端点。监听socket负责accept，每次成功接受会话获得新的连接fd。本章终端发送最多4096字节请求，再shutdown(SHUT_WR)关闭发送方向，网关读到EOF才知道本次请求结束并回复；一条连接只做一次请求。这个可运行起点保留读取方向，但无法复用会话，下一章才用长度帧解决。最终网关还会连接独立C++服务，本章尚未接入。",
+              "flow": [
+                {
+                  "id": "local-model",
+                  "title": "先有合法请求",
+                  "explanation": "第一步只有本地PING验证与回显，不运行服务。"
+                },
+                {
+                  "id": "listen",
+                  "title": "网关监听",
+                  "explanation": "第二步建立真实C网关监听端口，accept得到会话fd。"
+                },
+                {
+                  "id": "half-close",
+                  "title": "终端发送并半关闭",
+                  "explanation": "发送正文后shutdown(SHUT_WR)，EOF给本章请求划定边界，仍可读取响应。"
+                },
+                {
+                  "id": "close-session",
+                  "title": "收响应并关闭",
+                  "explanation": "网关返回PONG后关闭会话；监听入口保留以接受下一位终端。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "IP 与端口",
+                "plainMeaning": "IP 指向网络接口或主机地址，端口区分同一地址上的服务；本课程使用本地回环减少网络部署变量。",
+                "codeMapping": "network-model-1阅读common/protocol.h中的PING|player；step2阅读网关一个监听端口与客户端connect参数。"
+              },
+              {
+                "term": "监听 socket 与连接 socket",
+                "plainMeaning": "监听描述符用来 accept；每次成功 accept 获得独立连接描述符，真正收发数据在后者进行。",
+                "codeMapping": "对照网络辅助函数与服务入口中 socket、bind、listen、accept、connect 的返回值。"
+              },
+              {
+                "term": "进程与连接生命周期",
+                "plainMeaning": "本章只有C终端与C网关两个进程。每个进程管理自己的fd，连接关闭不等于监听结束；第六章才增加第三个C++服务。",
+                "codeMapping": "网络步骤中raw_read读到EOF结束正文；客户端shutdown(SHUT_WR)只关发送方向，之后继续收响应。"
+              },
+              {
+                "term": "传输确认与业务结果",
+                "plainMeaning": "连接成功或 send 成功只描述传输层操作，业务结果必须由应用解析并返回。",
+                "codeMapping": "暂时观察网络响应；数据库提交结果会在后续事务与端到端步骤接入。"
+              }
+            ],
+            "workedExample": {
+              "title": "从本地 PING 到一次真实 TCP 往返",
+              "steps": [
+                "运行第一步client PING|alice，只验证本地输入与回显，不把它当网络证据。",
+                "第二步启动gateway监听一个端口，client连接该端口并发送PING正文。",
+                "客户端shutdown(SHUT_WR)，网关读到EOF后把完整正文交给ping_reply。",
+                "客户端读取OK|PONG|alice后关闭连接；网关的监听socket仍保留。",
+                "再次连接发送另一位合法玩家的PING；确认这是新会话，并认识到本章每次请求必须结束发送方向。"
+              ],
+              "takeaway": "用EOF作边界足以建立受限起点，但不能在同一连接继续发送第二个请求；下一章用长度前缀改进。"
+            },
+            "misconceptions": [
+              {
+                "claim": "connect 成功表示积分已经加上。",
+                "correction": "它只表示传输连接建立；还要解析请求、执行数据库事务并返回业务结果。"
+              },
+              {
+                "claim": "服务端拿监听 socket 直接读客户端内容。",
+                "correction": "监听入口用于接受连接，accept 返回的连接 socket 才承载会话数据。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "listen-vs-accepted",
+                "question": "服务端应从哪个描述符读取一位客户端的请求？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "accept 返回的连接描述符"
+                  },
+                  {
+                    "id": "b",
+                    "text": "用于 listen 的监听描述符"
+                  },
+                  {
+                    "id": "c",
+                    "text": "任意空闲的整数"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "监听入口与已建立会话具有不同角色，不应混用。"
+              },
+              {
+                "id": "two-connections",
+                "question": "本章客户端调用shutdown(fd,SHUT_WR)后，为什么还能接收网关响应？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "因为它重新打开了一个数据库连接"
+                  },
+                  {
+                    "id": "c",
+                    "text": "因为TCP保证任何关闭都不会生效"
+                  },
+                  {
+                    "id": "a",
+                    "text": "只关闭发送方向，仍保留读取方向"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "半关闭发送方向向对端提供EOF边界，不关闭本地读取方向；完整close才结束本地描述符。"
+              },
+              {
+                "id": "connection-not-commit",
+                "question": "connect 返回成功后客户端立即崩溃，可以断定什么？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "服务端必然已经关闭"
+                  },
+                  {
+                    "id": "a",
+                    "text": "连接曾建立，不能据此断定积分事务是否执行"
+                  },
+                  {
+                    "id": "b",
+                    "text": "积分必然已经提交一次"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "传输状态不能替代业务处理状态，需要更高层结果。"
+              }
+            ],
+            "bridgeToCode": "按“本地请求模型→真实TCP单次会话→网络测试”推进；本章明确用EOF结束一条请求，长度帧、期限与后端服务分别在后续章节接入。"
+          },
+          "guidedSteps": [
+            {
+              "id": "network-model-step-1",
+              "codeStepId": "network-model-step-1-code",
+              "title": "建立本地请求模型与校验",
+              "targetFiles": [
+                "common/protocol.h",
+                "client/main.c",
+                "tests/unit.c",
+                "README.md",
+                ".gitignore",
+                "tools/demo.py",
+                "tests/check.py",
+                "Makefile"
+              ],
+              "instruction": "复制完整common/protocol.h、client/main.c及构建文件，阅读PING|player解析。玩家/事件标识只允许ASCII字母、数字、下划线、连字符，长度1..32。此步client本地回显，尚未使用网络。",
+              "verify": "make test和make run可运行；输出证明本地请求校验，不能当TCP通信已实现。"
+            },
+            {
+              "id": "network-model-step-2",
+              "codeStepId": "network-model-step-2-code",
+              "title": "让终端与网关通过TCP往返",
+              "targetFiles": [
+                "client/main.c",
+                "tools/demo.py",
+                "Makefile",
+                "common/net.h",
+                "gateway/main.c",
+                "tools/harness.py"
+              ],
+              "instruction": "复制当前步骤完整网络文件，跟踪listen_local、accept、connect_local、io_exact与raw_read。客户端发送后shutdown(SHUT_WR)，网关以EOF作正文边界并回应PING；本章只有两个进程。",
+              "verify": "make run启动真实C网关和终端完成一次TCP响应；C++服务与SQLite尚未加入。"
+            },
+            {
+              "id": "network-model-step-3",
+              "codeStepId": "network-model-step-3-code",
+              "title": "检查连接生命期",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "阅读并运行tests/check.py中test_network，验证合法PING、含空格非法标识和真实client命令；对照会话关闭与监听仍可用。",
+              "verify": "make test覆盖当前本地模型和真实网络请求，非法请求返回ERR|BAD_REQUEST；先前网络进程按脚本清理。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "区分监听套接字与已连接套接字。"
+              "text": "先列出每个描述符属于哪个进程、用于监听还是通信。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查 socket、bind、listen、accept、connect。"
+              "text": "检查 accept 返回的新 fd 与监听 fd 的使用位置。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "服务端用监听描述符接收连接，再使用新的连接描述符通信。"
+              "text": "连接资源按会话关闭，监听资源按服务关闭；后端失败也要释放前端会话资源。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "客户端退出后服务端仍能接受下一位客户端。",
-            "evidence": "连接日志和命令记录",
-            "automatedChecks": [
-              "sequential-clients",
-              "client-disconnect"
+            "task": "在test_network的已有stack块中增加一条PING|second_player调用，断言得到OK|PONG|second_player；只补输入和响应，验证先前会话结束后网关仍接待下一位终端。",
+            "evidence": "本地模型与TCP步骤的不同命令、网关一个监听端口、两次顺序PING响应和退出状态",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "能区分监听与会话描述符",
+              "能解释本章EOF边界与shutdown只关闭发送方向",
+              "连接成功不被当成业务事务成功"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "多客户端章节复用同一连接生命周期。"
+          "laterReencounter": "下一章会发现即使 TCP 连接完全正常，接收端仍不知道一条消息在哪里结束。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在test_network的已有stack块中增加一条PING|second_player调用，断言得到OK|PONG|second_player；只补输入和响应，验证先前会话结束后网关仍接待下一位终端。"
+            ],
+            "expectedResults": [
+              "真实C终端可通过TCP访问网关，EOF明确结束本章单次请求，会话结束后仍能接受后续客户端。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "network-model-3"
         },
         {
           "id": "message-framing",
-          "title": "为比赛事件划清边界",
-          "goal": "设计长度前缀协议并处理部分读写。",
+          "title": "把字节流还原成一条条事件",
+          "phase": "网络边界",
+          "estimatedSessions": 5,
+          "goal": "用有上限的长度帧处理分片、粘连、部分读写和半帧断开，使协议边界独立于 TCP 分包。",
           "concepts": [
-            "字节流",
-            "消息帧",
-            "部分读写",
-            "字节序"
+            "TCP 字节流",
+            "长度前缀与字节序",
+            "部分读写与偏移",
+            "长度上限与截断"
           ],
-          "guidedBuild": "实现 read_exact、write_all 和最大消息限制。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：定义长度帧与资源上限；累积完成部分读写；用拆分和粘连输入验边界。",
+          "milestone": "4字节网络序长度帧正确处理逐字节分片与相邻帧，非法长度和NUL载荷被拒绝。",
+          "filesTouched": [
+            "common/frame.h",
+            "common/protocol.h",
+            "client/main.c",
+            "tools/demo.py",
+            "tests/check.py",
+            "gateway/main.c"
+          ],
+          "conceptModule": {
+            "title": "一次 send 为什么不等于一次 recv",
+            "learningGoal": "能按长度字段与已处理偏移逐字节推演完整帧、部分帧和多帧。",
+            "phenomenon": {
+              "title": "同一条消息有时分两次到，有时两条一起到",
+              "observation": "终端先发送事件 A、再发送事件 B，接收端可能一次拿到 A 的前半段，也可能一次拿到 A 和 B。TCP 只保证连接内按序字节流，不保证保留应用调用时的消息边界。",
+              "question": "如果不能把一次 recv 当一条事件，接收端凭什么知道该等多少字节？"
+            },
+            "mentalModel": {
+              "summary": "应用协议自己给消息加边界：先读取固定宽度长度头，转换约定字节序，检查长度合法，再读取恰好那么多载荷。每次 read/write 只推进实际完成的字节数，剩余部分继续处理。帧大小先验证再分配/写入缓冲，EOF 落在帧中间是截断，不能拿半条请求交给数据库。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "读完整长度头",
+                  "explanation": "长度头也可能分片，必须累积到规定字节数。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "验证长度",
+                  "explanation": "转换字节序并拒绝超限或非法长度，限制资源占用。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "读完整载荷",
+                  "explanation": "按剩余字节数继续接收，记录偏移而不是覆盖旧数据。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "交出一条完整帧",
+                  "explanation": "仅在边界完整时交给应用；剩余字节属于下一帧。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "TCP 字节流",
+                "plainMeaning": "传输的是有顺序的字节序列，应用消息需要由协议自己分隔；网络拆分和合并与业务条数无关。",
+                "codeMapping": "对照协议函数与分片/粘连测试，不以 recv 调用次数计算消息数。"
+              },
+              {
+                "term": "长度前缀与字节序",
+                "plainMeaning": "固定宽度头表示后续载荷长度，多字节整数按统一顺序编码，避免发送与接收的本机表示不同。",
+                "codeMapping": "common/frame.h 使用4字节uint32_t长度头、htonl/ntohl网络字节序；正文长度1..4096，不能嵌入NUL。"
+              },
+              {
+                "term": "部分读写与偏移",
+                "plainMeaning": "系统调用返回实际完成数量，可能比请求数量小；下一次应从未完成位置继续。",
+                "codeMapping": "common/net.h 的 io_exact 维护done与length-done，frame_read/frame_write分别调用它完成头与体。"
+              },
+              {
+                "term": "长度上限与截断",
+                "plainMeaning": "先限制载荷长度再接收，避免无限内存占用；只读到部分头或部分体后 EOF 是协议不完整。",
+                "codeMapping": "frame_read先拒绝0、4097或0xffffffff等非法长度，正文含NUL也拒绝；不完整帧关闭会话，不交给业务。"
+              }
+            ],
+            "workedExample": {
+              "title": "长度为 5 的载荷分三次到达",
+              "steps": [
+                "协议长度头先到一部分，接收状态仍在“读头”，不能解释尚未完整的长度。",
+                "长度头完整后解码为 5，并与最大长度比较。",
+                "载荷先收到 2 字节，偏移变 2，仍需 3 字节。",
+                "再收到 1 字节，偏移变 3；最后收到 2 字节，才把 5 字节完整载荷交给应用。",
+                "若第 3 字节之后 EOF，应报告截断，不能把已有 3 字节当成合法事件。"
+              ],
+              "takeaway": "状态依据协议字节数推进，与网卡分包或 send/recv 次数无关。"
+            },
+            "misconceptions": [
+              {
+                "claim": "网络可靠，所以一次 recv 一定收齐一次 send。",
+                "correction": "可靠有序的字节流不等于消息边界保留；部分读写是正常情况。"
+              },
+              {
+                "claim": "先分配长度字段指定的内存，再检查是否过大。",
+                "correction": "恶意或损坏长度可先耗尽资源，必须在分配或接收前验证上限。"
+              },
+              {
+                "claim": "连接关闭时把剩余缓存当最后一条请求。",
+                "correction": "只有协议明确完整的帧才能交给业务层，半帧必须拒绝。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "frame-fragment",
+                "question": "长度头宣告载荷 10 字节，第一次 recv 得到 4 字节，应怎么做？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "把 4 字节立即当完整事件"
+                  },
+                  {
+                    "id": "c",
+                    "text": "重复读取并覆盖原来 4 字节"
+                  },
+                  {
+                    "id": "a",
+                    "text": "保存 4 字节，继续接收剩余 6 字节"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "接收进度由长度合同和真实返回字节数决定。"
+              },
+              {
+                "id": "frame-coalesced",
+                "question": "一次接收缓冲含两条完整帧，应怎么解释？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "丢弃第二条来避免重复"
+                  },
+                  {
+                    "id": "a",
+                    "text": "按各自长度边界分别处理，不能合成一条事件"
+                  },
+                  {
+                    "id": "b",
+                    "text": "因为一次 recv 所以只能是一条"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "业务消息数与系统调用次数没有一一对应关系。"
+              },
+              {
+                "id": "frame-limit",
+                "question": "收到超出上限的长度头，最先应该做什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "拒绝该帧并按协议结束会话，不分配宣告的大块空间"
+                  },
+                  {
+                    "id": "b",
+                    "text": "先接完再判断内容"
+                  },
+                  {
+                    "id": "c",
+                    "text": "把长度截成上限继续当合法请求"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "上限是资源与协议合同，截断伪装成合法输入会改变请求含义。"
+              }
+            ],
+            "bridgeToCode": "用完整frame_read/frame_write取代上一章的EOF请求边界；gateway可在同一连接依次处理最多16帧。当前测试先验证分片与合帧，非阻塞期限到下一章接入。"
+          },
+          "guidedSteps": [
+            {
+              "id": "message-framing-step-1",
+              "codeStepId": "message-framing-step-1-code",
+              "title": "定义长度帧与资源上限",
+              "targetFiles": [
+                "common/frame.h",
+                "common/protocol.h"
+              ],
+              "instruction": "复制common/frame.h与依赖，阅读固定4字节网络序长度头、1..4096正文上限、NUL拒绝和头/体完整读写。该阶段I/O仍可能阻塞，期限在下一章加入。",
+              "verify": "帧编码/解码采用同一约定，当前完整工程可构建。"
+            },
+            {
+              "id": "message-framing-step-2",
+              "codeStepId": "message-framing-step-2-code",
+              "title": "累积完成部分读写",
+              "targetFiles": [
+                "client/main.c",
+                "tools/demo.py",
+                "tests/check.py",
+                "gateway/main.c",
+                "common/protocol.h"
+              ],
+              "instruction": "复制完整client与gateway，把EOF定界替换为frame_read/frame_write。本步骤先验证同一套帧接口的一次往返；第三步同时加入网关最多16帧循环与同连接相邻帧测试。",
+              "verify": "make run验证真实单帧往返；头与体使用完整读写循环。分片、相邻帧的实际断言在第三步接入，半帧断开在下一章测试。"
+            },
+            {
+              "id": "message-framing-step-3",
+              "codeStepId": "message-framing-step-3-code",
+              "title": "用拆分和粘连输入验边界",
+              "targetFiles": [
+                "tests/check.py",
+                "gateway/main.c",
+                "common/protocol.h"
+              ],
+              "instruction": "复制第三步完整gateway及tests/check.py，此步新增同连接最多16帧循环。运行test_framing：逐字节发送一帧、一次发送两帧、非法长度0/4097/0xffffffff及嵌入NUL；半帧断开专项验证在下一章加入。",
+              "verify": "make test和make run通过；合法分片/相邻帧不改变正文，非法帧关闭会话。当前frame_read以布尔成功/失败返回，不冒称已向客户端暴露精细错误枚举。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "观察一次 recv 返回值为何可能小于消息长度。"
+              "text": "先记下已经收到多少字节、协议还需要多少字节。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查读写循环和剩余字节计算。"
+              "text": "检查帧头解码与 read/write 循环中的指针偏移和剩余长度。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "TCP 提供字节流，不保留应用消息边界。"
+              "text": "长度先校验，读写只按实际返回值前进；不要把短读误判为完整消息。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "将一条消息拆成多次发送仍能正确解析。",
-            "evidence": "分片测试与协议说明",
-            "automatedChecks": [
-              "fragmented-frame",
-              "coalesced-frames",
-              "oversized-frame-rejected"
+            "task": "在test_framing将逐字节发送改成“头前2字节、头后2字节、载荷前半、载荷后半”四段发送，保留相同正文与响应断言；只改现有发送切片。",
+            "evidence": "原始帧字节、各次发送长度、完整/截断结果及测试退出状态",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "头和体都能跨多次读写累积",
+              "相邻消息按协议边界独立处理",
+              "最大长度在接收载荷之前检查"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 会随机拆分和合并网络数据。"
+          "laterReencounter": "下一章为这些可阻塞读写加总期限；收到的少量新字节不能无限延长一次请求。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在test_framing将逐字节发送改成“头前2字节、头后2字节、载荷前半、载荷后半”四段发送，保留相同正文与响应断言；只改现有发送切片。"
+            ],
+            "expectedResults": [
+              "4字节网络序长度帧正确处理逐字节分片与相邻帧，非法长度和NUL载荷被拒绝。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "message-framing-3"
         },
         {
           "id": "disconnect-timeout",
-          "title": "处理掉线与超时",
-          "goal": "区分正常关闭、连接重置、超时和可重试错误。",
+          "title": "给掉线、等待和重试划定边界",
+          "phase": "网络故障处理",
+          "estimatedSessions": 5,
+          "goal": "用单调时钟和有限重试区分 EOF、失败、超时与提交结果未知，防止慢连接无限占用。",
           "concepts": [
-            "EOF",
-            "errno",
-            "超时",
-            "有限重试"
+            "EOF 与系统错误",
+            "单调时钟与总期限",
+            "有限重试",
+            "结果未知"
           ],
-          "guidedBuild": "为客户端加入超时和指数上限内的有限重连。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：为 I/O 传递统一截止点；给客户端明确失败和有限重试；验证慢发送与中途断开。",
+          "milestone": "慢连接和故障不会导致无限阻塞，响应未知被诚实报告。",
+          "filesTouched": [
+            "common/net.h",
+            "client/main.c",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "超时没有收到回答，积分到底加没加",
+            "learningGoal": "能解释每条连接的绝对I/O期限、每次客户端尝试的预算，以及没有业务响应时为什么结果未知。",
+            "phenomenon": {
+              "title": "服务可能已经提交，响应却没有到达终端",
+              "observation": "终端把完整事件发送出去后等待响应；服务已经处理，但连接在响应途中断开。终端只看到超时，不能据此判断数据库没有提交。另一种慢连接每隔一会儿送一个字节，如果每次重置超时，就永远占着资源。",
+              "question": "一次请求的总期限从哪里开始？响应丢失时怎样重试才不会制造第二次业务动作？"
+            },
+            "mentalModel": {
+              "summary": "每次客户端尝试建立一个now_ms()+1000的I/O deadline，connect、发送和接收共用剩余预算；服务端从accept起也使用一条连接的固定期限。poll与非阻塞send/recv处理EINTR/EAGAIN时不刷新deadline。客户端重试参数0..2，最多3次尝试，每次可获得新的1秒预算；最终传输失败统一输出ERR|TRANSPORT。它不是整轮重试仅1秒，更不是SQLite事务或等待Store互斥量的硬期限。第八章前禁止自动重试写请求。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "设定截止点",
+                  "explanation": "以单调时钟当前值加预算得到 deadline。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "有限等待",
+                  "explanation": "poll 或等价等待只用 deadline 剩余时间，处理返回值。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "分类结束原因",
+                  "explanation": "从返回值和执行阶段区分EOF、半帧、错误与超时；本例对外统一为传输失败，不声称具有精细错误响应。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "有上限重试",
+                  "explanation": "对可重试失败保留请求身份，达到预算或次数上限就明确结束。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "EOF 与系统错误",
+                "plainMeaning": "recv 返回 0 表示对端关闭发送方向；负值要结合 errno，EINTR、EAGAIN 和真正故障含义不同。",
+                "codeMapping": "io_exact把EOF、等待耗尽和不可恢复I/O错误汇总为失败；学习时读对应分支，客户端最终只报告ERR|TRANSPORT，不伪造更细分类。"
+              },
+              {
+                "term": "单调时钟与总期限",
+                "plainMeaning": "单调时间用于测持续时长，不受系统日历时间校正影响；总期限跨越一次逻辑操作的多个等待。",
+                "codeMapping": "now_ms采用CLOCK_MONOTONIC；一次连接/尝试内共用deadline，客户端新的有限尝试会新建预算，不能把二者混为一个全局1秒。"
+              },
+              {
+                "term": "有限重试",
+                "plainMeaning": "重试需要明确原因、次数或总预算；坏输入和业务拒绝不能通过重复提交修复。",
+                "codeMapping": "client PORT REQUEST [RETRIES 0..2]；明确收到ERR应用响应时直接返回，不自动重试；第八章持久幂等启用后才允许写请求重试。"
+              },
+              {
+                "term": "结果未知",
+                "plainMeaning": "没有收到结果不等于没有执行；响应与提交之间存在无法从客户端直接观察的窗口。",
+                "codeMapping": "记录并重用请求 ID；后续持久幂等章节把重试映射到已保存结果。"
+              }
+            ],
+            "workedExample": {
+              "title": "一次连接内的1000毫秒与两次尝试的区别",
+              "steps": [
+                "一次客户端尝试从T设deadline=T+1000ms，连接、写帧和读响应共用它。",
+                "连接和写帧花300ms，读响应最多只剩约700ms；少量进度不重置它。",
+                "完整响应在期限内仍未到，当前连接失败并关闭。",
+                "若RETRIES=1，可进行第二次尝试并新建一次预算，总共最多2次，而不是整轮只有1秒。",
+                "最终仍失败输出ERR|TRANSPORT；若写请求已发出，结果可能未知，直到第八章有持久幂等后才允许安全自动重试写动作。"
+              ],
+              "takeaway": "总期限控制资源占用，幂等身份控制不确定结果下的业务重复，两者不能互相代替。"
+            },
+            "misconceptions": [
+              {
+                "claim": "每次 recv 设置 1 秒超时，就是请求总共最多 1 秒。",
+                "correction": "多次短读可能不断重置预算，只有统一 deadline 才约束整体时间。"
+              },
+              {
+                "claim": "超时说明服务没有执行，因此换新 ID 重发安全。",
+                "correction": "服务可能已提交但响应丢失，换 ID 会让同一业务看起来像新事件。"
+              },
+              {
+                "claim": "所有失败多试几次总会成功。",
+                "correction": "协议错误、非法参数或业务拒绝不会因为重复而变正确，重试还会加重负载。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "deadline-progress",
+                "question": "每收到一个字节就重新给 1 秒，会产生什么问题？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "自动实现可靠消息边界"
+                  },
+                  {
+                    "id": "a",
+                    "text": "慢连接可持续占用超过原本总预算"
+                  },
+                  {
+                    "id": "b",
+                    "text": "必然提高事务正确性"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "进度与期限是不同维度，不能让微小进度无限延长请求。"
+              },
+              {
+                "id": "timeout-unknown",
+                "question": "完整请求发出后超时，客户端能断言什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "没有拿到明确结果，事务可能已提交也可能没有"
+                  },
+                  {
+                    "id": "b",
+                    "text": "事务一定回滚"
+                  },
+                  {
+                    "id": "c",
+                    "text": "余额一定没有变化"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "网络观察无法穿透提交与响应之间的窗口，需要幂等重试或查询。"
+              },
+              {
+                "id": "retry-identity",
+                "question": "对结果未知的同一业务动作重试，ID 应如何处理？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "每次创建新 ID"
+                  },
+                  {
+                    "id": "c",
+                    "text": "保留 ID 但悄悄修改金额"
+                  },
+                  {
+                    "id": "a",
+                    "text": "保留原 ID 与原内容"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "同一身份与同一内容才能被服务端认作同一次动作的重试。"
+              }
+            ],
+            "bridgeToCode": "阅读交付的 deadline 与重试实现，用真实连接的慢发、提前关闭和服务不可达场景验证。当前只定义重试合同，持久化防重复随后接入。"
+          },
+          "guidedSteps": [
+            {
+              "id": "disconnect-timeout-step-1",
+              "codeStepId": "disconnect-timeout-step-1-code",
+              "title": "为 I/O 传递统一截止点",
+              "targetFiles": [
+                "common/net.h"
+              ],
+              "instruction": "复制完整common/net.h，阅读非阻塞connect+SO_ERROR、poll、CLOCK_MONOTONIC和io_exact。每次连接/尝试内共用绝对deadline，不把它声明为数据库硬期限。",
+              "verify": "构建通过；等待不会因 EINTR 或部分进度无限刷新总预算。"
+            },
+            {
+              "id": "disconnect-timeout-step-2",
+              "codeStepId": "disconnect-timeout-step-2-code",
+              "title": "给客户端明确失败和有限重试",
+              "targetFiles": [
+                "client/main.c",
+                "common/net.h"
+              ],
+              "instruction": "复制client完整实现，阅读RETRIES范围0..2与原argv正文复用。收到应用ERR响应不重试，读类/PING可有限重试；写重试在第八章持久幂等接入前明确拒绝。",
+              "verify": "运行演示与client参数测试；传输错误最后统一ERR|TRANSPORT，次数有上限，错误应用响应不会进入自动重试。"
+            },
+            {
+              "id": "disconnect-timeout-step-3",
+              "codeStepId": "disconnect-timeout-step-3-code",
+              "title": "验证慢发送与中途断开",
+              "targetFiles": [
+                "tests/check.py",
+                "common/net.h"
+              ],
+              "instruction": "运行test_deadline：半个头后断开、宣告长度20但只发P后停发、随后健康PING、真实客户端对不回应端重试1次。测试直接检查关闭、实际连接次数和有余量的总耗时。",
+              "verify": "测试观测到慢会话被关闭、后续PING仍成功；RETRIES=1恰好出现2次连接后ERR|TRANSPORT，不要求固定毫秒精度。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "先记录 recv=0 与 recv=-1 的差别。"
+              "text": "先判断请求是否完整发出、响应是否完整收到，而不是只看“失败”。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查错误分类和重试计数。"
+              "text": "检查 deadline 在哪里建立，重试是否重复创建无限新预算。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "并非所有失败都适合重试，重试也必须有上限。"
+              "text": "保留同一业务 ID，只对定义的传输失败有限重试；业务结果由持久记录确认。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "服务器中途断开时客户端明确结束或在上限内恢复。",
-            "evidence": "掉线日志与重试次数",
-            "automatedChecks": [
-              "clean-close",
-              "reset",
-              "timeout",
-              "retry-cap"
+            "task": "在test_deadline把停发载荷从“长度20+P”改为“长度30+PI”，保持原deadline与后续健康PING断言；说明为何仍会在同一连接预算后关闭，不自行新增定时框架。",
+            "evidence": "不完整帧长度、实际等待区间、后续PING响应和现有有限重试的连接计数",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "部分进度不刷新同一次操作的总期限",
+              "一次尝试预算与整轮重试预算明确区分；最终传输错误统一返回",
+              "未收到响应不会被写成“服务未提交”"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "积分提交使用幂等事件 ID，重连不重复加分。"
+          "laterReencounter": "多连接章节复用同一期限限制资源；持久幂等章节解决提交后响应丢失的重复业务问题。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在test_deadline把停发载荷从“长度20+P”改为“长度30+PI”，保持原deadline与后续健康PING断言；说明为何仍会在同一连接预算后关闭，不自行新增定时框架。"
+            ],
+            "expectedResults": [
+              "慢连接和故障不会导致无限阻塞，响应未知被诚实报告。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "disconnect-timeout-3"
         },
         {
           "id": "multi-client",
-          "title": "同时接收多个终端",
-          "goal": "复用线程知识处理多个本地客户端。",
+          "title": "让多个终端共享有限的接待能力",
+          "phase": "网络故障处理",
+          "estimatedSessions": 5,
+          "goal": "用固定工作线程与有界接入队列隔离连接状态，明确慢连接、队列满和关闭时的资源边界。",
           "concepts": [
-            "连接并发",
-            "线程边界",
-            "背压"
+            "连接状态隔离",
+            "固定工作线程",
+            "有界接入与背压",
+            "排队时间与总预算"
           ],
-          "guidedBuild": "每个连接独立解析消息，共享出口采用有界队列。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：建立有界连接执行器；让网关接入执行器；验证慢连接和过载边界。",
+          "milestone": "会话不串数据，资源上限与期限明确，过载不伪装成业务成功。",
+          "filesTouched": [
+            "common/server.h",
+            "gateway/main.c",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "一个终端停在半帧，为什么别的终端还应该有机会完成",
+            "learningGoal": "能根据 worker 数量、排队容量和统一期限推演系统的可服务范围。",
+            "phenomenon": {
+              "title": "单线程在第一位终端的半条消息前一直等待",
+              "observation": "足球场连接后只发出半个帧头，钢琴地毯随后发送完整请求。串行服务若一直等前者，后者无法获得处理机会。无限创建线程虽然绕过一次阻塞，却把风险转成无限资源占用。",
+              "question": "怎样同时限制资源总量，并让一个慢终端不占满所有处理能力？"
+            },
+            "mentalModel": {
+              "summary": "接收线程只负责 accept 与有界入队，固定 4 个 worker 分别独占当前连接并处理其前后端 I/O。等待队列上限为 8，队列满时明确关闭新的接入。连接的绝对 deadline 从接入阶段记录，排队不额外获得无限时间。一个慢连接最多占一个 worker；全部 worker 都慢时仍会等待，但总资源和等待期限有界。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "接收并登记期限",
+                  "explanation": "accept 后为该连接记录截止点，不共享另一连接的缓存。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "有限排队",
+                  "explanation": "最多保留规定数量待处理连接；满时关闭新接入释放资源。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "固定 worker 取走",
+                  "explanation": "一个 worker 独占一个连接的帧与转发状态，其余 worker 可以服务其他连接。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "结束并归还能力",
+                  "explanation": "成功、失败或到期都关闭会话，worker 再取下一项；关停唤醒等待者。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "连接状态隔离",
+                "plainMeaning": "每个会话各自拥有描述符、读写进度和帧缓冲，不能把 A 的半帧与 B 的数据拼在一起。",
+                "codeMapping": "common/server.h 分发连接，处理函数使用会话本地缓冲和 deadline。"
+              },
+              {
+                "term": "固定工作线程",
+                "plainMeaning": "最多固定数量线程同时执行连接处理，不随客户端数量无限增长。",
+                "codeMapping": "课程服务器使用 4 个 worker；一个阻塞会话只占其中一个名额。"
+              },
+              {
+                "term": "有界接入与背压",
+                "plainMeaning": "队列容量限制等待处理的连接，超出负载时明确拒绝，避免用无限内存和描述符承接一切。",
+                "codeMapping": "接受队列容量为 8，满队列路径关闭新连接；客户端将看到传输失败。"
+              },
+              {
+                "term": "排队时间与总预算",
+                "plainMeaning": "任务在队列里等待同样消耗用户等待时间，不应 dequeue 后才重新获得整份预算。",
+                "codeMapping": "从接受连接时记录的 deadline 传给 worker，取出后先检查还剩多少时间。"
+              }
+            ],
+            "workedExample": {
+              "title": "4 个 worker 和 8 个排队位置怎样处理慢终端",
+              "steps": [
+                "客户端 A 进入 worker 1，只发送半条请求，等待受原 deadline 限制。",
+                "B、C、D 由其余 worker 处理，A 不必先结束它们才能执行。",
+                "若又来更多连接，最多 8 个在接受队列等待。",
+                "所有 worker 都被慢连接占用且队列已满时，新的连接被关闭，不能承诺所有请求立即成功。",
+                "A 到期释放会话，worker 1 取下一连接；其排队时间已经计入 deadline，可能直接发现期限已过。"
+              ],
+              "takeaway": "隔离一个慢连接与无限承诺服务能力不同；有界系统必须定义过载结果。"
+            },
+            "misconceptions": [
+              {
+                "claim": "用了多个线程就能保证所有终端永远不等待。",
+                "correction": "固定 worker 仍是有限资源，全部占满就会排队或拒绝。"
+              },
+              {
+                "claim": "队列有上限就不需要超时。",
+                "correction": "有界数量不限制每项占用多久，仍需连接期限才能持续释放能力。"
+              },
+              {
+                "claim": "所有客户端共用一个接收数组节省内存。",
+                "correction": "并发会话会互相覆盖或串帧，缓冲必须按会话隔离。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "slow-one",
+                "question": "只有一个慢连接占住 worker 1，其余 worker 空闲，后来的完整请求怎样处理？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "可交给其他 worker，不必等慢连接完成"
+                  },
+                  {
+                    "id": "b",
+                    "text": "必须全体等 worker 1"
+                  },
+                  {
+                    "id": "c",
+                    "text": "创建无限线程直到每人一个"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "固定线程池提供有限隔离能力，并保留明确资源上限。"
+              },
+              {
+                "id": "queue-budget",
+                "question": "连接在队列等了 700ms，原总预算 1000ms，开始处理时应剩多少？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "永远还有 1000ms"
+                  },
+                  {
+                    "id": "c",
+                    "text": "已经无限延期直到出队"
+                  },
+                  {
+                    "id": "a",
+                    "text": "约 300ms，而不是重新给 1000ms"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "排队属于同一次连接的资源占用，总 deadline 不随阶段刷新。"
+              },
+              {
+                "id": "overload-response",
+                "question": "worker 全忙、接入队列已满时，本工程如何保住资源上限？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "静默丢掉某个旧连接但假装成功"
+                  },
+                  {
+                    "id": "a",
+                    "text": "关闭新的接入，让客户端得到明确传输失败"
+                  },
+                  {
+                    "id": "b",
+                    "text": "继续把连接存进无限容器"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "过载需要可解释的拒绝，不能靠无限增长隐藏容量问题。"
+              }
+            ],
+            "bridgeToCode": "阅读完整固定 worker 与接入队列代码，标出锁只保护共享队列；会话 I/O 由取得连接的 worker 独占执行。"
+          },
+          "guidedSteps": [
+            {
+              "id": "multi-client-step-1",
+              "codeStepId": "multi-client-step-1-code",
+              "title": "建立有界连接执行器",
+              "targetFiles": [
+                "common/server.h"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。阅读固定 worker、接受队列、关闭协议与会话 deadline，标出持锁和无锁 I/O 区域。",
+              "verify": "完整实现可构建，队列与 worker 数量有静态明确上限。"
+            },
+            {
+              "id": "multi-client-step-2",
+              "codeStepId": "multi-client-step-2-code",
+              "title": "让网关接入执行器",
+              "targetFiles": [
+                "gateway/main.c",
+                "common/server.h"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。网关把接受的连接交给完整执行器，每个 worker 使用独立缓冲和后端连接。",
+              "verify": "一个慢连接存在时，仍有空闲 worker 可以处理正常请求。"
+            },
+            {
+              "id": "multi-client-step-3",
+              "codeStepId": "multi-client-step-3-code",
+              "title": "验证慢连接和过载边界",
+              "targetFiles": [
+                "tests/check.py",
+                "common/server.h"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。运行多个客户端、半帧慢连接、排队期限及队列满关闭等交错场景。",
+              "verify": "会话不串数据，资源上限与期限明确，过载不伪装成业务成功。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "观察慢客户端是否拖住其他客户端。"
+              "text": "先数出在运行和在排队的连接各有多少。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查每连接状态与共享队列。"
+              "text": "检查 common/server.h 的容量、入队拒绝、worker 取出与会话关闭路径。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "连接缓冲不能混用，共享资源才需要同步。"
+              "text": "共享队列短时间持锁，连接处理独占本地状态；排队消耗原 deadline。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "一个客户端停发时其他两个仍可完成。",
-            "evidence": "三客户端时间线",
-            "automatedChecks": [
-              "slow-client-isolated",
-              "three-clients",
-              "bounded-queue"
+            "task": "从已给出的慢连接测试增加一位正常终端，保持慢连接数小于 worker 数，验证正常请求都完成且内容不串；只补客户端输入和结果断言。",
+            "evidence": "并发终端数、慢连接数、每个请求响应、过载退出和总等待摘要",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "一个慢连接不会阻塞仍空闲的 worker",
+              "所有 worker 占满时不承诺零等待",
+              "会话缓冲、期限和关闭责任相互独立"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "数据库写入章节将共享出口接入事务。"
+          "laterReencounter": "接入 SQLite 后网络可并发，但数据库写入仍有独立的串行边界；不能用 worker 数量推断数据库写吞吐。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "从已给出的慢连接测试增加一位正常终端，保持慢连接数小于 worker 数，验证正常请求都完成且内容不串；只补客户端输入和结果断言。"
+            ],
+            "expectedResults": [
+              "会话不串数据，资源上限与期限明确，过载不伪装成业务成功。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "multi-client-3"
         },
         {
           "id": "sql-model",
-          "title": "设计积分与兑换数据",
-          "goal": "学习表、主键、外键、唯一约束和查询。",
+          "title": "让积分事实由表和约束保存",
+          "phase": "数据模型与持久化",
+          "estimatedSessions": 5,
+          "goal": "用players.coins保存余额、ledger保存加分/兑换事实，学习主键、外键、数值约束与查询；持久事件去重在后续第八章加入。",
           "concepts": [
-            "关系模型",
-            "SELECT",
-            "INSERT",
-            "约束"
+            "表、行与主键",
+            "唯一约束与业务标识",
+            "外键与连接设置",
+            "CHECK 与查询"
           ],
-          "guidedBuild": "建立 players、events、balances、redemptions。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：建立受约束的数据表；执行真实 SQL 示例；检验重复和非法关联。",
+          "milestone": "players与ledger的已交付主键、外键和数值约束可由真实SQLite测试验证，后续功能边界明确。",
+          "filesTouched": [
+            "db/schema.sql",
+            "tools/demo.py",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "变量记住了积分，为什么重启后就没了",
+            "learningGoal": "能区分内存结果和持久事实，画出标识、余额与业务记录之间的关系。",
+            "phenomenon": {
+              "title": "同一个积分事件重复插入，余额可能被算两次",
+              "observation": "程序里的map随进程退出消失；本章SQLite把玩家与余额保存在players，把ADD/REDEEM变化保存在ledger。players.player是唯一主键，ledger用seq标识行，CHECK限制数值与方向。此时event_id仍可能重复，事件唯一索引和requests表将在第八章交付。",
+              "question": "哪些字段表示身份，哪些表示业务内容，哪些规则必须由数据库本身守住？"
+            },
+            "mentalModel": {
+              "summary": "players(player,coins)保存每位玩家的当前余额，ledger(seq,event_id,player,kind,amount,delta)保存变化来源。player主键、ledger外键和CHECK约束保护已定义形状；外键必须在每条连接上开启。本章不会把尚未加入的event_id唯一性或多语句事务冒充已完成能力：它们分别在第八章和第七章补齐。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "确定身份",
+                  "explanation": "玩家标识与事件/请求标识各自有明确含义，不用显示顺序代替业务身份。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "保存事实",
+                  "explanation": "玩家、余额与业务记录各存对应数据，关联字段引用已存在对象。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "约束把关",
+                  "explanation": "主键、唯一、外键和 CHECK 拒绝重复、悬空关联或非法数值。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "查询验证",
+                  "explanation": "SELECT 显示实际保存的行；重开数据库仍能读到已提交事实。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "表、行与主键",
+                "plainMeaning": "表组织同一种事实，行是一条记录，主键稳定地区分记录；主键不能靠查询返回顺序猜测。",
+                "codeMapping": "db/schema.sql当前只有players和ledger；players.player唯一，ledger.seq是自增主键，ledger_player_seq索引用于按玩家查历史。"
+              },
+              {
+                "term": "唯一约束与业务标识",
+                "plainMeaning": "唯一约束阻止同键多行。本章用players.player学习主键唯一，ledger.event_id暂不唯一；第八章再加入事件唯一索引与持久结果表。",
+                "codeMapping": "重复players.player由主键拒绝；不能在第五章声称重复event_id已经被去重。"
+              },
+              {
+                "term": "外键与连接设置",
+                "plainMeaning": "外键表达行之间的引用关系；SQLite 连接要显式启用 foreign_keys 才执行约束。",
+                "codeMapping": "每条数据库连接设置 PRAGMA foreign_keys=ON，测试不存在玩家的引用。"
+              },
+              {
+                "term": "CHECK 与查询",
+                "plainMeaning": "CHECK 限制列值或行内关系；SELECT 用明确条件读取，查询不会自动改变余额。",
+                "codeMapping": "coins范围0..1000000，amount范围1..1000000，ADD要求delta=amount，REDEEM要求delta=-amount；SELECT检查真实行。"
+              }
+            ],
+            "workedExample": {
+              "title": "先守住玩家、关联与数值合同",
+              "steps": [
+                "向players插入alice、coins=10，合法记录可查询。",
+                "再次插入player=alice会因主键重复失败；这是玩家身份唯一。",
+                "ledger引用missing玩家时，当前连接foreign_keys=ON使其失败。",
+                "把alice余额写为-1或1000001时CHECK拒绝，余额仍为10。",
+                "本章ledger.event_id尚未唯一，不能依赖它避免重复加分；后续事务与持久幂等会补齐完整业务合同。"
+              ],
+              "takeaway": "已交付约束只能证明它真正保护的规则，不把后续章节能力提前算作完成。"
+            },
+            "misconceptions": [
+              {
+                "claim": "建表写了 FOREIGN KEY，所有连接都自动执行。",
+                "correction": "SQLite 的外键执行需要连接级开启；不能只看 schema 文本。"
+              },
+              {
+                "claim": "表里已经有event_id列，所以重复事件已经自动去重。",
+                "correction": "列名不产生唯一性。本章event_id尚未加唯一索引；第八章还要保存指纹与原结果才形成完整幂等。"
+              },
+              {
+                "claim": "程序里检查了正数，就不需要数据库约束。",
+                "correction": "其他代码路径、未来工具或故障仍可能写库，约束为数据提供统一防线。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "unique-vs-idempotency",
+                "question": "第五章schema只有ledger.event_id字段，尚未建立唯一索引，能否据此断言事件不会重复？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "能，字段名含ID就必然唯一"
+                  },
+                  {
+                    "id": "c",
+                    "text": "能，任意INSERT都会自动去重"
+                  },
+                  {
+                    "id": "a",
+                    "text": "不能；第八章才加入唯一索引及持久请求结果"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "字段名称不等于约束，课程按实际schema逐步建立能力；玩家主键唯一与事件去重不同。"
+              },
+              {
+                "id": "foreign-key-switch",
+                "question": "schema 定义了外键，测试仍插入了悬空引用，先检查什么？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "客户端是否用了同一个端口"
+                  },
+                  {
+                    "id": "a",
+                    "text": "当前连接是否启用 PRAGMA foreign_keys=ON"
+                  },
+                  {
+                    "id": "b",
+                    "text": "终端颜色是否正确"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "外键设置属于连接状态，每个访问连接都要建立相同合同。"
+              },
+              {
+                "id": "query-not-write",
+                "question": "想观察某玩家余额而不改变数据，应使用什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "带条件的 SELECT"
+                  },
+                  {
+                    "id": "b",
+                    "text": "先 UPDATE 加 0 再认为没有变化"
+                  },
+                  {
+                    "id": "c",
+                    "text": "删掉余额行后从内存猜值"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "读取与写入分开，查询返回数据库当前可见的事实。"
+              }
+            ],
+            "bridgeToCode": "完整 schema 与可执行 SQL 示例一起交付；先看拒绝发生在哪个约束，不要求学习者自行设计新的数据库系统。"
+          },
+          "guidedSteps": [
+            {
+              "id": "sql-model-step-1",
+              "codeStepId": "sql-model-step-1-code",
+              "title": "建立受约束的数据表",
+              "targetFiles": [
+                "db/schema.sql",
+                "tools/demo.py"
+              ],
+              "instruction": "复制完整db/schema.sql，阅读players和ledger两表，标注player主键、ledger外键、coins/amount/delta的CHECK和ledger_player_seq索引。该章没有requests表或ledger事件唯一索引。",
+              "verify": "schema 可以在隔离数据库中创建，表与关键约束完整。"
+            },
+            {
+              "id": "sql-model-step-2",
+              "codeStepId": "sql-model-step-2-code",
+              "title": "执行真实 SQL 示例",
+              "targetFiles": [
+                "tools/demo.py"
+              ],
+              "instruction": "执行完整tools/demo.py的SQL演示，读取实际SQLite行；此时演示数据库与网络PING仍是并行练习，C++后端到下一章才连接。",
+              "verify": "输出来自 SQLite 执行结果，约束拒绝可以观察。"
+            },
+            {
+              "id": "sql-model-step-3",
+              "codeStepId": "sql-model-step-3-code",
+              "title": "检验重复和非法关联",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "运行test_schema的内存隔离数据库测试：负余额、超过1000000的余额及引用不存在玩家都被约束拒绝，原alice余额不变。",
+              "verify": "约束测试真实执行SQLite；本章不声称持久重启或重复事件去重已测，相关测试分别在后续章节加入。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "找出怎样识别重复比赛事件。"
+              "text": "先分清重复的是哪个身份：玩家、事件还是兑换请求。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查 events 的主键或唯一约束。"
+              "text": "检查 schema.sql 的主键、外键、CHECK 与连接的 PRAGMA。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "业务唯一性必须由数据库约束守住。"
+              "text": "让数据库拒绝非法事实；多表一起成功的问题留给显式事务，不用程序默认值掩盖错误。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "重复 event_id 插入失败且余额不变化。",
-            "evidence": "schema.sql 与 SQL 结果",
-            "automatedChecks": [
-              "duplicate-event",
-              "foreign-key",
-              "balance-query"
+            "task": "在test_schema的现有非法SQL表里增加一条amount=0的ledger输入（引用已存在alice），断言CHECK失败，保留alice余额10不变；只补一条SQL测试数据。",
+            "evidence": "隔离SQLite数据库中的schema、CHECK/外键错误和失败后的SELECT结果",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "知道哪个键唯一识别业务事件",
+              "每条访问连接都明确开启外键",
+              "不把单条 SQL 约束当多表事务"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "事务章节在多条语句中复用这些约束。"
+          "laterReencounter": "C++绑定使用相同表；第七章将多条写入放进事务，第八章新增持久请求表及事件唯一索引。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在test_schema的现有非法SQL表里增加一条amount=0的ledger输入（引用已存在alice），断言CHECK失败，保留alice余额10不变；只补一条SQL测试数据。"
+            ],
+            "expectedResults": [
+              "players与ledger的已交付主键、外键和数值约束可由真实SQLite测试验证，后续功能边界明确。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "sql-model-3"
         },
         {
           "id": "sqlite-cpp",
-          "title": "从 C++ 安全访问 SQLite",
-          "goal": "使用预编译语句、绑定参数和 RAII。",
+          "title": "从 C++ 安全调用 SQLite",
+          "phase": "数据模型与持久化",
+          "estimatedSessions": 5,
+          "goal": "用 RAII 管理连接和预编译语句，以绑定参数传递数据，并把数据库错误转换为明确应用结果。",
           "concepts": [
-            "SQLite C API",
-            "prepared statement",
-            "绑定",
-            "RAII"
+            "SQLite C API 与结果码",
+            "预编译语句与参数绑定",
+            "RAII 与借用结果",
+            "单连接访问边界"
           ],
-          "guidedBuild": "封装 Connection、Statement 和错误传播。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：封装连接与 Statement；让 C++ 服务接入 TCP 链路；检查数据和资源边界。",
+          "milestone": "真实C++服务接入TCP并通过参数绑定访问SQLite；本地绑定与网络ASCII输入边界分别验证。",
+          "filesTouched": [
+            "common/protocol.h",
+            "tools/demo.py",
+            "Makefile",
+            "service/sqlite_raii.hpp",
+            "service/store.hpp",
+            "service/main.cpp",
+            "tests/check.py",
+            "gateway/main.c",
+            "tests/sqlite_unit.cpp"
+          ],
+          "conceptModule": {
+            "title": "玩家名字带一个单引号，为什么不应该破坏 SQL",
+            "learningGoal": "能区分 SQL 结构和数据，沿 prepare、bind、step、finalize 解释资源和结果生命期。",
+            "phenomenon": {
+              "title": "把玩家名直接拼进 SQL，普通数据变成了语句的一部分",
+              "observation": "网络协议的玩家/事件标识只接受ASCII字母数字、下划线和连字符，不能发送引号、中文、分隔符或NUL。独立本地tests/sqlite_unit.cpp则把中文、单引号、内嵌NUL与末尾bytes组成的文本通过Statement绑定并原样查回，验证SQL结构与数据的边界。异常路径还要释放已获得的语句和连接。",
+              "question": "怎样让任何合法名字都只是数据，同时让成功和失败路径都释放数据库资源？"
+            },
+            "mentalModel": {
+              "summary": "SQL 模板先由 prepare 解析，参数位置固定；玩家名、事件 ID 和数值通过 bind 作为值进入。step 返回 ROW、DONE 或错误，调用者按合同分支。Statement 拥有 sqlite3_stmt，Connection/Store 拥有连接，析构完成 finalize/close。这里使用一条数据库连接并通过 mutex 串行保护业务调用；网络多个 worker 不直接同时操作它。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "打开并配置连接",
+                  "explanation": "检查 open 结果，建立 foreign_keys、busy 等明确连接配置。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "准备固定 SQL",
+                  "explanation": "用参数占位符准备语句，不把玩家文本拼成 SQL 结构。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "绑定并执行",
+                  "explanation": "bind 传入真实数据，step 按行、完成或错误处理。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "读取并释放",
+                  "explanation": "在语句有效时复制结果，离开作用域由拥有者释放句柄。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "SQLite C API 与结果码",
+                "plainMeaning": "SQLite API 用显式返回码报告打开、准备、执行的结果；ROW、DONE 和错误不能混为成功。",
+                "codeMapping": "service/sqlite_raii.hpp定义Database与Statement；service/store.hpp定义Store::handle。检查sqlite3_open_v2/prepare_v2/bind/step返回码与SqliteError。"
+              },
+              {
+                "term": "预编译语句与参数绑定",
+                "plainMeaning": "语句结构先确定，用户输入作为参数值传入，所以引号不会变成 SQL 语法。",
+                "codeMapping": "Statement::text使用value.data()与显式size绑定；网络Store仍只接受ASCII标识，本地sqlite_unit.cpp验证中文、单引号、NUL与bytes作为数据原样往返。"
+              },
+              {
+                "term": "RAII 与借用结果",
+                "plainMeaning": "连接和语句句柄分别有唯一回收责任；SQLite 返回的列文本可能只在语句当前状态下有效，持久使用时需要复制。",
+                "codeMapping": "Statement析构finalize；text读取使用sqlite3_column_bytes复制完整结果，包含内嵌NUL；Database在构造中配置失败时主动close，因为失败对象不会执行其自身析构。"
+              },
+              {
+                "term": "单连接访问边界",
+                "plainMeaning": "本工程一条连接由 mutex 保护，避免网络 worker 把同一连接上的多语句事务交错。",
+                "codeMapping": "Store::handle持std::mutex覆盖完整业务调用；Database以FULLMUTEX打开并设置foreign_keys与300ms busy_timeout，事务章节才增加业务多语句原子性。"
+              }
+            ],
+            "workedExample": {
+              "title": "本地绑定保留任意文本，网络标识保持有限",
+              "steps": [
+                "tests/sqlite_unit.cpp先用可变std::string payload=\"玩家 '小蛋'\"构造中文和单引号文本，再push_back('\\0')并追加\"bytes\"，建立隔离samples表；长度由字符串实际字节数决定。",
+                "INSERT用?占位符，Statement::text把指针和明确字节数绑定，SQLite接收的是数据。",
+                "查询通过sqlite3_column_bytes取得完整长度，复制为std::string后与原payload逐字节相等。",
+                "再次插入同一值触发UNIQUE错误，测试确认错误明确且表仍只有一行。",
+                "相同内容若作为网络player会先被协议拒绝；绑定实验没有改变网络标识规则。"
+              ],
+              "takeaway": "参数绑定和显式长度保护值的内容，协议输入范围仍由自己的规则决定。"
+            },
+            "misconceptions": [
+              {
+                "claim": "把单引号替换掉就足以代替参数绑定。",
+                "correction": "自行转义容易遗漏类型、编码和长度规则；参数绑定与显式字节长度让数据保持原样，不改SQL结构。"
+              },
+              {
+                "claim": "析构会关库，所以每次 API 返回值都不用检查。",
+                "correction": "RAII 处理资源回收，不会自动把执行失败变成功；错误必须传播。"
+              },
+              {
+                "claim": "用了 mutex 就能让多个事务同时写一条连接。",
+                "correction": "互斥明确串行访问边界，不是并行写数据库的加速器。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "sql-binding",
+                "question": "课程里的中文、单引号和NUL绑定测试怎样运行？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "删掉特殊字符再声称原样保存"
+                  },
+                  {
+                    "id": "a",
+                    "text": "在sqlite_unit.cpp直接测试Statement，网络协议规则不变"
+                  },
+                  {
+                    "id": "b",
+                    "text": "把NUL偷偷加入网络player让服务接受"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "本地Statement测试验证原样字节往返，网络标识仍遵守有限ASCII规则，不能混淆两个边界。"
+              },
+              {
+                "id": "step-result",
+                "question": "sqlite3_step 返回 ROW，最准确含义是什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "当前有一行可读取结果，不等于所有查询都已结束"
+                  },
+                  {
+                    "id": "b",
+                    "text": "数据库文件损坏"
+                  },
+                  {
+                    "id": "c",
+                    "text": "所有后续 API 都可忽略"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "ROW、DONE 与错误分别处理，结果列生命期由语句状态约束。"
+              },
+              {
+                "id": "raii-error",
+                "question": "准备语句后执行抛错，RAII 解决什么问题？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "自动让这次 SQL 变成成功"
+                  },
+                  {
+                    "id": "c",
+                    "text": "必然完成所有业务回滚且无需事务"
+                  },
+                  {
+                    "id": "a",
+                    "text": "离开作用域释放语句资源，错误仍须明确返回"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "资源清理、错误传播和业务原子性是不同责任，不能相互代替。"
+              }
+            ],
+            "bridgeToCode": "完整Database/Statement位于sqlite_raii.hpp，Store封装业务入口；本地调用先验证，再接入C++TCP。绑定实验与网络输入验证分开，不要求从零写包装层。"
+          },
+          "guidedSteps": [
+            {
+              "id": "sqlite-cpp-step-1",
+              "codeStepId": "sqlite-cpp-step-1-code",
+              "title": "封装连接与 Statement",
+              "targetFiles": [
+                "common/protocol.h",
+                "tools/demo.py",
+                "Makefile",
+                "service/sqlite_raii.hpp",
+                "service/store.hpp",
+                "service/main.cpp"
+              ],
+              "instruction": "复制service/sqlite_raii.hpp、store.hpp与本地service入口，阅读Database/Statement的拥有关系、绑定、ROW/DONE和错误传播；Store单连接业务访问受mutex保护。此步尚未提供事务保护全部写入。",
+              "verify": "C++ SQLite 调用可构建运行，错误有明确结果。"
+            },
+            {
+              "id": "sqlite-cpp-step-2",
+              "codeStepId": "sqlite-cpp-step-2-code",
+              "title": "让 C++ 服务接入 TCP 链路",
+              "targetFiles": [
+                "tools/demo.py",
+                "tests/check.py",
+                "gateway/main.c",
+                "service/main.cpp"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。服务使用相同帧接口接收网关请求，网关把后端响应交回终端；Store 按互斥边界访问连接。",
+              "verify": "此后真正形成 C 终端→C 网关→C++ 服务→SQLite 的跨进程链路。"
+            },
+            {
+              "id": "sqlite-cpp-step-3",
+              "codeStepId": "sqlite-cpp-step-3-code",
+              "title": "检查数据和资源边界",
+              "targetFiles": [
+                "tests/check.py",
+                "Makefile",
+                "tests/sqlite_unit.cpp",
+                "tools/demo.py"
+              ],
+              "instruction": "运行tests/sqlite_unit.cpp的中文、单引号、NUL与bytes绑定及重复键测试，以及test_sqlite真实网络ADD/BALANCE。实际查询players与ledger；网络非法标识在协议层拒绝，数据库路径不存在时明确失败。",
+              "verify": "绑定实验只证明SQLite参数值原样往返；网络仅接受ASCII标识。实际数据库查询与错误退出通过，不声称已进行未提供的资源泄漏检测。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "观察含引号的玩家名是否破坏查询。"
+              "text": "先看失败来自协议解析、prepare、bind 还是 step。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查 SQL 拼接与参数绑定。"
+              "text": "检查 store.hpp 是否把名字放进绑定参数，以及 Statement 析构与结果复制。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "数据通过绑定进入语句，不应拼接成 SQL 文本。"
+              "text": "数据不改变 SQL 结构，错误不能变默认成功；所有语句都留在连接有效生命期内。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "正确保存并查询含空格、引号和中文的名字。",
-            "evidence": "接口代码与查询结果",
-            "automatedChecks": [
-              "quoted-name",
-              "unicode-name",
-              "statement-finalized"
+            "task": "在tests/sqlite_unit.cpp只把第一行定义改为 std::string payload=\"练习 '新蛋'\";，保持变量可变，保留下一行payload.push_back('\\0'); payload+=\"bytes\";及全部绑定、原样读取、重复插入与行数断言，运行make test；网络标识规则不变。",
+            "evidence": "sqlite_unit.cpp的真实payload、原样字节比较、UNIQUE错误与仍为1的行数；网络合法/非法标识另行测试",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "用户数据通过绑定而不是拼接进入 SQL",
+              "ROW/DONE/错误分支清楚",
+              "网络并发不绕过 Store 的单连接互斥边界"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 使用同一封装处理事务回滚。"
+          "laterReencounter": "下一章会把多个已封装语句放入同一事务，使资源安全进一步成为业务状态一致。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在tests/sqlite_unit.cpp只把第一行定义改为 std::string payload=\"练习 '新蛋'\";，保持变量可变，保留下一行payload.push_back('\\0'); payload+=\"bytes\";及全部绑定、原样读取、重复插入与行数断言，运行make test；网络标识规则不变。"
+            ],
+            "expectedResults": [
+              "真实C++服务接入TCP并通过参数绑定访问SQLite；本地绑定与网络ASCII输入边界分别验证。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "sqlite-cpp-3"
         },
         {
           "id": "transactions",
-          "title": "让积分与兑换一起成功或失败",
-          "goal": "用事务维护多表一致性。",
+          "title": "让记账与余额修改一起完成",
+          "phase": "事务与恢复",
+          "estimatedSessions": 5,
+          "goal": "把加分和兑换的多语句更新收束为显式事务，用提交、回滚和故障注入证明没有半完成业务状态。",
           "concepts": [
-            "事务",
-            "提交",
-            "回滚",
-            "并发写入"
+            "事务与原子性",
+            "BEGIN、COMMIT 与 ROLLBACK",
+            "SQLite 写竞争与 BUSY",
+            "故障注入与状态对比"
           ],
-          "guidedBuild": "积分事件插入与余额更新放在同一事务。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：建立 RAII 事务边界；运行真实兑换链路；在写入中途注入失败。",
+          "milestone": "回滚不留下半完成状态，BUSY 被明确处理而非假装成功。",
+          "filesTouched": [
+            "common/protocol.h",
+            "service/sqlite_raii.hpp",
+            "service/store.hpp",
+            "tools/demo.py",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "记录写成功了，余额更新失败，算不算完成",
+            "learningGoal": "能指出业务动作的原子边界，并区分连接互斥、数据库事务与写锁等待。",
+            "phenomenon": {
+              "title": "只执行一半的兑换会让账本和余额互相矛盾",
+              "observation": "兑换先扣余额、后记记录，第二条语句失败就可能出现少了积分却没有兑换依据。反过来先记兑换、后扣余额，也可能留下没付分的成功记录。把异常 catch 后继续打印成功不能解决这种问题。",
+              "question": "哪些修改必须在同一事务内？失败后怎样证明数据库仍处在操作前的合法状态？"
+            },
+            "mentalModel": {
+              "summary": "一次业务动作从 BEGIN 到 COMMIT 包住所有需要一起成立的写入。只有每一步都成功才提交；任一步失败就回滚。Transaction 对象让未提交退出走回滚路径，网络等待不应被随意放进长事务。SQLite 允许多读者，但同一时刻只有一个写事务；BEGIN IMMEDIATE 也可能因为外部写者而 BUSY，等待超时不是保证成功。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "开始写事务",
+                  "explanation": "取得写事务资格；失败或 BUSY 必须明确处理，不假设已经进入。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "检查并更新",
+                  "explanation": "在同一事务中检查可用积分、修改余额和插入业务记录。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "全部成功才提交",
+                  "explanation": "COMMIT 确认新事实作为整体生效，之后才生成成功响应。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "任何失败回滚",
+                  "explanation": "故障、约束失败或异常离开时撤销本事务未提交变化。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "事务与原子性",
+                "plainMeaning": "事务让一组写入要么作为整体提交，要么全部不生效；不是几条顺序执行 SQL 的别名。",
+                "codeMapping": "Transaction在service/sqlite_raii.hpp；Store一次业务同时更新players.coins和插入ledger，REDEEM表示消耗积分，不管理额外奖品库存表。"
+              },
+              {
+                "term": "BEGIN、COMMIT 与 ROLLBACK",
+                "plainMeaning": "BEGIN 开始事务，COMMIT 确认全部变更，ROLLBACK 撤销未提交变化；每个调用仍可能失败。",
+                "codeMapping": "检查 transaction 的 committed 标记和所有异常出口，未成功提交时走回滚。"
+              },
+              {
+                "term": "SQLite 写竞争与 BUSY",
+                "plainMeaning": "不同连接可竞争同一数据库写锁，SQLite 同时只允许一个写事务；有限 busy timeout 只限制等待。",
+                "codeMapping": "Database设置sqlite3_busy_timeout(...,300)；外部连接BEGIN IMMEDIATE持锁时，服务可能返回ERR|BUSY，此应用响应客户端不自动重试。"
+              },
+              {
+                "term": "故障注入与状态对比",
+                "plainMeaning": "在真实写入之间故意触发错误，用前后查询证明原子性，而非仅检查错误文字。",
+                "codeMapping": "ARCADE_TEST_FAIL_AFTER_DEBIT匹配事件ID时，在余额更新后、ledger插入前抛错；测试比较coins、ledger行数与SUM(delta)。"
+              }
+            ],
+            "workedExample": {
+              "title": "余额 20 的玩家兑换 7 分奖励",
+              "steps": [
+                "事务开始，读取同一事务可见的余额 20，检查够兑换 7 分。",
+                "暂时把余额更新为 13，此时尚未提交。",
+                "若插入兑换记录阶段注入异常，Transaction 回滚，外部查询仍为 20，且没有这条兑换。",
+                "重新用正常路径执行，余额更新和兑换记录都成功，COMMIT 后余额 13，记录存在。",
+                "若初始余额只有 5，明确返回积分不足，不做半次扣减。"
+              ],
+              "takeaway": "观察到一次错误还不够，要用数据库内容证明错误没有留下半次业务动作。"
+            },
+            "misconceptions": [
+              {
+                "claim": "mutex 能代替数据库事务。",
+                "correction": "mutex 只协调本进程相应代码路径，既不能自动回滚，也不替代 SQLite 对其他连接的控制。"
+              },
+              {
+                "claim": "事务里捕获错误后继续 COMMIT 没关系。",
+                "correction": "如果业务要求一起成功，任一必需步骤失败就不能提交已做的一半。"
+              },
+              {
+                "claim": "busy_timeout 设为 1 秒意味着写入必然在 1 秒内成功。",
+                "correction": "它只是有限等待策略，到期仍可能返回 BUSY，调度和执行也不是硬实时。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "transaction-half",
+                "question": "扣分成功后插入兑换记录失败，正确结果是什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "整个业务事务回滚，余额和记录都回到操作前"
+                  },
+                  {
+                    "id": "b",
+                    "text": "保留扣分，只打印失败"
+                  },
+                  {
+                    "id": "c",
+                    "text": "只重试打印成功响应"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "原子性要求所有相关修改一起成立，错误不能留下半次兑换。"
+              },
+              {
+                "id": "mutex-vs-db",
+                "question": "本进程 Store 有 mutex，为什么还需要事务？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "加了mutex数据库永远不会报错"
+                  },
+                  {
+                    "id": "c",
+                    "text": "事务只是为了更漂亮的日志"
+                  },
+                  {
+                    "id": "a",
+                    "text": "事务负责多语句原子性并受数据库锁协调，mutex不提供回滚"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "进程锁、数据库事务和错误传播各自承担不同合同。"
+              },
+              {
+                "id": "busy-result",
+                "question": "BEGIN IMMEDIATE 遇到另一个连接持写锁，可能发生什么？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "自动杀掉另一个连接"
+                  },
+                  {
+                    "id": "a",
+                    "text": "等待有限时间后仍返回 BUSY，必须处理"
+                  },
+                  {
+                    "id": "b",
+                    "text": "必然立刻成功，因为已经声明IMMEDIATE"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "IMMEDIATE 提前申请写事务资格，不消除写竞争。"
+              }
+            ],
+            "bridgeToCode": "直接使用完整 Transaction 与业务方法，在提供的故障点比较真实 SQLite 内容；不要求自己猜一套异常回滚框架。"
+          },
+          "guidedSteps": [
+            {
+              "id": "transactions-step-1",
+              "codeStepId": "transactions-step-1-code",
+              "title": "建立 RAII 事务边界",
+              "targetFiles": [
+                "common/protocol.h",
+                "service/sqlite_raii.hpp",
+                "service/store.hpp",
+                "tools/demo.py"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。阅读 Transaction 获得、提交和未提交回滚路径，标出一次加分或兑换涉及的所有语句。",
+              "verify": "事务代码可构建，正常与错误路径有清楚的退出责任。"
+            },
+            {
+              "id": "transactions-step-2",
+              "codeStepId": "transactions-step-2-code",
+              "title": "运行真实兑换链路",
+              "targetFiles": [
+                "tools/demo.py"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。通过已接入的终端/网关/服务执行加分、余额查询和兑换，查看提交后的结果。",
+              "verify": "积分足够时记录和余额一致，积分不足时没有半次扣减。"
+            },
+            {
+              "id": "transactions-step-3",
+              "codeStepId": "transactions-step-3-code",
+              "title": "在写入中途注入失败",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "运行test_transactions：初始10分、兑换3分中途注入失败仍为10、兑换11分不足、6个并发兑换各3分仅3次成功；外部连接持写锁观察ERR|BUSY，释放后可再次加分。",
+              "verify": "回滚不留下半完成状态，BUSY 被明确处理而非假装成功。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "在两条写入之间注入失败，观察是否只完成一半。"
+              "text": "先圈出一个业务动作必须一起成立的全部 SQL。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查 BEGIN、COMMIT 和所有错误出口的 ROLLBACK。"
+              "text": "检查 Store 事务作用域与异常退出，确认余额和记录处于同一事务。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "一个业务动作的多次写入必须具有原子性。"
+              "text": "在 COMMIT 前任何必需步骤失败都撤销整组修改，并查询数据库证明。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "兑换库存不足或中途失败时余额和兑换记录都不改变。",
-            "evidence": "故障注入前后数据库快照",
-            "automatedChecks": [
-              "rollback-midway",
-              "insufficient-points",
-              "concurrent-writers"
+            "task": "在test_transactions现有“too_much”请求中把兑换金额11换成12，保留ERR|INSUFFICIENT和余额不变断言；不改后面的并发账本验算。",
+            "evidence": "事务前后 SELECT 结果、注入点、明确错误及并发写结果",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "业务所需写入同处一个事务",
+              "失败用数据不变证明，不只看错误打印",
+              "知道 BUSY 和传输超时不是同一种失败"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "最终联调用事务和 event_id 同时抵抗重试。"
+          "laterReencounter": "下一章把请求身份和最终响应也放入同一持久事务，使丢失响应后的重试能找到原结果。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在test_transactions现有“too_much”请求中把兑换金额11换成12，保留ERR|INSUFFICIENT和余额不变断言；不改后面的并发账本验算。"
+            ],
+            "expectedResults": [
+              "回滚不留下半完成状态，BUSY 被明确处理而非假装成功。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "transactions-3"
+        },
+        {
+          "id": "durable-idempotency",
+          "title": "响应丢失后仍只记一笔业务",
+          "phase": "事务与恢复",
+          "estimatedSessions": 5,
+          "goal": "持久保存请求 ID、内容与结果，使断线重试和服务重启后的重复请求保持同一业务效果。",
+          "concepts": [
+            "幂等键与请求指纹",
+            "持久结果与重放",
+            "提交后丢响应",
+            "业务去重的保证范围"
+          ],
+          "guidedBuild": "同一个工程按完整代码步骤推进：保存请求指纹与原结果；演示提交后丢响应；跨重启验证幂等与冲突。",
+          "milestone": "同一最终schema数据库内，已提交请求结果可跨进程重开重放，成功与业务拒绝都不因重试重新执行。",
+          "filesTouched": [
+            "db/schema.sql",
+            "service/store.hpp",
+            "tools/demo.py",
+            "client/main.c",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "已经提交但回答没送到，怎样既能重试又不重复加分",
+            "learningGoal": "能解释请求身份、内容冲突、持久结果和事务之间的关系，并说清保证边界。",
+            "phenomenon": {
+              "title": "客户端看到超时，数据库里却已有加分记录",
+              "observation": "服务已完成加分并 COMMIT，但发送响应前故意断开连接。客户端无法知道结果，所以重试。若去重只存内存，服务重启后会忘记旧 ID；若只查余额，也无法知道是哪一条事件改变了它。",
+              "question": "怎样让相同请求在断线、重启与并发竞争后仍能回到同一结果？"
+            },
+            "mentalModel": {
+              "summary": "第八章新增requests(event_id,fingerprint,response)及ledger.event_id唯一索引。指纹按操作类型、玩家和规范化整数金额构造，0005与5是相同业务内容。事务内查ID：同指纹返回原response，不再修改；不同指纹返回ERR|CONFLICT。新ID的业务效果与结果同事务提交，包含积分不足/上限等既定拒绝结果。旧响应里的余额是当时快照，当前值要BALANCE查询。本章演示使用隔离新库，未提供把前章重复账本自动迁移的工具。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "查持久身份",
+                  "explanation": "以 event/request ID 查已提交请求记录，不能只查进程内集合。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "核对完整内容",
+                  "explanation": "操作类型、玩家和金额都属于指纹，同 ID 改任一字段都不是同一次重试。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "原子保存业务与结果",
+                  "explanation": "新请求在同一事务提交余额、账本与原响应；失败不留下悬空去重键。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "按既定结果回复",
+                  "explanation": "重复请求返回持久结果；即使第一次回答丢失或进程重启，也不再次加分/扣分。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "幂等键与请求指纹",
+                "plainMeaning": "ID 表示一次业务动作，指纹保存操作类型、玩家和金额等含义；同 ID 但内容不同应冲突。",
+                "codeMapping": "Store::mutate规范化指纹为op|player|to_string(amount)；同ID改类型/玩家/金额冲突，0005与5不产生伪冲突。"
+              },
+              {
+                "term": "持久结果与重放",
+                "plainMeaning": "数据库记录已确定响应，使重试获得同一事实，而非根据当前余额随意重算原结果。",
+                "codeMapping": "requests持久保存成功和INSUFFICIENT/LIMIT结果；即使后续余额增加，原拒绝仍重放。ERR|BUSY/DB等未提交故障不被当成既定业务结果缓存。"
+              },
+              {
+                "term": "提交后丢响应",
+                "plainMeaning": "事务提交和客户端收到回答是两个独立时刻，中间断线让客户端处于结果未知。",
+                "codeMapping": "ARCADE_TEST_DROP_ACK_ONCE指定ID；首次新业务提交后service关闭该连接不写响应，真实client用相同正文有限重试。"
+              },
+              {
+                "term": "业务去重的保证范围",
+                "plainMeaning": "本例保证同一数据库中的相同请求不会重复造成业务变更，不保证网络只传一次，也不覆盖未实现的外部系统。",
+                "codeMapping": "幂等记录与余额处于同一SQLite事务；服务重启重新读库而非清空去重表。"
+              }
+            ],
+            "workedExample": {
+              "title": "请求 E 加 10 分，提交后响应丢失",
+              "steps": [
+                "玩家 P 原余额 20，终端发送 ADD|E|P|10。",
+                "服务在事务内记录 E 的内容，把余额改为 30，保存成功响应并 COMMIT。",
+                "响应发送前连接断开，终端不知道这笔是否完成，但保留 E 与原正文。",
+                "终端有限重试同一请求，服务查到 E 和相同指纹，返回保存的原响应，余额仍为 30。",
+                "服务重启后再提交 E，记录仍在；改成 ADD|E|P|11 则返回冲突，不能再加 11。",
+                "若旧请求结果是INSUFFICIENT，之后余额增加仍返回这次已定拒绝；想发起新的业务尝试应使用新ID。"
+              ],
+              "takeaway": "持久身份和业务修改必须同事务提交，否则重试仍可能遇到“有去重键却没业务”或反过来。"
+            },
+            "misconceptions": [
+              {
+                "claim": "每次重连换一个新事件 ID，比较容易成功。",
+                "correction": "新 ID 表示新业务动作，可能重复加分；未知结果重试应保留原身份。"
+              },
+              {
+                "claim": "同 ID 一律返回成功，不必核对内容。",
+                "correction": "这样会把不同玩家、金额或操作混成同一请求，必须判断冲突。"
+              },
+              {
+                "claim": "持久幂等实现了整个网络 exactly-once。",
+                "correction": "网络可能多次传输且响应仍可能丢失；保证的是数据库内同一身份的业务效果去重。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "idempotent-content",
+                "question": "同 ID 的第二次请求把金额从 10 改为 11，应如何处理？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "把它当重试再加 11"
+                  },
+                  {
+                    "id": "c",
+                    "text": "覆盖旧记录让两次都成功"
+                  },
+                  {
+                    "id": "a",
+                    "text": "返回冲突并保留原业务与结果"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "幂等身份必须对应固定业务内容，冲突不能被静默合并。"
+              },
+              {
+                "id": "ack-lost",
+                "question": "COMMIT 成功后响应丢失，重启服务再重试原 ID，预期是什么？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "只要客户端没收到就撤销已提交事务"
+                  },
+                  {
+                    "id": "a",
+                    "text": "读取持久结果，不再次修改余额"
+                  },
+                  {
+                    "id": "b",
+                    "text": "因为重启所以一定重新加分"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "提交事实不会由客户端的观察倒退，重试通过持久记录找到原结果。"
+              },
+              {
+                "id": "atomic-idempotency",
+                "question": "为什么去重记录必须和余额修改在同一事务？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "防止只有去重键没有业务，或业务已做但无去重记录"
+                  },
+                  {
+                    "id": "b",
+                    "text": "这样网络就不会再断开"
+                  },
+                  {
+                    "id": "c",
+                    "text": "因为同事务会自动让客户端收到响应"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "原子边界要覆盖执行身份和业务效果，响应交付仍有独立失败窗口。"
+              }
+            ],
+            "bridgeToCode": "完整 requests 表与处理流程已给出。先制造一次提交后不响应，再用相同正文重试和重启查询证明业务只发生一次。"
+          },
+          "guidedSteps": [
+            {
+              "id": "durable-idempotency-step-1",
+              "codeStepId": "durable-idempotency-step-1-code",
+              "title": "保存请求指纹与原结果",
+              "targetFiles": [
+                "db/schema.sql",
+                "service/store.hpp",
+                "tools/demo.py"
+              ],
+              "instruction": "复制当前schema与Store完整文件，创建本章隔离新数据库，阅读requests、ledger事件唯一索引、规范化指纹及同事务remember；本步骤不是自动迁移前章数据库。",
+              "verify": "持久记录与业务效果拥有共同原子边界。"
+            },
+            {
+              "id": "durable-idempotency-step-2",
+              "codeStepId": "durable-idempotency-step-2-code",
+              "title": "演示提交后丢响应",
+              "targetFiles": [
+                "client/main.c",
+                "tools/demo.py"
+              ],
+              "instruction": "按交付演示使用ARCADE_TEST_DROP_ACK_ONCE和client重试参数1；第八章起客户端允许写请求在持久幂等保护下自动重试，同一argv正文不变。",
+              "verify": "客户端可恢复原结果，数据库余额不会重复改变。"
+            },
+            {
+              "id": "durable-idempotency-step-3",
+              "codeStepId": "durable-idempotency-step-3-code",
+              "title": "跨重启验证幂等与冲突",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "运行test_durable：提交丢响应、0005与5等价、改金额/玩家冲突、12次并发相同ID只记一次、拒绝结果在余额增加后仍重放、同库重开后原响应保留。",
+              "verify": "同数据库重开后仍命中原记录，冲突不覆盖旧事实。"
+            }
+          ],
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先查询数据库中这个 ID 是否已提交，不凭没有响应判断。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 requests 记录与余额/账本是否同一事务，重试正文是否改变。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "先比较身份与内容；已定结果从持久记录返回，新身份才执行业务。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "在已有丢响应重试测试中更换一组新 ID 与金额；成功后只改同 ID 的金额再次发送，断言原结果可重放、冲突被拒绝且余额只改变一次。",
+            "evidence": "首次发送、丢响应、重试、重启后的响应和 requests/余额/账本查询",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "相同ID与正文跨重启仍不重复加扣分",
+              "不同内容同ID明确冲突",
+              "知道此保证不等于TCP只传输一次"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "下一章从已提交数据库事实重建查询，保证榜单排序稳定、历史可解释，而非依赖进程内缓存。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在已有丢响应重试测试中更换一组新 ID 与金额；成功后只改同 ID 的金额再次发送，断言原结果可重放、冲突被拒绝且余额只改变一次。"
+            ],
+            "expectedResults": [
+              "同一最终schema数据库内，已提交请求结果可跨进程重开重放，成功与业务拒绝都不因重试重新执行。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "durable-idempotency-3"
+        },
+        {
+          "id": "query-recovery",
+          "title": "让重启后的积分和榜单仍可信",
+          "phase": "事务与恢复",
+          "estimatedSessions": 5,
+          "goal": "用明确排序和只读查询展示已提交事实，验证进程终止重开后的余额、历史与幂等结果一致。",
+          "concepts": [
+            "持久恢复与进程内存",
+            "ORDER BY 与稳定平局",
+            "只读查询与审计历史",
+            "恢复验证的边界"
+          ],
+          "guidedBuild": "同一个工程按完整代码步骤推进：提供有界稳定查询；重开同一数据库继续服务；检查同分和审计一致。",
+          "milestone": "榜单平局稳定，历史与余额可对账，重启不抹掉已提交事实。",
+          "filesTouched": [
+            "common/protocol.h",
+            "tools/demo.py",
+            "service/store.hpp",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "两位玩家同分，排行榜为什么不能随重启换顺序",
+            "learningGoal": "能区分查询排序、持久事实、恢复与迁移，并用稳定键检验重开数据库的结果。",
+            "phenomenon": {
+              "title": "没有 ORDER BY 的表看起来有顺序，换次执行却变了",
+              "observation": "数据库没有承诺按插入顺序返回普通 SELECT。两位玩家积分相同时，只有分数排序仍不能决定先后。服务重启后若从内存零值重新建立余额，还会把已提交数据覆盖掉。",
+              "question": "重启时应该加载哪些事实？同分和分页边界如何得到确定结果？"
+            },
+            "mentalModel": {
+              "summary": "打开使用最终schema创建的同一数据库，保留已提交数据，重新建立foreign_keys和busy等连接配置。TOP用coins DESC、player ASC排序，limit范围1..10；HISTORY按seq ASC最多20条。完整账本对账通过测试里的SQL SUM(delta)，不把20条历史窗口当全部历史。此课验证进程停止/重开，不包含章节旧schema迁移、物理掉电或磁盘损坏保证。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "重开同一数据库",
+                  "explanation": "使用同一路径，初始化只创建缺失结构，不删除已有记录。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "恢复连接配置",
+                  "explanation": "重新设置 foreign_keys 与有限 busy 等连接级选项。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "确定性查询",
+                  "explanation": "榜单明确主次排序，历史明确记录顺序与查询范围。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "交叉核对事实",
+                  "explanation": "余额、事件/兑换、请求结果彼此一致；重复 ID 仍能找到原结果。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "持久恢复与进程内存",
+                "plainMeaning": "重启会丢失进程变量，已提交数据库记录是恢复依据；不能用内存默认值覆盖它。",
+                "codeMapping": "服务启动打开已有路径并保留表中记录，查询不要求先重播所有客户端请求。"
+              },
+              {
+                "term": "ORDER BY 与稳定平局",
+                "plainMeaning": "排序必须明确全部需要的决胜规则；本例榜单先分数降序、同分再按玩家标识升序。",
+                "codeMapping": "TOP 查询使用 ORDER BY coins DESC, player ASC，limit 受协议上限约束。"
+              },
+              {
+                "term": "只读查询与审计历史",
+                "plainMeaning": "查询展示事实，不暗中修正余额；历史解释余额变化来源，关联请求身份帮助排查。",
+                "codeMapping": "BALANCE无玩家返回0且不创建玩家；TOP限制1..10；HISTORY按seq ASC最多返回20条，是有界历史窗口，不是所有历史或分页接口。"
+              },
+              {
+                "term": "恢复验证的边界",
+                "plainMeaning": "进程崩溃/重开测试验证已提交记录与回滚行为，不等于电源故障、硬件写缓存或损坏磁盘测试。",
+                "codeMapping": "测试终止并重新启动服务，复用同一数据库，核对提交前后状态而不宣称永不丢数据。"
+              }
+            ],
+            "workedExample": {
+              "title": "同分榜单与重启后的相同事实",
+              "steps": [
+                "给玩家 bob 与 alice 各记 20 分，给 carol 记 30 分。",
+                "TOP 先按分数降序得到 carol；同为 20 时按玩家标识升序排列 alice、bob。",
+                "记录三位余额和相关历史，正常关闭或按测试终止服务。",
+                "重新启动并指向同一数据库，不重复执行初始化加分。",
+                "再次 TOP、BALANCE、HISTORY，顺序与已提交事实保持一致；重复旧事件仍返回原结果。"
+              ],
+              "takeaway": "恢复是读取已有事实继续服务，稳定排序是明确 SQL 规则，两者都不能靠“这次看起来正确”证明。"
+            },
+            "misconceptions": [
+              {
+                "claim": "不写 ORDER BY，SQLite 通常按插入顺序，所以可以依赖。",
+                "correction": "没有明确排序就没有该合同；访问计划或数据变化都可能改变返回顺序。"
+              },
+              {
+                "claim": "重启时把玩家余额初始化为 0，再等客户端重报即可。",
+                "correction": "这会覆盖持久事实，且客户端不一定保留完整历史；初始化必须保留已有数据。"
+              },
+              {
+                "claim": "杀进程后数据库没坏，就证明真实断电永远不会丢。",
+                "correction": "进程终止与系统掉电、存储故障不同，不能越过实际验证范围。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "stable-ranking",
+                "question": "alice 和 bob 同为20分，怎样保证榜单稳定？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "按客户端先收到谁的响应排序"
+                  },
+                  {
+                    "id": "a",
+                    "text": "ORDER BY coins DESC, player ASC"
+                  },
+                  {
+                    "id": "b",
+                    "text": "只写 ORDER BY coins DESC 并猜同分顺序"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "完整的排序规则让相等分数仍有确定的次序。"
+              },
+              {
+                "id": "restart-init",
+                "question": "服务重启打开已有数据库，正确初始化行为是什么？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "保留已提交数据，只做必要的结构和连接配置"
+                  },
+                  {
+                    "id": "b",
+                    "text": "无条件把所有余额清零"
+                  },
+                  {
+                    "id": "c",
+                    "text": "删除requests表避免重复"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "恢复本章已兼容schema数据库中的事实；CREATE IF NOT EXISTS不等于通用迁移工具，不能保证升级任意旧库。"
+              },
+              {
+                "id": "recovery-evidence",
+                "question": "进程终止后重开数据库并查询一致，证明了什么？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "所有硬件故障永不丢数据"
+                  },
+                  {
+                    "id": "c",
+                    "text": "网络会自动把所有响应再发一次"
+                  },
+                  {
+                    "id": "a",
+                    "text": "该测试场景下进程重启能保留已提交事实，不代表断电或硬盘故障都已验证"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "证据范围由真实故障模型决定，不能从进程测试外推所有持久化条件。"
+              }
+            ],
+            "bridgeToCode": "完整查询与重启演示已交付。只更换玩家和分数构造同分，再以同一数据库路径重开并比较真实结果。"
+          },
+          "guidedSteps": [
+            {
+              "id": "query-recovery-step-1",
+              "codeStepId": "query-recovery-step-1-code",
+              "title": "提供有界稳定查询",
+              "targetFiles": [
+                "common/protocol.h",
+                "tools/demo.py",
+                "service/store.hpp"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。阅读 BALANCE、TOP、HISTORY 的绑定参数、排序和限制，不让查询修改余额。",
+              "verify": "合法查询有明确结果顺序，非法 limit 直接拒绝。"
+            },
+            {
+              "id": "query-recovery-step-2",
+              "codeStepId": "query-recovery-step-2-code",
+              "title": "重开同一数据库继续服务",
+              "targetFiles": [
+                "tools/demo.py"
+              ],
+              "instruction": "按demo/test_queries停止并重开服务，复用同一个本章新建数据库；启动设置连接选项而不清空表。没有实现章节间旧schema自动迁移。",
+              "verify": "已提交余额和幂等记录保留，不靠重新加分补出相同结果。"
+            },
+            {
+              "id": "query-recovery-step-3",
+              "codeStepId": "query-recovery-step-3-code",
+              "title": "检查同分和审计一致",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "运行test_queries：空榜单、先bob后alice同分、TOP稳定顺序、同库重开、HISTORY结果、TOP0和11拒绝；完整账本对账另通过SQL查询，HISTORY只返回前20条。",
+              "verify": "榜单平局稳定，历史与余额可对账，重启不抹掉已提交事实。"
+            }
+          ],
+          "hintLadder": [
+            {
+              "tier": 1,
+              "kind": "observation-focus",
+              "text": "先确认重启前后确实打开同一路径，而不是两个同名不同目录的数据库。"
+            },
+            {
+              "tier": 2,
+              "kind": "code-region",
+              "text": "检查 TOP 的完整 ORDER BY 和初始化是否清空已有表。"
+            },
+            {
+              "tier": 3,
+              "kind": "cause-and-direction",
+              "text": "查询用持久事实和明确排序，恢复不重新执行业务写入。"
+            }
+          ],
+          "checkpoint": {
+            "kind": "independent-change",
+            "task": "在现成榜单测试中新增两位同分玩家，选择与插入顺序相反的标识顺序；断言 TOP 按 player 升序决胜，并在服务重开后再次比较。",
+            "evidence": "数据库绝对路径、重启前后 TOP/BALANCE/HISTORY、旧事件重放结果",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "同分按明确二级键排序而非插入时机",
+              "重启保留已有记录并重建连接设置",
+              "验证结论限定为实际进程重启场景"
+            ],
+            "awardsStar": true
+          },
+          "laterReencounter": "最终联调同时检查网络回应和数据库事实，把同一个事件的传输、提交、重试与查询串起来。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "在现成榜单测试中新增两位同分玩家，选择与插入顺序相反的标识顺序；断言 TOP 按 player 升序决胜，并在服务重开后再次比较。"
+            ],
+            "expectedResults": [
+              "榜单平局稳定，历史与余额可对账，重启不抹掉已提交事实。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "query-recovery-3"
         },
         {
           "id": "end-to-end",
-          "title": "完成终端到数据库的全链路",
-          "goal": "联调 C 客户端、C 网关、C++ 服务和 SQLite。",
+          "title": "汇集终端、网关、服务和数据库",
+          "phase": "完整作品与证据",
+          "estimatedSessions": 5,
+          "goal": "从干净工程启动三个真实进程，按请求身份核对网络结果和持久状态，完成正常、并发与故障后的全链路。",
           "concepts": [
-            "接口合同",
-            "端到端测试",
-            "可观测性"
+            "端到端合同",
+            "请求身份与定位",
+            "结果对账",
+            "关闭与重新开始"
           ],
-          "guidedBuild": "为一条事件建立 trace_id，贯穿网络日志和数据库。",
+          "guidedBuild": "同一个工程按完整代码步骤推进：整理运行入口和参数合同；运行完整联机积分中心；组合网络和数据库故障。",
+          "milestone": "整套代码从干净目录能构建运行，关键故障有明确结果与持久证据。",
+          "filesTouched": [
+            "tools/run_local.py",
+            "tools/demo.py",
+            "tools/inspect_db.py",
+            "tests/check.py"
+          ],
+          "conceptModule": {
+            "title": "只有三个程序都在运行，还不足以证明积分中心完成",
+            "learningGoal": "能沿同一请求定位每一层状态，并用数据库证据区分传输成功、事务成功和响应成功。",
+            "phenomenon": {
+              "title": "终端说失败，服务日志说成功，余额也变了",
+              "observation": "这三件事可能同时为真：事务提交了，但客户端没有收到响应。另一方面，网关转发成功也可能只表示后端收到了字节，未必解析或提交。最终验收必须使用同一个 ID 对照实际响应与数据库行。",
+              "question": "当不同组件给出看似矛盾的消息，哪一个事实决定业务有没有发生？"
+            },
+            "mentalModel": {
+              "summary": "最终工程保留 C 终端、C 网关和 C++ 积分服务三个进程，使用两段真实 TCP 帧通信。服务在 Store 的事务边界形成持久结果，再经网关回复。联调先确认端口、数据库路径和启动顺序，再逐事件跟踪请求内容、返回码、持久记录和余额。失败注入只组合已学机制，不另造消息中间件或宣称分布式 exactly-once。 最终附加测试还会让两个独立服务实例打开同一数据库，依靠SQLite事务协调，遇到BUSY时测试按已教合同有限重试；这是同一SQLite文件，不是跨机器分布式数据库。",
+              "flow": [
+                {
+                  "id": "stage-1",
+                  "title": "准备可复现环境",
+                  "explanation": "隔离端口和临时数据库，按先服务后网关的依赖顺序启动。"
+                },
+                {
+                  "id": "stage-2",
+                  "title": "提交与接收",
+                  "explanation": "终端发送规范帧，网关按剩余期限转发，服务解析完整业务请求。"
+                },
+                {
+                  "id": "stage-3",
+                  "title": "事务决定业务结果",
+                  "explanation": "绑定SQL在事务中保存结果；明确成功、拒绝、冲突或数据库错误。"
+                },
+                {
+                  "id": "stage-4",
+                  "title": "查询与恢复核对",
+                  "explanation": "领取响应，再用独立查询核对；丢响应和重启后重试仍指向同一持久事实。"
+                }
+              ]
+            },
+            "terms": [
+              {
+                "term": "端到端合同",
+                "plainMeaning": "从用户输入到持久业务结果的全部组件共同遵守的语义，单个模块通过不等于组合已经正确。",
+                "codeMapping": "make run 与最终测试启动真实 client/gateway/service，并读取 SQLite 结果而不只匹配日志。"
+              },
+              {
+                "term": "请求身份与定位",
+                "plainMeaning": "同一个业务 ID 把初次请求、网络重试、去重记录与账本关联起来；日志辅助定位，数据库记录决定已提交事实。",
+                "codeMapping": "跨进程保留 event_id 和原正文，不在网关重试时偷偷生成新事件。"
+              },
+              {
+                "term": "结果对账",
+                "plainMeaning": "对每个请求分别区分未接收、解析失败、业务拒绝、提交成功与结果未知，再核对最终余额。",
+                "codeMapping": "比较client响应、requests、ledger与players.coins；HISTORY有20条上限，完整合计使用数据库SQL检查。"
+              },
+              {
+                "term": "关闭与重新开始",
+                "plainMeaning": "服务停止先结束接收并收束已有会话资源，数据库正常关闭；重启使用原路径继续读取已提交事实。",
+                "codeMapping": "运行完整进程退出与重开流程，记录真实退出状态，不能只删除临时文件掩盖遗留进程。"
+              }
+            ],
+            "workedExample": {
+              "title": "把一轮比赛、兑换和丢响应重试合成一个证据链",
+              "steps": [
+                "用新数据库启动 C++ 服务，再启动 C 网关；客户端连接网关公开端口。",
+                "以新 ID 给玩家增加积分，收到成功响应后用 BALANCE 与账本查询验证。",
+                "以另一 ID 兑换合法金额，核对余额减少与兑换记录同时出现。",
+                "对第三笔请求注入提交后不回应，再用同 ID 同正文重试，确认没有第二次余额变化。",
+                "停止并重开服务，查询榜单、历史和原请求结果仍符合已提交事实。",
+                "最后清点进程退出与连接关闭，保存命令、响应、数据库查询及每个故障的解释。"
+              ],
+              "takeaway": "完整作品由跨组件行为与持久事实证明，不能只凭构建成功或页面勾选判定。"
+            },
+            "misconceptions": [
+              {
+                "claim": "三个进程都能启动，就是全链路完成。",
+                "correction": "还要实际传输合法和故障请求，验证协议、事务、结果与恢复组合后的行为。"
+              },
+              {
+                "claim": "日志写了成功就可以不查数据库。",
+                "correction": "日志可能位于提交前或响应后，必须结合真实事务结果和持久记录。"
+              },
+              {
+                "claim": "为让测试稳定，客户端出错时直接返回预期文本也可以。",
+                "correction": "这只伪造可见输出，无法验证真实网络与数据库合同。"
+              }
+            ],
+            "checks": [
+              {
+                "id": "full-chain-proof",
+                "question": "哪组证据最能证明这笔积分完成？",
+                "options": [
+                  {
+                    "id": "a",
+                    "text": "同ID真实请求响应、已提交记录与余额对账"
+                  },
+                  {
+                    "id": "b",
+                    "text": "只看进程列表里有三个程序"
+                  },
+                  {
+                    "id": "c",
+                    "text": "只看编译器没有报错"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "完整行为需要跨进程传输与数据库效果共同支持。"
+              },
+              {
+                "id": "gateway-not-business",
+                "question": "网关已完整转发请求，能否直接给客户端宣布业务成功？",
+                "options": [
+                  {
+                    "id": "b",
+                    "text": "能，send成功就表示事务提交"
+                  },
+                  {
+                    "id": "c",
+                    "text": "能，只要端口是本机回环"
+                  },
+                  {
+                    "id": "a",
+                    "text": "不能，必须取得后端明确业务结果或报告结果未知"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "转发确认与数据库提交之间仍有解析、约束和事务失败窗口。"
+              },
+              {
+                "id": "restart-conflict",
+                "question": "重启后同ID改金额再次提交，正确结果是什么？",
+                "options": [
+                  {
+                    "id": "c",
+                    "text": "删除旧请求后再加一次"
+                  },
+                  {
+                    "id": "a",
+                    "text": "持久内容比较发现冲突，原记录和余额保持不变"
+                  },
+                  {
+                    "id": "b",
+                    "text": "因为进程新了所以当新事件执行"
+                  }
+                ],
+                "correctOptionId": "a",
+                "explanation": "业务身份来自持久记录，不由进程是否重启决定。"
+              }
+            ],
+            "bridgeToCode": "使用最终完整目录执行 make all、make test、make run，并跟随提供的启动和清理脚本。全部底层组件已交付，独立任务只换输入与故障组合。"
+          },
+          "guidedSteps": [
+            {
+              "id": "end-to-end-step-1",
+              "codeStepId": "end-to-end-step-1-code",
+              "title": "整理运行入口和参数合同",
+              "targetFiles": [
+                "tools/run_local.py",
+                "tools/demo.py"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。阅读三个程序的参数校验、端口/数据库配置、启动顺序与错误退出，确保命令可重复。",
+              "verify": "最终工程具有清楚的构建、启动和清理入口。"
+            },
+            {
+              "id": "end-to-end-step-2",
+              "codeStepId": "end-to-end-step-2-code",
+              "title": "运行完整联机积分中心",
+              "targetFiles": [
+                "tools/inspect_db.py",
+                "tools/demo.py"
+              ],
+              "instruction": "复制本步骤列出的完整新增/替换文件，保留相同相对路径；需要恢复时使用对应完整状态目录。执行完整演示，真实完成上报、查询、兑换、重试、榜单与同库重启。",
+              "verify": "终端响应与 SQLite 事实一致，输出不是预制业务答案。"
+            },
+            {
+              "id": "end-to-end-step-3",
+              "codeStepId": "end-to-end-step-3-code",
+              "title": "组合网络和数据库故障",
+              "targetFiles": [
+                "tests/check.py",
+                "tools/demo.py"
+              ],
+              "instruction": "运行完整测试及test_end_to_end：两个独立C++服务实例打开同一个SQLite文件，12次兑换竞争20分，每次3分，6次成功余额2；BUSY只在该测试中最多3次重试，再核对SUM(delta)、requests数量与integrity_check。其余组覆盖真实网关链路和网络/提交丢响应。",
+              "verify": "make all、make test、make run完成；完整链路和双实例共用SQLite文件分别有证据，不把同库多进程称为分布式exactly-once。"
+            }
+          ],
           "hintLadder": [
             {
               "tier": 1,
               "kind": "observation-focus",
-              "text": "从最终余额反查每个组件处理了什么。"
+              "text": "先选一笔 ID，把终端正文、网关转发、服务结果与数据库行放在一张时间线上。"
             },
             {
               "tier": 2,
               "kind": "code-region",
-              "text": "检查协议字段、进程间交接和事务结果。"
+              "text": "检查最终脚本的端口和数据库路径，再追同ID进入 Store 的事务分支。"
             },
             {
               "tier": 3,
               "kind": "cause-and-direction",
-              "text": "统一事件 ID 让重试、去重和故障定位使用同一事实。"
+              "text": "用已提交数据库事实区分业务结果；网络未知通过同身份重试恢复，不生成新事件或伪造成功。"
             }
           ],
           "checkpoint": {
             "kind": "independent-change",
-            "task": "终端重复提交、断线重连后最终只计一次积分。",
-            "evidence": "端到端日志、数据库查询、故障说明",
-            "automatedChecks": [
-              "duplicate-over-reconnect",
-              "eventual-single-credit",
-              "query-result"
+            "task": "从最终完整工程选两位新玩家与一组新 ID，按已教过的加分、兑换、同ID重试与同分查询运行一轮，再重开服务核对；只修改演示数据和断言。",
+            "evidence": "从干净目录构建日志、三进程命令、逐请求响应、数据库对账、重启前后结果和退出状态",
+            "automatedChecks": [],
+            "selfChecks": [
+              "在真实本地工程运行本章命令并保存退出状态；网页勾选仅记录证据",
+              "30个步骤依次累积形成同一个可运行工程",
+              "正常流程与故障后恢复都真实跨进程执行",
+              "响应丢失不导致重复积分，冲突不覆盖旧记录",
+              "未把进程重启验证夸大为所有断电/存储故障保证"
             ],
-            "selfChecks": [],
             "awardsStar": true
           },
-          "laterReencounter": "Boss 会组合分片、掉线、重复与并发写。"
+          "laterReencounter": "Boss 只组合已经交付的协议、事务、幂等与查询，不再要求学习者设计新模块。",
+          "runbook": {
+            "buildCommands": [
+              "make test",
+              "make run"
+            ],
+            "runActions": [
+              "阅读本章第一步完整代码，预测输入从哪个进程、哪种状态进入下一层",
+              "按三个代码增量依次构建和运行；测试只对当前已接入功能作结论",
+              "从最终完整工程选两位新玩家与一组新 ID，按已教过的加分、兑换、同ID重试与同分查询运行一轮，再重开服务核对；只修改演示数据和断言。"
+            ],
+            "expectedResults": [
+              "整套代码从干净目录能构建运行，关键故障有明确结果与持久证据。",
+              "前面章节的已接入功能仍通过，保留真实请求、响应和测试摘要"
+            ]
+          },
+          "snapshotStateId": "end-to-end-3"
         }
       ],
       "boss": {
         "id": "super-arcade-data-center-boss",
         "title": "全岛联机积分赛",
-        "story": "足球场与钢琴地毯同时上报，网络会分片和断线，客户端可能重复发送，数据库写入中途也会失败。",
+        "story": "足球场与钢琴地毯同时上报，网关遇到分片、慢连接和断线；积分服务面对并发、事务中途失败与提交后丢响应。使用同一完整工程独立定位故障，并通过数据库事实证明重试与重启后的结果。",
         "performancePoints": {
           "maximum": 100,
           "pass": 80,
@@ -14166,39 +16347,54 @@
         "phases": [
           {
             "id": "network-chaos",
-            "title": "网络分片与掉线",
+            "title": "网络边界与有界并发",
             "successCriteria": [
-              "消息不粘连或丢失",
-              "重试有上限",
-              "连接资源释放"
+              "头与载荷分片、相邻帧、半帧和超长输入按合同处理",
+              "慢连接、排队与总期限有明确结束，资源规模有上限",
+              "重试有上限并保留原请求身份，不把没有响应判作没有提交"
             ]
           },
           {
             "id": "duplicate-write",
-            "title": "重复事件与并发写入",
+            "title": "事务、重复和内容冲突",
             "successCriteria": [
-              "同一事件只计一次",
-              "事务无半完成",
-              "并发结果一致"
+              "加分与兑换不出现半条记录或半次余额修改",
+              "同ID同内容不重复改余额，同ID改内容明确冲突",
+              "外部写锁或数据库失败有明确结果，不能用默认成功掩盖"
+            ]
+          },
+          {
+            "id": "durable-recovery",
+            "title": "提交丢响应与进程重启",
+            "successCriteria": [
+              "提交后丢失响应时同ID同业务内容重试能返回持久既定结果；规范化金额拼写不构成冲突",
+              "重开同一数据库后余额、账本与幂等身份保留",
+              "验证范围明确为真实测试的进程故障，不宣称全网络exactly-once或物理掉电保证"
             ]
           },
           {
             "id": "independent-query",
-            "title": "独立加入排行榜查询",
+            "title": "独立查询、稳定榜单与对账",
             "successCriteria": [
-              "排序规则明确",
-              "同分结果稳定",
-              "查询不修改数据"
+              "TOP分数降序同分玩家升序，非法limit被拒绝",
+              "BALANCE/HISTORY查询不改变业务状态，能解释账本与余额",
+              "三个真实进程的完整代码可从干净目录构建，逐请求结果和数据库事实能对上"
             ]
           }
         ],
         "faultScenarios": [
           "partial-read",
           "coalesced-messages",
+          "truncated-frame",
+          "slow-client",
+          "queue-full",
           "disconnect-after-send",
           "duplicate-event",
+          "conflicting-event",
           "transaction-failure",
-          "concurrent-writes"
+          "busy-writer",
+          "commit-before-response-loss",
+          "service-restart"
         ],
         "resumableByPhase": true,
         "managerApprovalRequired": false
@@ -14226,11 +16422,60 @@
           "expectedBehavior",
           "actualResult",
           "viewedHintTiers",
-          "recentAttempts"
+          "recentAttempts",
+          "currentCodeState",
+          "codeStepId",
+          "sourceFiles",
+          "buildCommand",
+          "requestId",
+          "requestBytes",
+          "responseBytes",
+          "processExitStatus",
+          "databaseQuery",
+          "testOutput"
         ],
-        "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+        "tutorInstruction": "先确认当前完整代码状态、真实命令和发生在哪一层：终端、网关、服务还是 SQLite。让学习者区分 TCP 到达、完整帧解析、事务提交和收到响应，不根据没有响应直接判断没有提交。按当前步骤已有 API 指导，不让学习者从零补写缺失网络或数据库设施；完整代码始终可获得。独立题看过解法后换等价输入，Boss 只组合已教过机制。网页自检不冒充真实运行证据。"
       },
-      "file": "levels/super-arcade-data-center-project.json"
+      "file": "levels/super-arcade-data-center-project.json",
+      "guidancePolicy": {
+        "mode": "guided-complete-build",
+        "conceptLessonsPerChapter": 1,
+        "guidedLessonsPerChapter": 3,
+        "independentCheckpointPerChapter": true,
+        "cumulativeArtifact": true,
+        "chapterSnapshotRequired": true,
+        "fullSolutionScope": "每个引导小节提供完整源码文件与可运行工程状态，依次完成实现接入、实际调用和相应测试。概念课可以阅读本章第一步的完整代码；独立小节从章末完整代码开始，只补已教过的小段输入或断言。Boss 复用最终工程。",
+        "learnerFreedomBoundary": "自主调整帧切片、端口、合法超时、客户端数量、事件输入、查询条件和已教授的测试断言；不要求从空文件自行实现网络框架、SQLite 包装或分布式一致性。看过完整解法后，以新的一组等价输入再独立验证。",
+        "codeDeliveryContractVersion": 1
+      },
+      "codeDelivery": {
+        "schemaVersion": 1,
+        "packageFile": "project-code/super-arcade-data-center-project.json",
+        "packageSha256": "6eaccb3f9808f901f5337e36cb424407484912dfd6b937c0bf764d0e0c7aedf4",
+        "baselineStateId": "super-empty",
+        "finalStateId": "end-to-end-3"
+      },
+      "environment": {
+        "platform": "本地 POSIX 终端中的三个真实进程与 TCP 回环连接；网页负责讲解和记录",
+        "languageStandard": "C17 + C++20 + SQL（SQLite）",
+        "toolchain": "支持 C17/C++20 的 cc/c++（GCC 或 Clang）、SQLite 开发头文件与库、POSIX socket/poll 支持",
+        "buildSystem": "Makefile；链接 SQLite 与 pthread，测试辅助使用工程明确列出的本地工具",
+        "outputBackend": "客户端响应、三个进程的真实标准输出/错误、SQLite 数据库与测试断言",
+        "inputBackend": "命令行请求、TCP 长度帧、可复现测试输入和故障注入参数",
+        "requirements": [
+          "先检查编译器、make、SQLite 头文件与链接库；不因平台名称推定运行环境已经就绪",
+          "每步在完整工程根目录执行交付命令并记录真实退出状态；多个服务的端口和数据库文件互相隔离",
+          "网络测试使用真实 socket 和进程，不用内存队列或固定输出假装 TCP；持久化测试关闭并重新打开数据库",
+          "网页不会自动编译或运行 C/C++/SQLite；自检只保存学习证据，不等同自动端到端验收",
+          "第1至2章先观察阻塞I/O与边界，第3章才接入非阻塞poll和期限；第6章才接入真实C++数据库服务，不能把最终能力提前写成前面步骤已实现。",
+          "测试辅助脚本使用 Python 3 标准库（socket、subprocess、sqlite3等）；每章演示创建隔离数据库，不支持把中途旧schema自动迁移为最终schema。"
+        ],
+        "supportedHosts": [
+          "Linux 原生或具备 TCP 回环与文件持久化能力的虚拟机/容器",
+          "Windows 的 WSL2 Linux 环境",
+          "具备所需 POSIX 接口与 SQLite 开发环境的 macOS，以实际构建测试为准"
+        ]
+      }
     },
     {
       "schemaVersion": 2,

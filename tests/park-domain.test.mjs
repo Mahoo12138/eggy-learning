@@ -230,7 +230,7 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
 
 test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
-  assert.equal(indexOnly.publishedRevision, 8);
+  assert.equal(indexOnly.publishedRevision, 11);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
