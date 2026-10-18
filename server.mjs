@@ -3,14 +3,17 @@ import { readFile, stat, realpath } from 'node:fs/promises';
 import { join, resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Store, acquireLock, httpError, fingerprint, etag, requireMatch, safeId } from './lib/store.mjs';
 import { getGitHistory } from './lib/git-history.mjs';
 import { cIdentifiers, runC } from './lib/c-runner.mjs';
 import { runLinuxShell } from './lib/linux-shell-sim.mjs';
+import { withMasteryChallenges, supportsMasteryChallenges } from './lib/mastery-challenges.mjs';
+import { evaluateCoursePreview } from './lib/course-preview.mjs';
+import { PROJECT_CODE_MAX_PACKAGE_BYTES, sanitizeProjectCodePackage } from './lib/project-code-delivery.mjs';
 import {
   sanitizeCourse, sanitizeProgress, sanitizeWeekCard,
-  submitAttempt, submitProjectCheckpoint, summary as progressSummary
+  submitAttempt, submitProjectCheckpoint, submitProjectConceptCheck, summary as progressSummary
 } from './shared/park-domain.mjs';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -69,6 +72,13 @@ function validateHost(req, server, allowed) {
 function safeDetailPath(file, id) {
   if (typeof file !== 'string' || !/^levels\/[a-z0-9][a-z0-9_-]{0,159}\.json$/.test(file) || file !== `levels/${id}.json`) {
     throw httpError(400, `活动 ${id} 的详情文件路径无效。`, 'invalid_course_path');
+  }
+  return `data/${file}`;
+}
+
+function safeProjectCodePath(file, projectId, status = 500) {
+  if (typeof file !== 'string' || file !== `project-code/${projectId}.json` || !/^project-code\/[a-z0-9][a-z0-9_-]{0,159}\.json$/.test(file)) {
+    throw httpError(status, `作品 ${projectId} 的代码包路径无效。`, 'invalid_code_package');
   }
   return `data/${file}`;
 }
@@ -171,7 +181,9 @@ function activityPayload(course, progress, id) {
     return {
       level: { ...learnerLevelContent(level.content), kind: level.kind },
       rank: learnerRank(rank), progress: clone(progress),
-      completedStepIds: completedStepIds(progress, level.id, level.version)
+      completedStepIds: completedStepIds(progress, level.id, level.version),
+      activityCompleted: progress.attempts.some(attempt => attempt.kind === 'level' && attempt.payload.levelId === level.id && attempt.result.levelCompleted),
+      masteryRenewable: supportsMasteryChallenges(level.id)
     };
   }
   const project = course.projects.find(item => item.id === id);
@@ -358,6 +370,52 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
   const store = new Store(root, storeOptions);
   const release = lock ? await acquireLock(root) : async () => {};
   const hosts = allowedHosts(host, allowedHostnames);
+  const codePackageCache = new Map();
+
+  async function readProjectCodePackage(project, { useCache = true, populateCache = true, errorStatus = 500 } = {}) {
+    if (!project.codeDelivery) throw httpError(errorStatus === 500 ? 404 : errorStatus, '这个作品还没有发布完整代码包。', 'code_package_not_found');
+    const relative = safeProjectCodePath(project.codeDelivery.packageFile, project.id, errorStatus);
+    const absolute = join(root, relative);
+    const contractFingerprint = fingerprint({
+      id: project.id,
+      codeDelivery: project.codeDelivery,
+      chapters: project.chapters.map(chapter => ({
+        id: chapter.id,
+        snapshotStateId: chapter.snapshotStateId,
+        guidedSteps: chapter.guidedSteps?.map(step => ({ id: step.id, codeStepId: step.codeStepId, targetFiles: step.targetFiles })) || []
+      }))
+    });
+    let metadata;
+    try { metadata = await stat(absolute); }
+    catch (error) {
+      if (error.code === 'ENOENT') throw httpError(errorStatus, `作品 ${project.id} 的代码包文件缺失。`, 'invalid_code_package');
+      throw httpError(errorStatus, `无法读取作品 ${project.id} 的代码包：${error.code || error.message}`, 'invalid_code_package');
+    }
+    if (metadata.size > PROJECT_CODE_MAX_PACKAGE_BYTES) throw httpError(errorStatus, `作品 ${project.id} 的代码包超过 16 MB 上限。`, 'invalid_code_package');
+    const cached = useCache ? codePackageCache.get(project.id) : null;
+    if (cached
+      && cached.sha256 === project.codeDelivery.packageSha256
+      && cached.contractFingerprint === contractFingerprint
+      && cached.size === metadata.size
+      && cached.mtimeMs === metadata.mtimeMs) return cached.value;
+    let raw;
+    try { raw = await readFile(absolute); }
+    catch (error) {
+      if (error.code === 'ENOENT') throw httpError(errorStatus, `作品 ${project.id} 的代码包文件缺失。`, 'invalid_code_package');
+      throw httpError(errorStatus, `无法读取作品 ${project.id} 的代码包：${error.code || error.message}`, 'invalid_code_package');
+    }
+    const digest = createHash('sha256').update(raw).digest('hex');
+    if (digest !== project.codeDelivery.packageSha256) throw httpError(errorStatus, `作品 ${project.id} 的代码包摘要不匹配，课程引用与源码包不是同一版本。`, 'invalid_code_package');
+    let parsed;
+    try { parsed = JSON.parse(raw.toString('utf8')); }
+    catch { throw httpError(errorStatus, `作品 ${project.id} 的代码包不是有效 JSON。`, 'invalid_code_package'); }
+    try {
+      const value = sanitizeProjectCodePackage(parsed, project);
+      if (populateCache) codePackageCache.set(project.id, { sha256: digest, contractFingerprint, size: metadata.size, mtimeMs: metadata.mtimeMs, value });
+      return value;
+    }
+    catch (error) { throw httpError(errorStatus, `作品 ${project.id} 的代码包校验失败：${error.message}`, 'invalid_code_package'); }
+  }
 
   async function readState() {
     const rawCourse = await store.read('data/course.json');
@@ -366,6 +424,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
     let course, progress, weekCard;
     try { course = sanitizeCourse(rawCourse, details); }
     catch (error) { throw httpError(500, `data/course.json 或 data/levels 校验失败：${error.message}`, 'corrupt_data'); }
+    for (const project of course.projects) if (project.codeDelivery) await readProjectCodePackage(project);
     try { progress = sanitizeProgress(course, await store.read('data/progress.json')); }
     catch (error) { throw httpError(500, `data/progress.json 校验失败：${error.message}`, 'corrupt_data'); }
     try { weekCard = sanitizeWeekCard(course, await store.read('data/week-card.json')); }
@@ -427,6 +486,12 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
       const activityId = attempt.kind === 'level' ? attempt.payload.levelId : attempt.payload.projectId;
       if (!known.has(activityId)) throw httpError(400, `已有学习记录引用 ${activityId}，不能直接删除；请保留稳定编号。`, 'referenced_activity');
     }
+    for (const attempt of current.progress.conceptAttempts || []) {
+      if (!known.has(attempt.payload.projectId)) throw httpError(400, `已有概念理解记录引用 ${attempt.payload.projectId}，不能直接删除；请保留稳定编号。`, 'referenced_activity');
+    }
+    for (const project of hydrated.projects) {
+      if (project.codeDelivery) await readProjectCodePackage(project, { useCache: false, populateCache: false, errorStatus: 400 });
+    }
     await store.writeDataBatch([
       ...details.map(detail => ({
         relative: safeDetailPath(detail.file || `levels/${detail.id}.json`, detail.id),
@@ -451,10 +516,18 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
       const url = new URL(req.url, origin);
       let pathname;
       try { pathname = decodeURIComponent(url.pathname); } catch { throw httpError(400, '网址编码无效。'); }
+      if (pathname === '/play.html' && url.searchParams.get('preview') === 'workshop') {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
+      }
       if (!pathname.startsWith('/api/')) return await staticFile(req, res, pathname);
       const method = req.method || 'GET';
       if (!['GET', 'POST', 'PUT'].includes(method)) throw httpError(405, '不支持该方法。');
       if (method !== 'GET' && req.headers.origin !== origin) throw httpError(403, '只允许同源页面写入。', 'origin_rejected');
+
+      if (pathname === '/api/admin/preview/attempt' && method === 'POST') {
+        return json(res, 200, await evaluateCoursePreview(await readBody(req), gradeLevel));
+      }
 
       if (pathname === '/api/admin/history' && method === 'GET') {
         return json(res, 200, await getGitHistory({ root, learnerEmail, kind: url.searchParams.get('kind') || 'all', offset: Number(url.searchParams.get('offset') || 0), limit: Number(url.searchParams.get('limit') || 20) }));
@@ -463,7 +536,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
       if (pathname === '/api/play/home' && method === 'GET') {
         const state = await store.run(readState);
         const derived = progressSummary(state.course, state.progress);
-        const currentActivity = state.course.levels.find(item => item.id === state.progress.current.activityId);
+        const currentActivity = withMasteryChallenges(state.course, state.progress).levels.find(item => item.id === state.progress.current.activityId);
         const currentProject = state.course.projects.find(item => item.id === state.progress.current.activityId);
         const currentLevel = currentActivity ? { ...learnerLevelContent(currentActivity.content), kind: currentActivity.kind } : currentProject ? clone(currentProject) : null;
         const recentRewardEntry = [...state.progress.awardLedger].reverse().find(item => item.kind !== 'xp' && item.kind !== 'star') || null;
@@ -473,17 +546,26 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
       const activityRoute = pathname.match(/^\/api\/play\/levels\/([A-Za-z0-9][A-Za-z0-9_-]{0,159})$/);
       if (activityRoute && method === 'GET') {
         const state = await store.run(readState);
-        return json(res, 200, activityPayload(state.course, state.progress, activityRoute[1]), state.progress);
+        return json(res, 200, activityPayload(withMasteryChallenges(state.course, state.progress), state.progress, activityRoute[1]), state.progress);
+      }
+
+      const projectCodeRoute = pathname.match(/^\/api\/play\/projects\/([A-Za-z0-9][A-Za-z0-9_-]{0,159})\/code-package$/);
+      if (projectCodeRoute && method === 'GET') {
+        const state = await store.run(readState);
+        const project = state.course.projects.find(item => item.id === projectCodeRoute[1]);
+        if (!project) throw httpError(404, '没有找到这个作品。', 'activity_not_found');
+        const codePackage = await readProjectCodePackage(project);
+        return json(res, 200, { codePackage, packageSha256: project.codeDelivery.packageSha256 }, project.codeDelivery.packageSha256);
       }
 
       if (pathname === '/api/play/attempts' && method === 'POST') {
         const raw = await readBody(req);
         const snapshot = await store.run(readState);
-        const graded = await gradeLevel(snapshot.course, raw);
+        const graded = await gradeLevel(withMasteryChallenges(snapshot.course, snapshot.progress, raw), raw);
         const submittedAt = new Date().toISOString(), attemptId = randomUUID();
         return await store.run(async () => {
           const state = await readState();
-          const outcome = submitAttempt(state.course, state.progress, graded.input, { id: attemptId, submittedAt });
+          const outcome = submitAttempt(withMasteryChallenges(state.course, state.progress, raw), state.progress, graded.input, { id: attemptId, submittedAt });
           let achievements = [];
           if (!outcome.result.replayed) {
             achievements = unlockAchievements(state.course, outcome.progress, graded.input, outcome.result, attemptId, submittedAt, graded.step);
@@ -492,7 +574,8 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
           }
           const pointer = outcome.progress.current;
           const nextLevel = state.course.levels.find(item => item.id === pointer.activityId);
-          const replacement = replacementVariant(outcome.progress, graded.input, graded.step);
+          const updatedStep = withMasteryChallenges(state.course, outcome.progress).levels.find(level => level.id === graded.level.id)?.content?.steps?.find(step => step.id === graded.step.id) || graded.step;
+          const replacement = replacementVariant(outcome.progress, graded.input, updatedStep);
           const reveal = graded.input.action === 'reveal'
             ? { variantId: graded.input.variantId, fullSolution: authoredFullSolution(graded.step, graded.variant) }
             : null;
@@ -513,6 +596,16 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
           const state = await readState();
           const input = { ...raw, passed: raw.passed === true, independent: raw.independent === true, viewedFullAnswer: raw.viewedFullAnswer === true, hintLevel: Number(raw.hintLevel || 0), performancePoints: Number(raw.performancePoints || 0) };
           const outcome = submitProjectCheckpoint(state.course, state.progress, input, { id: randomUUID(), submittedAt: new Date().toISOString() });
+          if (!outcome.result.replayed) await store.write('data/progress.json', outcome.progress);
+          return json(res, 200, outcome, outcome.progress);
+        });
+      }
+
+      if (pathname === '/api/play/project-concept-attempts' && method === 'POST') {
+        const raw = await readBody(req);
+        return await store.run(async () => {
+          const state = await readState();
+          const outcome = submitProjectConceptCheck(state.course, state.progress, raw, { id: randomUUID(), submittedAt: new Date().toISOString() });
           if (!outcome.result.replayed) await store.write('data/progress.json', outcome.progress);
           return json(res, 200, outcome, outcome.progress);
         });
@@ -599,7 +692,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const app = await startServer(options);
     console.log(`蛋仔岛大厅：${app.url}/learner.html`);
     console.log(`岛务管理处：${app.url}/admin.html`);
-    console.log(`乐园地图：${app.url}/plan.html`);
+    console.log(`段位地图：${app.url}/plan.html`);
     console.log('保存会写入 data/；Git 提交和推送仍由你决定。');
     if (options.host === '0.0.0.0' || options.host === '::') console.log('局域网已开启：可访问此服务的人拥有相同读写能力。');
     for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => app.close().then(() => process.exit(0)).catch(error => { console.error(error.message); process.exit(1); }));

@@ -1,14 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { access, cp, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, cp, mkdtemp, readFile, readdir, rename, rm, symlink, truncate, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { gradeLevel, startServer } from '../server.mjs';
+import { PROJECT_CODE_MAX_PACKAGE_BYTES } from '../lib/project-code-delivery.mjs';
 import { freshProgress, sanitizeCourse, submitAttempt } from '../shared/park-domain.mjs';
+import { withMasteryChallenges } from '../lib/mastery-challenges.mjs';
 
 const PROJECT = fileURLToPath(new URL('..', import.meta.url));
 const V3_CONTENT_VERSION = 3;
@@ -164,12 +167,64 @@ function levelAttempt(overrides = {}) {
   };
 }
 
+function progressAtGoose(course) {
+  let progress = freshProgress(course, 'learner-1');
+  let sequence = 0;
+  const submit = input => {
+    sequence += 1;
+    progress = submitAttempt(course, progress, input, {
+      id: `goose-seed-attempt-${sequence}`,
+      submittedAt: new Date(Date.UTC(2026, 9, 15, 0, sequence)).toISOString()
+    }).progress;
+  };
+
+  for (const rankId of ['quail', 'pigeon', 'chicken']) {
+    const rank = course.ranks.find(item => item.id === rankId);
+    const boss = course.levels.find(item => item.id === rank.promotion.bossActivityId);
+    for (const levelId of rank.activityIds.filter(item => item !== boss.id)) {
+      const level = course.levels.find(item => item.id === levelId);
+      for (const step of level.content.steps) {
+        submit({
+          requestId: `goose-seed-${sequence + 1}`,
+          levelId,
+          contentVersion: level.version,
+          stepId: step.id,
+          variantId: step.variants?.[0]?.id || '',
+          action: 'submit',
+          answer: 'fixture',
+          hintLevel: 0,
+          viewedFullAnswer: false,
+          passed: true,
+          independent: step.type === 'independent-variation'
+        });
+      }
+    }
+    for (const [index, checkpoint] of boss.content.checkpoints.entries()) {
+      submit({
+        requestId: `goose-seed-${sequence + 1}`,
+        levelId: boss.id,
+        contentVersion: boss.version,
+        stepId: checkpoint.id,
+        variantId: '',
+        action: 'submit',
+        answer: 'fixture',
+        hintLevel: 0,
+        viewedFullAnswer: false,
+        passed: true,
+        independent: index === boss.content.checkpoints.length - 1
+      });
+    }
+  }
+  assert.equal(progress.current.rankId, 'goose');
+  return progress;
+}
+
 test('大厅、关卡和岛务状态来自 schema V2 的同一份 V3 课程；岛屿图片以正确 MIME 静态提供', async t => {
   const { app } = await fixture(t);
 
   const home = expect(await request(app, '/api/play/home'), 200);
   assert.equal(home.body.course.schemaVersion, 2);
-  assert.equal(home.body.course.publishedRevision, 4);
+  assert.equal(home.body.course.publishedRevision, 5);
   assert.equal(home.body.course.ranks.length, 9);
   assert.equal(home.body.progress.revision, 0);
   assert.equal(home.body.summary.currentActivityId, 'quail-fountain-sequence');
@@ -206,6 +261,63 @@ test('大厅、关卡和岛务状态来自 schema V2 的同一份 V3 课程；�
   const head = expect(await request(app, '/assets/park/island-axis-hero.png', { method: 'HEAD' }), 200);
   assert.equal(head.buffer.length, 0);
   assert.equal(Number(head.headers['content-length']), image.buffer.length);
+});
+
+test('作品概念理解接口服务端判题、幂等留痕，并在管理端可见但不产生奖励', async t => {
+  const course = await checkedInCourse();
+  const seeded = progressAtGoose(course);
+  const { root, start } = await fixture(t, { start: false });
+  await writeFile(join(root, 'data/progress.json'), `${JSON.stringify(seeded, null, 2)}\n`, 'utf8');
+  const app = await start();
+
+  const project = course.projects.find(item => item.id === 'goose-food-street-project');
+  const chapter = project.chapters[0];
+  const check = chapter.conceptModule.checks[0];
+  const wrongOption = check.options.find(item => item.id !== check.correctOptionId);
+  const input = {
+    requestId: 'server-concept-wrong',
+    projectId: project.id,
+    contentVersion: project.version,
+    chapterId: chapter.id,
+    checkId: check.id,
+    selectedOptionId: wrongOption.id
+  };
+
+  const wrong = expect(await request(app, '/api/play/project-concept-attempts', { method: 'POST', data: input }), 200);
+  assert.equal(wrong.body.result.passed, false);
+  assert.equal(wrong.body.result.replayed, false);
+  assert.equal(wrong.body.feedback.explanation, check.explanation);
+  assert.equal(wrong.body.progress.conceptAttempts.length, 1);
+  assert.equal(wrong.body.progress.xp.total, seeded.xp.total);
+  assert.deepEqual(wrong.body.progress.projectArtifacts, seeded.projectArtifacts);
+  assert.deepEqual(wrong.body.progress.awardLedger, seeded.awardLedger);
+
+  const replay = expect(await request(app, '/api/play/project-concept-attempts', { method: 'POST', data: input }), 200);
+  assert.equal(replay.body.result.replayed, true);
+  assert.equal(replay.body.progress.revision, wrong.body.progress.revision);
+  assert.equal(replay.body.progress.conceptAttempts.length, 1);
+
+  const correct = expect(await request(app, '/api/play/project-concept-attempts', {
+    method: 'POST',
+    data: { ...input, requestId: 'server-concept-correct', selectedOptionId: check.correctOptionId }
+  }), 200);
+  assert.equal(correct.body.result.passed, true);
+  assert.equal(correct.body.progress.conceptAttempts.length, 2);
+  assert.equal(correct.body.progress.xp.total, seeded.xp.total);
+  assert.deepEqual(correct.body.progress.projectArtifacts, seeded.projectArtifacts);
+  assert.deepEqual(correct.body.progress.awardLedger, seeded.awardLedger);
+
+  const invalid = expectError(await request(app, '/api/play/project-concept-attempts', {
+    method: 'POST',
+    data: { ...input, requestId: 'server-concept-invalid', selectedOptionId: 'missing-option' }
+  }), 400, 'concept_option_not_found');
+  assert.match(invalid.body.error, /选项不存在/);
+
+  const restored = expect(await request(app, `/api/play/levels/${project.id}`), 200);
+  assert.equal(restored.body.progress.conceptAttempts.length, 2);
+  const admin = expect(await request(app, '/api/admin/state'), 200);
+  assert.equal(admin.body.progress.conceptAttempts.length, 2);
+  assert.deepEqual(admin.body.progress.conceptAttempts.map(item => item.result.passed), [false, true]);
 });
 
 test('前三段位的学习接口不暴露建筑或道具语汇，后六个段位作品仍保留地点上下文', async t => {
@@ -795,7 +907,139 @@ test('真实 C 输出参与判定；requestId 幂等且重复请求或新请求�
   assert.equal(wrong.body.progress.attempts.at(-1).payload.passed, false);
 });
 
-test('查看独立变式完整答案后由服务端分配未曝光变式，同一变式不能完成关卡', { skip: cRuntimeSkip }, async t => {
+test('原题答案耗尽后可反复补题，三章独立补星解锁 Boss 且重放不刷星', { skip: cRuntimeSkip }, async t => {
+  const { app, root } = await fixture(t);
+  const course = await checkedInCourse();
+  let progress = freshProgress(course, 'learner-1');
+  let sequence = 0;
+  for (const levelId of ['quail-fountain-sequence', 'quail-piano-output', 'quail-opening-broadcast']) {
+    const level = course.levels.find(level => level.id === levelId);
+    for (const step of level.content.steps) {
+      const variants = step.variants || [null];
+      for (const [index, variant] of variants.entries()) {
+        sequence++;
+        progress = submitAttempt(course, progress, {
+          requestId: `mastery-seed-${sequence}`, levelId, contentVersion: level.version, stepId: step.id,
+          variantId: variant?.id || '', action: index ? 'reveal' : 'submit', answer: 'fixture',
+          hintLevel: variant ? 3 : 0, viewedFullAnswer: Boolean(variant), passed: !index, independent: false
+        }, { id: `mastery-seed-attempt-${sequence}`, submittedAt: new Date(Date.UTC(2026, 9, 14, 3, sequence)).toISOString() }).progress;
+      }
+    }
+  }
+  await writeFile(join(root, 'data/progress.json'), JSON.stringify(progress));
+  const canonical = JSON.stringify(course);
+  const inputId = 'quail-fountain-sequence';
+  const revealed = expect(await request(app, '/api/play/attempts', { method: 'POST', data: levelAttempt({
+    requestId: 'mastery-reveal-1', levelId: inputId, stepId: 'independent-variation', variantId: 'mastery-1',
+    action: 'reveal', answer: '', hintLevel: 3, viewedFullAnswer: true
+  }) }), 200);
+  assert.equal(revealed.body.next.replacementVariant.id, 'mastery-2');
+  assert.equal(Object.hasOwn(revealed.body.next.replacementVariant, 'fullSolution'), false);
+  const revealReplay = expect(await request(app, '/api/play/attempts', { method: 'POST', data: levelAttempt({
+    requestId: 'mastery-reveal-1', levelId: inputId, stepId: 'independent-variation', variantId: 'mastery-1',
+    action: 'reveal', answer: '', hintLevel: 3, viewedFullAnswer: true
+  }) }), 200);
+  assert.equal(revealReplay.body.result.replayed, true);
+  assert.equal(revealReplay.body.reveal.fullSolution, revealed.body.reveal.fullSolution);
+  for (const [index, levelId] of ['quail-piano-output', 'quail-opening-broadcast', inputId].entries()) {
+    const activity = expect(await request(app, `/api/play/levels/${levelId}`), 200);
+    const step = activity.body.level.steps.find(step => step.type === 'independent-variation');
+    const variant = step.variants.find(variant => variant.id.startsWith('mastery-'));
+    assert.ok(variant);
+    assert.equal(Object.hasOwn(variant, 'fullSolution'), false);
+    const dynamic = withMasteryChallenges(course, activity.body.progress);
+    assert.doesNotThrow(() => sanitizeCourse(dynamic));
+    const authored = dynamic.levels.find(level => level.id === levelId).content.steps.find(step => step.id === 'independent-variation').variants.find(item => item.id === variant.id);
+    const requestPayload = levelAttempt({ requestId: `mastery-clear-${index}`, levelId, stepId: step.id,
+      variantId: variant.id, action: 'submit', answer: authored.fullSolution, hintLevel: 0, viewedFullAnswer: false });
+    const clear = expect(await request(app, '/api/play/attempts', { method: 'POST', data: requestPayload }), 200);
+    assert.equal(clear.body.feedback.passed, true, clear.text);
+    assert.equal(clear.body.result.starAwarded, true);
+    assert.equal(clear.body.result.xpAwarded, 0, '补星不重复发完成经验');
+    assert.equal(clear.body.progress.rankStates[0].earnedStars, index + 1);
+    const replay = expect(await request(app, '/api/play/attempts', { method: 'POST', data: requestPayload }), 200);
+    assert.equal(replay.body.result.replayed, true);
+    assert.equal(replay.body.progress.attempts.length, clear.body.progress.attempts.length);
+    if (index === 2) {
+      assert.equal(clear.body.next.activityId, 'quail-opening-boss', '最后一颗星来自回访的第一章，也应推进到 Boss');
+      assert.equal(clear.body.result.bossUnlocked, true);
+    } else assert.equal(clear.body.result.bossUnlocked, false);
+  }
+  assert.equal(JSON.stringify(course), canonical, '补题不修改正式课程版本或原变式');
+  const home = expect(await request(app, '/api/play/home'), 200);
+  assert.equal(home.body.progress.current.activityId, 'quail-opening-boss');
+  assert.equal(home.body.progress.awardLedger.filter(item => item.kind === 'star').length, 3);
+});
+
+test('段位末章完成但星星不足时，刷新接口保留已完成状态，不伪造星星或 Boss 解锁', async t => {
+  const { app, root } = await fixture(t);
+  const course = await checkedInCourse();
+  let progress = freshProgress(course, 'learner-1');
+  let sequence = 0;
+  for (const levelId of ['quail-fountain-sequence', 'quail-piano-output', 'quail-opening-broadcast']) {
+    const level = course.levels.find(level => level.id === levelId);
+    for (const step of level.content.steps) {
+      sequence++;
+      const variantId = step.variants?.[0]?.id || '';
+      progress = submitAttempt(course, progress, {
+        requestId: `end-rank-seed-${sequence}`, levelId, contentVersion: level.version, stepId: step.id,
+        variantId, action: 'submit', answer: 'fixture', hintLevel: variantId ? 3 : 0,
+        viewedFullAnswer: Boolean(variantId), passed: true, independent: false
+      }, { id: `end-rank-attempt-${sequence}`, submittedAt: new Date(Date.UTC(2026, 9, 14, 2, sequence)).toISOString() }).progress;
+    }
+  }
+  await writeFile(join(root, 'data/progress.json'), JSON.stringify(progress));
+  const activity = expect(await request(app, '/api/play/levels/quail-opening-broadcast'), 200);
+  assert.equal(activity.body.activityCompleted, true);
+  assert.equal(activity.body.completedStepIds.includes('independent-variation'), true);
+  assert.equal(activity.body.progress.rankStates[0].earnedStars, 0);
+  assert.equal(activity.body.progress.rankStates[0].bossStatus, 'not-started');
+  const restored = expect(await request(app, '/api/play/levels/quail-opening-broadcast'), 200);
+  assert.equal(restored.body.activityCompleted, true);
+  assert.equal(restored.body.progress.attempts.length, progress.attempts.length);
+});
+
+test('引导修改查看思路后仍按真实代码评分，错误循环失败而修复后进入独立变式', { skip: cRuntimeSkip }, async t => {
+  const { app, root } = await fixture(t);
+  const course = await checkedInCourse();
+  let progress = freshProgress(course, 'learner-1');
+  let sequence = 0;
+  for (const [levelId, limit] of [['quail-fountain-sequence', 5], ['quail-piano-output', 3]]) {
+    const level = course.levels.find(level => level.id === levelId);
+    for (const step of level.content.steps.slice(0, limit)) {
+      sequence++;
+      progress = submitAttempt(course, progress, {
+        requestId: `guided-seed-${sequence}`, levelId, contentVersion: level.version, stepId: step.id,
+        variantId: step.variants?.[0]?.id || '', action: 'submit', answer: 'fixture prerequisite',
+        hintLevel: 0, viewedFullAnswer: false, passed: true, independent: step.type === 'independent-variation'
+      }, { id: `guided-seed-attempt-${sequence}`, submittedAt: new Date(Date.UTC(2026, 9, 14, 0, sequence)).toISOString() }).progress;
+    }
+  }
+  await writeFile(join(root, 'data/progress.json'), JSON.stringify(progress));
+  const level = course.levels.find(level => level.id === 'quail-piano-output');
+  const step = level.content.steps.find(step => step.id === 'short-edit');
+  const payload = levelAttempt({
+    requestId: 'guided-source-after-solution', levelId: level.id, stepId: step.id, variantId: '',
+    answer: step.starterFiles['main.c'], hintLevel: 3, viewedFullAnswer: true
+  });
+  const broken = expect(await request(app, '/api/play/attempts', { method: 'POST', data: payload }), 200);
+  assert.equal(broken.body.feedback.passed, false);
+  assert.equal(broken.body.progress.current.stepId, step.id);
+  const fixedPayload = { ...payload, requestId: 'guided-fixed-after-solution', answer: payload.answer.replace('i <= count', 'i < count') };
+  const fixed = expect(await request(app, '/api/play/attempts', { method: 'POST', data: fixedPayload }), 200);
+  assert.equal(fixed.body.feedback.passed, true);
+  assert.equal(fixed.body.progress.attempts.at(-1).payload.viewedFullAnswer, true);
+  assert.equal(fixed.body.progress.attempts.at(-1).payload.variantId, '');
+  assert.equal(fixed.body.next.stepId, 'independent-variation');
+  assert.equal(fixed.body.result.starAwarded, false);
+  const replay = expect(await request(app, '/api/play/attempts', { method: 'POST', data: fixedPayload }), 200);
+  assert.equal(replay.body.result.replayed, true);
+  assert.equal(replay.body.progress.attempts.length, fixed.body.progress.attempts.length);
+  const restored = expect(await request(app, `/api/play/levels/${level.id}`), 200);
+  assert.equal(restored.body.progress.current.stepId, 'independent-variation');
+});
+
+test('看过答案的代码通过后可以继续下一章，独立星星仍须未曝光变式', { skip: cRuntimeSkip }, async t => {
   const { app } = await fixture(t);
   const submit = overrides => request(app, '/api/play/attempts', { method: 'POST', data: levelAttempt(overrides) });
   const course = await checkedInCourse();
@@ -838,8 +1082,10 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
     requestId: 'replacement-same', stepId: 'independent-variation', action: 'submit',
     variantId: exposedVariant.id, answer: exposedSource
   }), 200);
-  assert.equal(sameVariant.body.result.levelCompleted, false);
+  assert.equal(sameVariant.body.result.levelCompleted, true);
   assert.equal(sameVariant.body.result.starAwarded, false);
+  assert.equal(sameVariant.body.next.activityId, 'quail-piano-output');
+  assert.equal(sameVariant.body.next.stepId, 'predict');
   assert.equal(sameVariant.body.next.replacementVariant.id, replacementVariant.id);
   assert.equal(Object.hasOwn(sameVariant.body.next.replacementVariant, 'fullSolution'), false);
 
@@ -848,9 +1094,24 @@ test('查看独立变式完整答案后由服务端分配未曝光变式，同�
     requestId: 'replacement-fresh', stepId: 'independent-variation', action: 'submit',
     variantId: replacementVariant.id, answer: freshSource
   }), 200);
-  assert.equal(recovered.body.result.levelCompleted, true);
+  assert.equal(recovered.body.result.levelCompleted, false);
   assert.equal(recovered.body.result.starAwarded, true);
+  assert.equal(recovered.body.result.xpAwarded, 0);
+  assert.equal(recovered.body.next.activityId, 'quail-piano-output');
   assert.equal(recovered.body.progress.awardLedger.filter(item => item.kind === 'star').length, 1);
+  const lastRevealRequest = {
+    requestId: 'replacement-last-reveal', stepId: 'independent-variation', action: 'reveal',
+    variantId: replacementVariant.id, answer: '', hintLevel: 3, viewedFullAnswer: true
+  };
+  const lastReveal = expect(await submit(lastRevealRequest), 200);
+  assert.equal(lastReveal.body.reveal.fullSolution, replacementVariant.fullSolution);
+  assert.equal(lastReveal.body.next.replacementVariant, null, '已获得独立星星后不再自动生成补星题');
+  assert.equal(lastReveal.body.result.starAwarded, false);
+  assert.equal(lastReveal.body.progress.awardLedger.filter(item => item.kind === 'star').length, 1, '已有星星不受查看答案影响');
+  const lastReplay = expect(await submit(lastRevealRequest), 200);
+  assert.equal(lastReplay.body.result.replayed, true);
+  assert.equal(lastReplay.body.reveal.fullSolution, replacementVariant.fullSolution);
+  assert.equal(lastReplay.body.progress.attempts.length, lastReveal.body.progress.attempts.length);
 });
 
 test('休息周保存后不产生目标或补课债务，旧 revision 的不同修改被拒绝', async t => {
@@ -927,6 +1188,10 @@ test('同一课程 ETag 的并发保存只允许一个成功，并且发布版�
   assert.equal(after.body.publishedRevision, revision + 1);
   assert.notEqual(after.etag, before.etag);
 });
+
+
+
+
 
 test('课程多文件发布在提交前失败时保持整套旧版本可读', async t => {
   const failure = new Error('injected course publish failure');

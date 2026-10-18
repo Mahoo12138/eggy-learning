@@ -86,6 +86,80 @@ function projectFilePaths(value, name) {
   return paths;
 }
 
+function projectCodePackagePath(value, projectId) {
+  text(value, '代码包文件', true, 300);
+  if (value !== `project-code/${projectId}.json`) fail('代码包文件必须位于 data/project-code/ 且与作品编号同名');
+  return value;
+}
+
+function sanitizeConceptModule(raw) {
+  fields(raw, ['title', 'learningGoal', 'phenomenon', 'mentalModel', 'terms', 'workedExample', 'misconceptions', 'checks', 'bridgeToCode'], '章节概念理解');
+  const module = clone(raw);
+  text(module.title, '概念理解标题', true);
+  text(module.learningGoal, '概念理解目标', true);
+
+  fields(module.phenomenon, ['title', 'observation', 'question'], '概念现象');
+  text(module.phenomenon.title, '概念现象标题', true);
+  text(module.phenomenon.observation, '概念现象描述', true);
+  text(module.phenomenon.question, '概念观察问题', true);
+
+  fields(module.mentalModel, ['summary', 'flow'], '概念心智模型');
+  text(module.mentalModel.summary, '概念心智模型说明', true);
+  const flow = list(module.mentalModel.flow, '概念流转图', 8);
+  if (flow.length < 2) fail('概念流转图至少需要 2 个节点');
+  unique(flow, item => {
+    fields(item, ['id', 'title', 'explanation'], '概念流转节点');
+    text(item.title, '概念流转节点标题', true);
+    text(item.explanation, '概念流转节点说明', true);
+    return id(item.id, '概念流转节点编号');
+  }, '概念流转节点编号');
+
+  const terms = list(module.terms, '概念术语', 12);
+  if (terms.length < 2) fail('章节概念理解至少需要 2 个术语');
+  unique(terms, item => {
+    fields(item, ['term', 'plainMeaning', 'codeMapping'], '概念术语');
+    text(item.term, '术语名称', true);
+    text(item.plainMeaning, '术语白话解释', true);
+    text(item.codeMapping, '术语代码映射', true);
+    return item.term;
+  }, '术语名称');
+
+  fields(module.workedExample, ['title', 'steps', 'takeaway'], '概念例子');
+  text(module.workedExample.title, '概念例子标题', true);
+  const workedSteps = strings(module.workedExample.steps, '概念例子步骤', 8);
+  if (workedSteps.length < 2) fail('概念例子至少需要 2 个步骤');
+  text(module.workedExample.takeaway, '概念例子结论', true);
+
+  const misconceptions = list(module.misconceptions, '概念常见误解', 8);
+  if (!misconceptions.length) fail('章节概念理解至少需要 1 个常见误解');
+  misconceptions.forEach(item => {
+    fields(item, ['claim', 'correction'], '概念常见误解');
+    text(item.claim, '错误理解', true);
+    text(item.correction, '误解纠正', true);
+  });
+
+  const checks = list(module.checks, '概念理解题', 4);
+  if (checks.length < 2) fail('章节概念理解至少需要 2 道理解题');
+  unique(checks, item => {
+    fields(item, ['id', 'question', 'options', 'correctOptionId', 'explanation'], '概念理解题');
+    const checkId = id(item.id, '概念理解题编号');
+    text(item.question, '概念理解题题目', true);
+    const options = list(item.options, '概念理解题选项', 5);
+    if (options.length < 2) fail('概念理解题至少需要 2 个选项');
+    unique(options, option => {
+      fields(option, ['id', 'text'], '概念理解题选项');
+      text(option.text, '概念理解题选项文本', true);
+      return id(option.id, '概念理解题选项编号');
+    }, '概念理解题选项编号');
+    id(item.correctOptionId, '概念理解题正确选项编号');
+    if (!options.some(option => option.id === item.correctOptionId)) fail(`概念理解题 ${checkId} 的正确选项不存在`);
+    text(item.explanation, '概念理解题解释', true);
+    return checkId;
+  }, '概念理解题编号');
+  text(module.bridgeToCode, '概念到代码的桥接', true);
+  return module;
+}
+
 function validateProgramRequirements(value, name, runtimeId) {
   object(value, name);
   const allowed = ['requiredIdentifiers', 'commands', 'commandSequence', 'commandEvidence', 'cwd', 'pathForms', 'files', 'absentFiles', 'absentProcesses', 'presentProcesses'];
@@ -198,7 +272,7 @@ function validateGradingRule(value, name, runtimeId = '') {
   if (hasRequirements) validateProgramRequirements(value.requirements, `${name}实现要求`, runtimeId);
 }
 
-function sanitizeLessonContent(raw) {
+export function sanitizeLessonContent(raw) {
   const lessonFields = ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'subrankId', 'sequence', 'title', 'estimatedMinutes', 'prerequisiteLevelIds', 'scene', 'objectives', 'teachingLoop', 'steps', 'rewards', 'aiContext'];
   fields(raw, lessonFields, '在线关卡详情');
   if (raw.schemaVersion !== 2 || raw.activityType !== 'interactive-lesson') fail('在线关卡详情版本或类型无效');
@@ -251,7 +325,7 @@ function sanitizeLessonContent(raw) {
   return content;
 }
 
-function sanitizeBossContent(raw) {
+export function sanitizeBossContent(raw) {
   fields(raw, ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'sequence', 'title', 'estimatedMinutes', 'prerequisiteLevelIds', 'scene', 'resumePolicy', 'checkpoints', 'completionRule', 'rewards', 'aiContext'], 'Boss 关卡详情');
   if (raw.schemaVersion !== 2 || raw.activityType !== 'rank-boss') fail('Boss 关卡详情版本或类型无效');
   const content = clone(raw);
@@ -283,7 +357,7 @@ function sanitizeBossContent(raw) {
 
 function sanitizeProjectChapter(raw) {
   const required = ['id', 'title', 'goal', 'concepts', 'guidedBuild', 'hintLadder', 'checkpoint', 'laterReencounter'];
-  const optional = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'guidedSteps', 'runbook'];
+  const optional = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'conceptModule', 'guidedSteps', 'runbook', 'snapshotStateId'];
   object(raw, '作品章节');
   const keys = Object.keys(raw);
   if (required.some(field => !own(raw, field)) || keys.some(field => !required.includes(field) && !optional.includes(field))) {
@@ -298,13 +372,24 @@ function sanitizeProjectChapter(raw) {
   if (own(chapter, 'phase')) text(chapter.phase, '章节阶段', true);
   if (own(chapter, 'estimatedSessions')) integer(chapter.estimatedSessions, '章节预计课时', 1, 100);
   if (own(chapter, 'milestone')) text(chapter.milestone, '章节里程碑', true);
+  if (own(chapter, 'snapshotStateId')) id(chapter.snapshotStateId, '章节代码快照编号');
   if (own(chapter, 'filesTouched')) chapter.filesTouched = projectFilePaths(chapter.filesTouched, '章节涉及文件');
+  if (own(chapter, 'conceptModule')) {
+    chapter.conceptModule = sanitizeConceptModule(chapter.conceptModule);
+    const explained = new Set(chapter.conceptModule.terms.map(item => item.term));
+    const missing = chapter.concepts.filter(concept => !explained.has(concept));
+    if (missing.length) fail(`章节 ${chapter.id} 的概念缺少白话解释：${missing.join('、')}`);
+  }
   if (own(chapter, 'guidedSteps')) {
     const guidedSteps = list(chapter.guidedSteps, '章节引导步骤', 100);
     if (!guidedSteps.length) fail('章节引导步骤不能为空');
     unique(guidedSteps, step => {
-      fields(step, ['id', 'title', 'targetFiles', 'instruction', 'verify'], '章节引导步骤');
+      const required = ['id', 'title', 'targetFiles', 'instruction', 'verify'];
+      const optional = ['codeStepId'];
+      object(step, '章节引导步骤');
+      if (required.some(field => !own(step, field)) || Object.keys(step).some(field => !required.includes(field) && !optional.includes(field))) fail('章节引导步骤字段缺失或包含未知字段');
       const stepId = id(step.id, '引导步骤编号');
+      if (own(step, 'codeStepId')) id(step.codeStepId, '代码交付步骤编号');
       text(step.title, '引导步骤标题', true);
       step.targetFiles = projectFilePaths(step.targetFiles, '引导步骤目标文件');
       text(step.instruction, '引导步骤说明', true);
@@ -324,9 +409,9 @@ function sanitizeProjectChapter(raw) {
   return chapter;
 }
 
-function sanitizeProject(raw) {
+export function sanitizeProject(raw) {
   const required = ['schemaVersion', 'id', 'version', 'activityType', 'rankId', 'title', 'technologyTheme', 'languages', 'locationIds', 'propIds', 'estimatedSessions', 'prerequisiteActivityIds', 'story', 'oneProjectRule', 'artifact', 'coreContract', 'chapterTeachingLoop', 'chapters', 'boss', 'rewards', 'aiContext', 'file'];
-  const optional = ['guidancePolicy', 'environment'];
+  const optional = ['guidancePolicy', 'environment', 'codeDelivery'];
   object(raw, '段位作品');
   const keys = Object.keys(raw);
   if (required.some(field => !own(raw, field)) || keys.some(field => !required.includes(field) && !optional.includes(field))) fail('段位作品字段缺失或包含未知字段');
@@ -348,14 +433,28 @@ function sanitizeProject(raw) {
   if (own(project.artifact, 'hardwareProfile')) { fields(project.artifact.hardwareProfile, ['strategy', 'requiredCapabilities', 'debugEvidence'], '硬件配置'); text(project.artifact.hardwareProfile.strategy, '硬件配置策略', true); strings(project.artifact.hardwareProfile.requiredCapabilities, '硬件必需能力'); strings(project.artifact.hardwareProfile.debugEvidence, '硬件调试证据'); }
   if (own(project.artifact, 'learnerMustName')) bool(project.artifact.learnerMustName, '学习者命名要求');
   if (own(project, 'guidancePolicy')) {
-    fields(project.guidancePolicy, ['mode', 'guidedLessonsPerChapter', 'independentCheckpointPerChapter', 'cumulativeArtifact', 'chapterSnapshotRequired', 'fullSolutionScope', 'learnerFreedomBoundary'], '作品引导策略');
+    const required = ['mode', 'conceptLessonsPerChapter', 'guidedLessonsPerChapter', 'independentCheckpointPerChapter', 'cumulativeArtifact', 'chapterSnapshotRequired', 'fullSolutionScope', 'learnerFreedomBoundary'];
+    const optional = ['codeDeliveryContractVersion'];
+    object(project.guidancePolicy, '作品引导策略');
+    if (required.some(field => !own(project.guidancePolicy, field)) || Object.keys(project.guidancePolicy).some(field => !required.includes(field) && !optional.includes(field))) fail('作品引导策略字段缺失或包含未知字段');
     text(project.guidancePolicy.mode, '作品引导模式', true);
+    integer(project.guidancePolicy.conceptLessonsPerChapter, '每章概念理解课数', 1, 10);
     integer(project.guidancePolicy.guidedLessonsPerChapter, '每章引导课数', 1, 100);
     bool(project.guidancePolicy.independentCheckpointPerChapter, '每章独立检查点');
     bool(project.guidancePolicy.cumulativeArtifact, '累积作品要求');
     bool(project.guidancePolicy.chapterSnapshotRequired, '章节快照要求');
     text(project.guidancePolicy.fullSolutionScope, '完整解法范围', true);
     text(project.guidancePolicy.learnerFreedomBoundary, '学习者自主边界', true);
+    if (own(project.guidancePolicy, 'codeDeliveryContractVersion') && project.guidancePolicy.codeDeliveryContractVersion !== 1) fail('代码交付合同版本无效');
+  }
+  if (own(project, 'codeDelivery')) {
+    fields(project.codeDelivery, ['schemaVersion', 'packageFile', 'packageSha256', 'baselineStateId', 'finalStateId'], '作品代码交付');
+    if (project.codeDelivery.schemaVersion !== 1) fail('作品代码交付版本无效');
+    projectCodePackagePath(project.codeDelivery.packageFile, project.id);
+    if (typeof project.codeDelivery.packageSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(project.codeDelivery.packageSha256)) fail('作品代码包摘要须为小写 SHA-256');
+    id(project.codeDelivery.baselineStateId, '代码包起始快照编号');
+    id(project.codeDelivery.finalStateId, '代码包最终快照编号');
+    if (project.codeDelivery.baselineStateId === project.codeDelivery.finalStateId) fail('代码包起始与最终快照不能相同');
   }
   if (own(project, 'environment')) {
     fields(project.environment, ['platform', 'languageStandard', 'toolchain', 'buildSystem', 'outputBackend', 'inputBackend', 'requirements', 'supportedHosts'], '作品开发环境');
@@ -376,16 +475,42 @@ function sanitizeProject(raw) {
     if (!policy.independentCheckpointPerChapter || !policy.cumulativeArtifact || !policy.chapterSnapshotRequired) {
       fail('完整引导作品必须逐章独立检查、累积同一作品并保留章节快照');
     }
-    const richFields = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'guidedSteps', 'runbook'];
+    const richFields = ['phase', 'estimatedSessions', 'milestone', 'filesTouched', 'conceptModule', 'guidedSteps', 'runbook'];
     for (const chapter of chapters) {
       if (richFields.some(field => !own(chapter, field))) fail(`完整引导章节 ${chapter.id} 缺少代码教学字段`);
       if (chapter.guidedSteps.length !== policy.guidedLessonsPerChapter) fail(`完整引导章节 ${chapter.id} 的引导步骤数与课程策略不一致`);
-      if (chapter.estimatedSessions < policy.guidedLessonsPerChapter + 1) fail(`完整引导章节 ${chapter.id} 未给独立检查预留课时`);
+      if (chapter.estimatedSessions < policy.conceptLessonsPerChapter + policy.guidedLessonsPerChapter + 1) fail(`完整引导章节 ${chapter.id} 未给概念理解和独立检查预留课时`);
     }
     const chapterSessions = chapters.reduce((sum, chapter) => sum + chapter.estimatedSessions, 0);
     if (project.estimatedSessions.minimum !== chapterSessions || project.estimatedSessions.typical < chapterSessions) {
       fail('完整引导作品的预计场次必须覆盖全部章节场次');
     }
+  }
+  const codeContractVersion = project.guidancePolicy?.codeDeliveryContractVersion;
+  const hasCodeDeliveryReferences = chapters.some(chapter =>
+    own(chapter, 'snapshotStateId')
+    || (chapter.guidedSteps || []).some(step => own(step, 'codeStepId'))
+  );
+  if (hasCodeDeliveryReferences && codeContractVersion !== 1) {
+    fail('章节包含代码快照或代码步骤引用时必须显式启用代码交付合同版本');
+  }
+  if (codeContractVersion === 1) {
+    if (!project.codeDelivery) fail('启用代码交付合同的作品必须提供外置代码包');
+    if (project.guidancePolicy.mode !== 'guided-complete-build') fail('代码交付合同只适用于完整引导作品');
+    const snapshotIds = [];
+    const codeStepIds = [];
+    for (const chapter of chapters) {
+      if (!chapter.snapshotStateId) fail(`代码交付章节 ${chapter.id} 缺少章末完整快照编号`);
+      snapshotIds.push(chapter.snapshotStateId);
+      for (const step of chapter.guidedSteps || []) {
+        if (!step.codeStepId) fail(`代码引导步骤 ${step.id} 缺少代码包步骤编号`);
+        codeStepIds.push(step.codeStepId);
+      }
+    }
+    unique(snapshotIds.map(value => ({ value })), 'value', '章节代码快照编号');
+    unique(codeStepIds.map(value => ({ value })), 'value', '代码交付步骤编号');
+  } else if (project.codeDelivery) {
+    fail('作品提供代码包时必须显式启用代码交付合同版本');
   }
   object(project.boss, '作品 Boss');
   const bossRequired = ['id', 'title', 'story', 'phases', 'faultScenarios', 'resumableByPhase', 'managerApprovalRequired'];
@@ -444,7 +569,7 @@ export function sanitizeCourse(value, levelDocs) {
     if (rank.promotion.metric === 'capstone') fields(rank.promotion, ['metric', 'bossActivityId', 'promotesTo'], '最终晋段规则');
     return rank;
   });
-  if (course.ranks.length !== 9) fail('课程必须保留九阶蛋位'); unique(course.ranks, 'id', '段位编号'); course.ranks.sort((a, b) => a.order - b.order);
+  if (course.ranks.length !== 9) fail('课程必须保留九个段位'); unique(course.ranks, 'id', '段位编号'); course.ranks.sort((a, b) => a.order - b.order);
   for (let index = 0; index < course.ranks.length; index++) {
     const rank = course.ranks[index];
     if (rank.order !== index + 1 || rank.title !== RANK_NAMES[index]) fail(`第 ${index + 1} 阶须为${RANK_NAMES[index]}`);
@@ -549,6 +674,17 @@ function normalizeProjectInput(value) {
   if (input.viewedFullAnswer && input.independent) fail('查看完整答案的同一次提交不能标为独立完成');
   return input;
 }
+function normalizeProjectConceptInput(value) {
+  fields(value, ['requestId', 'projectId', 'contentVersion', 'chapterId', 'checkId', 'selectedOptionId'], '作品概念理解提交');
+  return {
+    requestId: id(value.requestId, '提交编号'),
+    projectId: id(value.projectId, '作品编号'),
+    contentVersion: integer(value.contentVersion, '作品版本', 1),
+    chapterId: id(value.chapterId, '作品章节编号'),
+    checkId: id(value.checkId, '概念理解题编号'),
+    selectedOptionId: id(value.selectedOptionId, '概念理解题选项编号')
+  };
+}
 function normalizeResult(value) {
   fields(value, ['xpAwarded', 'starAwarded', 'levelCompleted', 'checkpointCompleted', 'bossUnlocked', 'rankPromoted', 'tokenAwarded', 'currentRankId', 'courseCompleted'], '提交结果');
   return { xpAwarded: integer(value.xpAwarded, '获得经验', 0), starAwarded: bool(value.starAwarded, '获得星星'), levelCompleted: bool(value.levelCompleted, '完成活动'), checkpointCompleted: bool(value.checkpointCompleted, '完成检查点'), bossUnlocked: bool(value.bossUnlocked, 'Boss 解锁'), rankPromoted: optionalId(value.rankPromoted, '晋升段位'), tokenAwarded: optionalId(value.tokenAwarded, '奖励编号'), currentRankId: id(value.currentRankId, '当前段位'), courseCompleted: bool(value.courseCompleted, '课程完成状态') };
@@ -564,7 +700,9 @@ function award(value) {
 /** Validate persisted rich progress. */
 export function sanitizeProgress(rawCourse, value) {
   const course = sanitizeCourse(rawCourse);
-  fields(value, ['schemaVersion', 'courseId', 'courseRevision', 'revision', 'learner', 'preferences', 'current', 'xp', 'rankStates', 'sessions', 'attempts', 'projectArtifacts', 'awardLedger', 'achievementWall', 'derivedStatePolicy', 'updatedAt'], '学习进度');
+  const required = ['schemaVersion', 'courseId', 'courseRevision', 'revision', 'learner', 'preferences', 'current', 'xp', 'rankStates', 'sessions', 'attempts', 'projectArtifacts', 'awardLedger', 'achievementWall', 'derivedStatePolicy', 'updatedAt'];
+  object(value, '学习进度');
+  if (required.some(field => !own(value, field)) || Object.keys(value).some(field => !required.includes(field) && field !== 'conceptAttempts')) fail('学习进度字段缺失或包含未知字段');
   if (value.schemaVersion !== 2 || value.courseId !== course.courseId) fail('学习进度版本或课程编号不匹配');
   const progress = clone(value);
   progress.courseRevision = integer(progress.courseRevision, '课程版本', 1, course.publishedRevision); progress.revision = integer(progress.revision, '进度版本', 0);
@@ -573,10 +711,19 @@ export function sanitizeProgress(rawCourse, value) {
   fields(progress.current, ['rankId', 'subrankId', 'activityId', 'stepId'], '当前位置'); id(progress.current.rankId, '当前段位'); progress.current.subrankId = optionalId(progress.current.subrankId, '当前小段位'); progress.current.activityId = optionalId(progress.current.activityId, '当前活动'); progress.current.stepId = optionalId(progress.current.stepId, '当前步骤');
   fields(progress.xp, ['total', 'level', 'currentLevelXp', 'nextLevelXp'], '经验状态'); integer(progress.xp.total, '总经验', 0); integer(progress.xp.level, '经验等级', 1); integer(progress.xp.currentLevelXp, '当前等级经验', 0, 99); integer(progress.xp.nextLevelXp, '升级所需经验', 1, 100);
   progress.rankStates = list(progress.rankStates, '段位状态', 9).map(raw => { fields(raw, ['rankId', 'status', 'earnedStars', 'performancePoints', 'bossStatus', 'promotedAt'], '段位状态'); return { rankId: id(raw.rankId, '状态段位'), status: oneOf(raw.status, ['locked', 'available', 'completed'], '段位状态'), earnedStars: integer(raw.earnedStars, '段位星星', 0), performancePoints: integer(raw.performancePoints, '表现分', 0, 100), bossStatus: oneOf(raw.bossStatus, ['not-started', 'unlocked', 'in-progress', 'completed'], 'Boss 状态'), promotedAt: timestamp(raw.promotedAt, '晋段时间', true) }; });
-  unique(progress.rankStates, 'rankId', '段位状态'); if (progress.rankStates.length !== course.ranks.length || course.ranks.some(rank => !progress.rankStates.some(state => state.rankId === rank.id))) fail('段位状态必须覆盖九阶蛋位');
+  unique(progress.rankStates, 'rankId', '段位状态'); if (progress.rankStates.length !== course.ranks.length || course.ranks.some(rank => !progress.rankStates.some(state => state.rankId === rank.id))) fail('段位状态必须覆盖九个段位');
   progress.sessions = list(progress.sessions, '游玩会话', 100_000).map(raw => { fields(raw, ['id', 'activityId', 'startedAt', 'endedAt', 'minutes'], '游玩会话'); return { id: id(raw.id, '会话编号'), activityId: id(raw.activityId, '会话活动'), startedAt: timestamp(raw.startedAt, '开始时间'), endedAt: timestamp(raw.endedAt, '结束时间'), minutes: integer(raw.minutes, '游玩分钟', 0, 1440) }; }); unique(progress.sessions, 'id', '会话编号');
   progress.attempts = list(progress.attempts, '尝试记录', 100_000).map(raw => { fields(raw, ['id', 'kind', 'submittedAt', 'payload', 'result'], '尝试记录'); const kind = oneOf(raw.kind, ['level', 'project'], '尝试类型'); return { id: id(raw.id, '尝试编号'), kind, submittedAt: timestamp(raw.submittedAt, '尝试时间'), payload: kind === 'level' ? normalizeLevelInput(raw.payload) : normalizeProjectInput(raw.payload), result: normalizeResult(raw.result) }; });
   unique(progress.attempts, 'id', '尝试编号'); unique(progress.attempts, attempt => attempt.payload.requestId, '提交编号');
+  progress.conceptAttempts = list(progress.conceptAttempts || [], '概念理解尝试', 100_000).map(raw => {
+    fields(raw, ['id', 'submittedAt', 'payload', 'result'], '概念理解尝试');
+    fields(raw.result, ['passed'], '概念理解结果');
+    return { id: id(raw.id, '概念理解尝试编号'), submittedAt: timestamp(raw.submittedAt, '概念理解提交时间'), payload: normalizeProjectConceptInput(raw.payload), result: { passed: bool(raw.result.passed, '概念理解通过状态') } };
+  });
+  unique(progress.conceptAttempts, 'id', '概念理解尝试编号');
+  unique(progress.conceptAttempts, attempt => attempt.payload.requestId, '概念理解提交编号');
+  const allRequestIds = [...progress.attempts, ...progress.conceptAttempts].map(attempt => attempt.payload.requestId);
+  if (new Set(allRequestIds).size !== allRequestIds.length) fail('所有提交编号不能重复');
   progress.projectArtifacts = list(progress.projectArtifacts, '作品进度', 100).map(raw => { fields(raw, ['projectId', 'rankId', 'contentVersion', 'completedChapterIds', 'bossCompletedAt', 'bossAttemptId'], '作品进度'); return { projectId: id(raw.projectId, '作品编号'), rankId: id(raw.rankId, '作品段位'), contentVersion: integer(raw.contentVersion, '作品版本', 1), completedChapterIds: ids(raw.completedChapterIds, '已完成章节'), bossCompletedAt: timestamp(raw.bossCompletedAt, '作品 Boss 完成时间', true), bossAttemptId: optionalId(raw.bossAttemptId, '作品 Boss 尝试') }; }); unique(progress.projectArtifacts, 'projectId', '作品进度');
   progress.awardLedger = list(progress.awardLedger, '奖励账本', 100_000).map(award); unique(progress.awardLedger, 'key', '奖励键');
   fields(progress.achievementWall, ['earned', 'visibleLockedIds', 'hiddenCount'], '成就墙'); progress.achievementWall.earned = list(progress.achievementWall.earned, '已获成就', 1000).map(raw => { fields(raw, ['achievementId', 'earnedAt', 'attemptId'], '已获成就'); return { achievementId: id(raw.achievementId, '成就编号'), earnedAt: timestamp(raw.earnedAt, '成就时间'), attemptId: id(raw.attemptId, '成就尝试') }; }); unique(progress.achievementWall.earned, 'achievementId', '已获成就'); progress.achievementWall.visibleLockedIds = ids(progress.achievementWall.visibleLockedIds, '可见未获成就'); integer(progress.achievementWall.hiddenCount, '隐藏成就数量', 0);
@@ -598,6 +745,16 @@ export function sanitizeProgress(rawCourse, value) {
         ? [...(activity.content?.steps || []), ...(activity.content?.checkpoints || [])].map(item => item.id)
         : [...activity.chapters.map(item => item.id), activity.boss.id];
       if (sourceIds.length && !sourceIds.includes(attempt.kind === 'level' ? attempt.payload.stepId : attempt.payload.checkpointId)) fail('尝试步骤与当前内容版本不一致');
+    }
+  }
+  for (const attempt of progress.conceptAttempts) {
+    const project = course.projects.find(item => item.id === attempt.payload.projectId);
+    if (!project || attempt.payload.contentVersion > project.version) fail('概念理解尝试与课程不一致');
+    if (attempt.payload.contentVersion === project.version) {
+      const chapter = project.chapters.find(item => item.id === attempt.payload.chapterId);
+      const check = chapter?.conceptModule?.checks.find(item => item.id === attempt.payload.checkId);
+      const option = check?.options.find(item => item.id === attempt.payload.selectedOptionId);
+      if (!chapter || !check || !option || attempt.result.passed !== (check.correctOptionId === option.id)) fail('概念理解尝试题目、选项或判定与当前课程不一致');
     }
   }
   for (const item of progress.awardLedger) if (!attemptIds.has(item.attemptId)) fail('奖励引用未知尝试');
@@ -649,7 +806,7 @@ export function sanitizeProgress(rawCourse, value) {
   }
   if (progress.current.activityId && !currentRank.activityIds.includes(progress.current.activityId)) fail('当前位置活动不属于当前段位');
   if (progress.current.subrankId && !currentRank.subdivisions.some(item => item.id === progress.current.subrankId)) fail('当前位置小段位不属于当前段位');
-  if (progress.revision < progress.attempts.length) fail('进度版本不能小于唯一提交数量');
+  if (progress.revision < progress.attempts.length + progress.conceptAttempts.length) fail('进度版本不能小于唯一提交数量');
   return progress;
 }
 
@@ -672,7 +829,7 @@ export function freshProgress(rawCourse, learnerId = 'learner-1') {
     current: { rankId: first.id, subrankId: first.subdivisions[0]?.id || '', activityId: first.activityIds[0] || '', stepId: firstStep(course, first.activityIds[0]) },
     xp: { total: 0, level: 1, currentLevelXp: 0, nextLevelXp: 100 },
     rankStates: course.ranks.map(rank => ({ rankId: rank.id, status: rank.order === 1 ? 'available' : 'locked', earnedStars: 0, performancePoints: 0, bossStatus: 'not-started', promotedAt: null })),
-    sessions: [], attempts: [], projectArtifacts: [], awardLedger: [],
+    sessions: [], attempts: [], conceptAttempts: [], projectArtifacts: [], awardLedger: [],
     achievementWall: { earned: [], visibleLockedIds: course.achievements.filter(item => !item.hidden).map(item => item.id), hiddenCount: course.achievements.filter(item => item.hidden).length },
     derivedStatePolicy: defaultPolicy(), updatedAt: null
   });
@@ -799,7 +956,7 @@ export function submitAttempt(rawCourse, rawProgress, rawInput, rawMeta) {
   }
   let variation = null;
   if (input.variantId) { variation = step.variants?.find(item => item.id === input.variantId); if (!variation) fail('变式不属于当前步骤'); }
-  if (input.viewedFullAnswer && !input.variantId) fail('查看独立变式完整答案时须记录变式编号');
+  if (step.type === 'independent-variation' && input.viewedFullAnswer && !input.variantId) fail('查看独立变式完整答案时须记录变式编号');
   const next = clone(progress), result = baseResult(next, course);
   const completedCursorMayAdvance = !boss && levelAlreadyCompleted && rank.id === current.id && progress.current.activityId === level.id;
   const controlsCurrent = rank.id === current.id && !levelAlreadyCompleted;
@@ -812,9 +969,9 @@ export function submitAttempt(rawCourse, rawProgress, rawInput, rawMeta) {
       && item.payload.contentVersion === level.version
       && item.payload.stepId === completionStepId
       && item.payload.viewedFullAnswer).map(item => item.payload.variantId);
-    const unusedEquivalent = variation && !priorViews.includes(variation.id) && priorViews.some(previous => previous !== variation.id);
-    const recoveredAfterSolution = !priorViews.length || (input.independent && unusedEquivalent);
-    const completionPassed = input.stepId === completionStepId && input.passed && !input.viewedFullAnswer && recoveredAfterSolution;
+    // Completing a lesson records successful practice; independent mastery is
+    // represented separately by its star and still gates rank promotion.
+    const completionPassed = input.stepId === completionStepId && input.passed && input.action !== 'reveal';
     if (completionPassed) {
       result.xpAwarded += awardXp(next, rank.id, level.id, step.id, level.content.rewards.xp.firstClear, meta.id, meta.submittedAt, `xp:${level.id}:clear`);
       if (!done.has(level.id)) result.levelCompleted = true;
@@ -822,6 +979,11 @@ export function submitAttempt(rawCourse, rawProgress, rawInput, rawMeta) {
       if (eligible && addAward(next, { key: `star:${level.id}`, kind: 'star', rankId: rank.id, activityId: level.id, sourceId: variation.id, amount: level.content.rewards.star.amount, title: level.title, attemptId: meta.id, earnedAt: meta.submittedAt })) result.starAwarded = true;
       const completed = completedLevelIds(next, level.id);
       if (controlsCurrent || completedCursorMayAdvance) moveToNextLevel(course, next, rank, completed, level.id);
+      // Revisiting an earlier completed chapter can supply the final missing
+      // star. Advance the current completed chapter to Boss in that case.
+      if (result.starAwarded && rank.id === current.id && completed.has(next.current.activityId) && bossUnlocked(course, next, rank, completed)) {
+        moveToNextLevel(course, next, rank, completed, next.current.activityId);
+      }
     } else if (controlsCurrent) {
       const passedAfter = new Set(passedSteps);
       if (input.passed) passedAfter.add(step.id);
@@ -884,6 +1046,41 @@ export function submitProjectCheckpoint(rawCourse, rawProgress, rawInput, rawMet
   }
   result.bossUnlocked = bossUnlocked(course, next, rank);
   return finish(course, next, 'project', input, meta, result);
+}
+
+/** Save one server-graded project concept check without completing a chapter or granting rewards. */
+export function submitProjectConceptCheck(rawCourse, rawProgress, rawInput, rawMeta) {
+  const course = sanitizeCourse(rawCourse), progress = sanitizeProgress(course, rawProgress), input = normalizeProjectConceptInput(rawInput), meta = normalizeMeta(rawMeta);
+  const existing = progress.conceptAttempts.find(item => item.payload.requestId === input.requestId);
+  if (existing) {
+    if (!same(existing.payload, input)) fail('同一提交编号不能用于不同内容', 409, 'request_id_conflict');
+    const project = course.projects.find(item => item.id === input.projectId);
+    const chapter = project?.chapters.find(item => item.id === input.chapterId);
+    const check = chapter?.conceptModule?.checks.find(item => item.id === input.checkId);
+    return { progress, result: { passed: existing.result.passed, replayed: true }, feedback: { passed: existing.result.passed, explanation: check?.explanation || '' } };
+  }
+  if (progress.attempts.some(item => item.payload.requestId === input.requestId) || [...progress.attempts, ...progress.conceptAttempts].some(item => item.id === meta.id)) fail('尝试编号已经存在', 409, 'attempt_id_conflict');
+  const project = course.projects.find(item => item.id === input.projectId);
+  if (!project) fail('作品不存在', 404, 'project_not_found');
+  if (input.contentVersion !== project.version) fail('作品内容已经更新', 409, 'content_version_conflict');
+  const current = course.ranks.find(item => item.id === progress.current.rankId), rank = course.ranks.find(item => item.id === project.rankId);
+  if (!current || !rank || rank.order > current.order) fail('该段位尚未解锁', 409, 'rank_locked');
+  const chapter = project.chapters.find(item => item.id === input.chapterId);
+  if (!chapter) fail('作品章节不存在', 404, 'chapter_not_found');
+  const artifact = progress.projectArtifacts.find(item => item.projectId === project.id);
+  const completed = artifact?.completedChapterIds || [];
+  const chapterIndex = project.chapters.indexOf(chapter);
+  if (project.chapters.slice(0, chapterIndex).some(item => !completed.includes(item.id))) fail('前一作品章节尚未完成', 409, 'checkpoint_locked');
+  const check = chapter.conceptModule?.checks.find(item => item.id === input.checkId);
+  if (!check) fail('概念理解题不存在', 404, 'concept_check_not_found');
+  const option = check.options.find(item => item.id === input.selectedOptionId);
+  if (!option) fail('概念理解选项不存在', 400, 'concept_option_not_found');
+  const next = clone(progress), passed = check.correctOptionId === option.id;
+  next.conceptAttempts.push({ id: meta.id, submittedAt: meta.submittedAt, payload: clone(input), result: { passed } });
+  next.revision += 1;
+  next.courseRevision = course.publishedRevision;
+  next.updatedAt = meta.submittedAt;
+  return { progress: sanitizeProgress(course, next), result: { passed, replayed: false }, feedback: { passed, explanation: check.explanation } };
 }
 
 function mainGoal(course, value) {

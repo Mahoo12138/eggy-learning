@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "goose-food-street-project",
-  "version": 2,
+  "version": 3,
   "activityType": "rank-project",
   "rankId": "goose",
   "title": "蛋仔食堂·今天吃什么",
@@ -15,8 +15,8 @@
   ],
   "propIds": [],
   "estimatedSessions": {
-    "minimum": 60,
-    "typical": 64
+    "minimum": 75,
+    "typical": 79
   },
   "prerequisiteActivityIds": [
     "chicken-rules-boss"
@@ -27,6 +27,7 @@
     "chapterExercisesAreNotSeparateProjects": true
   },
   "guidancePolicy": {
+    "conceptLessonsPerChapter": 1,
     "mode": "guided-complete-build",
     "guidedLessonsPerChapter": 3,
     "independentCheckpointPerChapter": true,
@@ -108,7 +109,9 @@
     "不做多用户、网络、云同步、图片附件、营养计算和复杂报表"
   ],
   "chapterTeachingLoop": [
-    "先运行本章 starter snapshot，观察当前缺口",
+    "先观察一个具体故障或现象，建立本章问题意识",
+    "通过图解心智模型、术语白话解释和代码映射理解原理",
+    "完成两道服务端判分的理解题，答错获得解释，全部通过才解锁代码",
     "跟随三个引导步骤逐个完成真实代码增量，每步立刻编译运行",
     "对照预期结果与常见失败定位问题",
     "完成一个 10 到 40 行左右的受限独立变式并留下证据",
@@ -119,7 +122,7 @@
       "id": "win-console-lifecycle",
       "title": "安全进入和离开食堂终端",
       "phase": "终端画布",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "建立 Windows C17 工程，并保证正常退出、Ctrl+C 与初始化中途失败都能恢复原控制台。",
       "concepts": [
         "CMake",
@@ -221,13 +224,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 15 章会把终端恢复放进长时间运行和分配失败组合测试。"
+      "laterReencounter": "第 15 章会把终端恢复放进长时间运行和分配失败组合测试。",
+      "conceptModule": {
+        "title": "程序怎样安全借用 Windows 终端",
+        "learningGoal": "理解终端是程序暂时借用的系统资源，能说清句柄、模式、VT 输出和失败清理之间的关系。",
+        "phenomenon": {
+          "title": "退出后终端为什么像坏掉了",
+          "observation": "程序隐藏光标、切换备用屏后，初始化在中途失败。程序虽然结束了，光标却没有回来，按键行为也变得异常。",
+          "question": "哪些状态是程序改过的？程序应在什么时候、依据什么信息把它们恢复？"
+        },
+        "mentalModel": {
+          "summary": "把终端想成一间借来的教室：进入前记录原状，只标记真正改成功的项目，离开时逆序归还。VT 是写给终端解释器看的控制字符，不是图片。",
+          "flow": [
+            {
+              "id": "open-handles",
+              "title": "取得操作凭证",
+              "explanation": "输入句柄和输出句柄分别指向两个系统对象。"
+            },
+            {
+              "id": "capture-modes",
+              "title": "保存原始状态",
+              "explanation": "读取原输入、输出模式，后面只能恢复真实保存过的值。"
+            },
+            {
+              "id": "apply-modes",
+              "title": "逐项修改并记账",
+              "explanation": "每成功一步就设置对应标志，失败时不假设后续步骤完成。"
+            },
+            {
+              "id": "run-session",
+              "title": "运行应用",
+              "explanation": "主循环只使用已经初始化成功的能力。"
+            },
+            {
+              "id": "restore-session",
+              "title": "逆序恢复",
+              "explanation": "依据标志恢复备用屏、光标和输入输出模式，多次调用也安全。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "CMake",
+            "plainMeaning": "描述源文件、编译选项和目标如何组成可执行程序的构建配置。",
+            "codeMapping": "CMakeLists.txt 中的 add_executable、target_compile_options"
+          },
+          {
+            "term": "Windows 控制台句柄",
+            "plainMeaning": "操作系统交给程序的一张输入或输出对象操作凭证。",
+            "codeMapping": "TuiSession.input_handle 与 output_handle"
+          },
+          {
+            "term": "输入输出模式",
+            "plainMeaning": "控制终端如何解释按键和输出的一组位开关。输入与输出是两套独立模式。",
+            "codeMapping": "original_input_mode、original_output_mode 与 SetConsoleMode"
+          },
+          {
+            "term": "统一清理路径",
+            "plainMeaning": "无论正常退出还是中途失败，都汇合到同一段按完成情况释放资源的逻辑。",
+            "codeMapping": "app_run 的 cleanup 标签与 terminal_restore"
+          },
+          {
+            "term": "VT 序列",
+            "plainMeaning": "以 ESC 开头、由终端解释为移动光标或改变样式的字符命令。",
+            "codeMapping": "terminal_write_vt 写出的控制序列"
+          }
+        ],
+        "workedExample": {
+          "title": "输出已修改、输入修改失败",
+          "steps": [
+            "保存两套原模式。",
+            "输出模式修改成功，记录 output_changed=true。",
+            "输入模式修改失败，直接进入统一清理。",
+            "清理只恢复输出模式；输入模式从未修改，不写入猜测的默认值。"
+          ],
+          "takeaway": "恢复逻辑依赖“实际成功了什么”，而不是依赖程序原本计划做什么。"
+        },
+        "misconceptions": [
+          {
+            "claim": "开启 VT 输出就必须同时开启 VT 输入。",
+            "correction": "输入和输出是两套独立能力；本项目只按各自需要启用。"
+          },
+          {
+            "claim": "进程结束后 Windows 一定会自动恢复所有控制台状态。",
+            "correction": "部分初始化、异常退出和宿主差异都会留下状态，应用必须显式恢复。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "restore-partial-init",
+            "question": "输出模式修改成功后，输入模式修改失败，清理代码应该怎样做？",
+            "options": [
+              {
+                "id": "restore-output",
+                "text": "只恢复已经修改成功的输出模式"
+              },
+              {
+                "id": "restore-defaults",
+                "text": "把输入输出都写成一套固定默认值"
+              },
+              {
+                "id": "do-nothing",
+                "text": "什么都不恢复，等待系统处理"
+              }
+            ],
+            "correctOptionId": "restore-output",
+            "explanation": "恢复必须依据实际完成的步骤。写固定默认值可能覆盖用户原来的终端设置。"
+          },
+          {
+            "id": "identify-vt",
+            "question": "本章所说的 VT 序列是什么？",
+            "options": [
+              {
+                "id": "terminal-command-text",
+                "text": "终端解释为光标、颜色等操作的特殊字符序列"
+              },
+              {
+                "id": "screen-bitmap",
+                "text": "一张保存整屏像素的位图"
+              },
+              {
+                "id": "keyboard-event",
+                "text": "Windows 产生的一条按键事件"
+              }
+            ],
+            "correctOptionId": "terminal-command-text",
+            "explanation": "VT 序列仍然是输出字符，只是终端把它们解释为控制命令。"
+          }
+        ],
+        "bridgeToCode": "先在 TuiSession 中保存原句柄、原模式和完成标志，再实现 init/restore；这一章暂不绘制业务界面。"
+      }
     },
     {
       "id": "frame-buffer",
       "title": "把终端变成不闪烁的字符画布",
       "phase": "终端画布",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "建立与平台无关的逻辑 Frame，并通过 VT 编码后一次性提交完整帧。",
       "concepts": [
         "Cell",
@@ -326,13 +458,147 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 3、10 和 15 章会持续用同一个 Frame 验证宽字符、动画与压力 resize。"
+      "laterReencounter": "第 3、10 和 15 章会持续用同一个 Frame 验证宽字符、动画与压力 resize。",
+      "conceptModule": {
+        "title": "Frame 为什么能让终端画面稳定",
+        "learningGoal": "分清 Frame、Cell、二维索引和终端输出，理解“先在内存画完，再整帧提交”的意义。",
+        "phenomenon": {
+          "title": "为什么很多次 printf 会闪烁",
+          "observation": "标题、菜名和状态栏分别输出时，用户会短暂看到“上面已经更新、下面仍是旧内容”的半成品画面。清屏再逐行写还会出现明显空白。",
+          "question": "怎样让用户只看到更新前和更新后的完整画面，而看不到中间过程？"
+        },
+        "mentalModel": {
+          "summary": "Frame 是程序内存里“下一次完整画面”的逻辑快照，Cell 是其中一个格子。所有绘制函数只改 Frame，编码器最后把完整 Frame 转成 VT 文本并一次提交。",
+          "flow": [
+            {
+              "id": "read-state",
+              "title": "读取应用状态",
+              "explanation": "菜单、选中项和提示决定这一帧应该长什么样。"
+            },
+            {
+              "id": "clear-frame",
+              "title": "准备空白 Frame",
+              "explanation": "在内存里清空字符和颜色，不影响当前终端画面。"
+            },
+            {
+              "id": "draw-frame",
+              "title": "绘制所有区域",
+              "explanation": "标题、列表和状态栏共同写入同一张逻辑网格。"
+            },
+            {
+              "id": "encode-frame",
+              "title": "编码字符与样式",
+              "explanation": "把 Cell 网格变成终端能够理解的字符与 VT 控制序列。"
+            },
+            {
+              "id": "present-frame",
+              "title": "整帧提交",
+              "explanation": "一次写出完整结果，用户不再看到局部更新。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "Frame",
+            "plainMeaning": "应用在内存中维护的一次完整字符画面快照，不是窗口、图片或帧率。",
+            "codeMapping": "Frame 结构体及其 rows、cols、cells"
+          },
+          {
+            "term": "Cell",
+            "plainMeaning": "画面某一行某一列上的字符、颜色和占位状态。",
+            "codeMapping": "Cell 结构体与 frame_at(row, col)"
+          },
+          {
+            "term": "二维缓冲区",
+            "plainMeaning": "用连续内存保存行列网格，通过 row * cols + col 找到格子。",
+            "codeMapping": "Frame.cells 与索引函数"
+          },
+          {
+            "term": "边界检查",
+            "plainMeaning": "每次读写前确认行列仍在 Frame 范围内，越界请求安全失败。",
+            "codeMapping": "frame_put、frame_fill 的坐标判断"
+          },
+          {
+            "term": "VT 帧编码",
+            "plainMeaning": "把逻辑 Cell 转成终端字符与颜色切换命令的过程。",
+            "codeMapping": "frame_encode_vt"
+          },
+          {
+            "term": "整帧提交",
+            "plainMeaning": "全部内存绘制完成后，把编码结果一次写到输出句柄。",
+            "codeMapping": "terminal_present"
+          }
+        ],
+        "workedExample": {
+          "title": "一帧推荐结果怎样出现",
+          "steps": [
+            "创建 80×24 的 Frame。",
+            "在内存写入标题、定格菜名和快捷键状态栏。",
+            "任何一步越界都只影响本次绘制结果，不写坏内存。",
+            "三部分全部完成后编码并一次提交。"
+          ],
+          "takeaway": "Frame 不是 Windows 窗口，也不是帧率；它只是应用拥有的一份完整逻辑画面数据。"
+        },
+        "misconceptions": [
+          {
+            "claim": "Frame 就是 Windows 窗口或每秒帧数。",
+            "correction": "这里的 Frame 是应用内存中的字符网格快照。"
+          },
+          {
+            "claim": "每帧先清屏再逐行输出就不会闪。",
+            "correction": "清屏本身会产生可见空白；关键是先完成内存绘制再一次提交。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "resize-allocation-failure",
+            "question": "resize 时新缓冲区分配失败，Frame 应怎样处理？",
+            "options": [
+              {
+                "id": "free-old",
+                "text": "先释放旧 Frame，再报告失败"
+              },
+              {
+                "id": "keep-old",
+                "text": "保留仍然有效的旧 Frame，并报告调整失败"
+              },
+              {
+                "id": "write-null",
+                "text": "继续把新画面写入空指针"
+              }
+            ],
+            "correctOptionId": "keep-old",
+            "explanation": "新资源准备成功前不能破坏旧资源，否则一次内存不足就会把仍可使用的画面丢掉。"
+          },
+          {
+            "id": "whole-frame-purpose",
+            "question": "整帧提交最直接解决的是什么问题？",
+            "options": [
+              {
+                "id": "shorter-source",
+                "text": "让源文件行数更少"
+              },
+              {
+                "id": "hide-partial",
+                "text": "避免用户看到局部更新的中间画面"
+              },
+              {
+                "id": "more-colors",
+                "text": "增加终端可用颜色数量"
+              }
+            ],
+            "correctOptionId": "hide-partial",
+            "explanation": "它把许多内存绘制合并为一次可见提交，减少半成品画面和闪烁。"
+          }
+        ],
+        "bridgeToCode": "先定义 Cell、Frame、create/destroy/clear/put 和边界测试；绘制原语与业务页面等 Frame 生命周期可靠后再加入。"
+      }
     },
     {
       "id": "wide-text-primitives",
       "title": "正确画出中文、边框和推荐大字",
       "phase": "终端画布",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "在明确的字符范围内正确处理单宽、双宽、续格、右边缘裁剪和颜色样式。",
       "concepts": [
         "UTF-16",
@@ -434,13 +700,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 11 章表单会复用显示宽度和安全裁剪处理长菜名。"
+      "laterReencounter": "第 11 章表单会复用显示宽度和安全裁剪处理长菜名。",
+      "conceptModule": {
+        "title": "字符串长度为什么不等于屏幕宽度",
+        "learningGoal": "理解 UTF-16 存储、显示列数和双宽续格，能解释中文裁剪与覆盖为何需要额外规则。",
+        "phenomenon": {
+          "title": "四个字符为什么可能占六列",
+          "observation": "终端按列摆放内容。ASCII 通常占一列，课程支持的常用汉字通常占两列；字符串的存储单元数不能直接当成屏幕列数。",
+          "question": "如果只按 wcslen 居中或裁剪，会出现什么偏移、半字和边框破坏？"
+        },
+        "mentalModel": {
+          "summary": "存储长度、逻辑字符数量和显示列数是不同度量。写入双宽字符时，首格保存字符，第二格标记为续格；覆盖任一半都要先清理整组。",
+          "flow": [
+            {
+              "id": "decode-unit",
+              "title": "读取宽字符单元",
+              "explanation": "从 wchar_t 序列取得当前课程支持的字符。"
+            },
+            {
+              "id": "measure-width",
+              "title": "判断显示宽度",
+              "explanation": "ASCII 记 1 列，支持的常用汉字记 2 列，不支持字符走替代规则。"
+            },
+            {
+              "id": "reserve-cells",
+              "title": "占用 Cell",
+              "explanation": "双宽字符写首格，并把后一格标成 continuation。"
+            },
+            {
+              "id": "clip-safely",
+              "title": "在边界前裁剪",
+              "explanation": "右侧只剩一列时不能写入半个双宽字符。"
+            },
+            {
+              "id": "encode-visible",
+              "title": "编码可见格",
+              "explanation": "编码器输出首格，遇到续格只跳过，不重复输出。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "UTF-16",
+            "plainMeaning": "Windows 宽字符串常用的编码形式，一个显示字符可能由一个或多个代码单元表示。",
+            "codeMapping": "wchar_t 字符串与 WriteConsoleW 边界"
+          },
+          {
+            "term": "显示宽度",
+            "plainMeaning": "字符在终端网格中实际占用的列数。",
+            "codeMapping": "display_width 与 text_measure"
+          },
+          {
+            "term": "双宽续格",
+            "plainMeaning": "双宽字符第二列的占位标记，它没有独立可输出字符。",
+            "codeMapping": "Cell.continuation"
+          },
+          {
+            "term": "裁剪",
+            "plainMeaning": "内容到达可见边界时，按照完整显示单元安全舍弃超出部分。",
+            "codeMapping": "draw_text_clipped"
+          },
+          {
+            "term": "绘制原语",
+            "plainMeaning": "经过边界和宽度处理的基础画图函数，供所有视图复用。",
+            "codeMapping": "draw_text、draw_box、draw_centered"
+          }
+        ],
+        "workedExample": {
+          "title": "A蛋B 如何落在网格中",
+          "steps": [
+            "A 写入一格。",
+            "蛋的首格保存字符，下一格标记 continuation。",
+            "B 写入下一格，因此显示宽度为 4 列。",
+            "覆盖蛋的续格前同时清理首格和续格，避免留下半个旧字符。"
+          ],
+          "takeaway": "只有明确支持的宽度规则才能进入绘制层；不能把存储长度当作视觉长度。"
+        },
+        "misconceptions": [
+          {
+            "claim": "wcslen 的返回值就是终端列数。",
+            "correction": "它计算宽字符单元数量，不知道终端显示宽度。"
+          },
+          {
+            "claim": "一个 wchar_t 永远对应一个完整可显示字符。",
+            "correction": "UTF-16 存在组合情况；课程只承诺支持经过定义和测试的字符子集。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "center-wide-title",
+            "question": "居中一个中文标题时，应该使用哪种长度？",
+            "options": [
+              {
+                "id": "bytes",
+                "text": "sizeof 得到的字节数"
+              },
+              {
+                "id": "units",
+                "text": "wcslen 得到的代码单元数"
+              },
+              {
+                "id": "display-columns",
+                "text": "课程宽度规则计算出的显示列数"
+              }
+            ],
+            "correctOptionId": "display-columns",
+            "explanation": "居中面对的是屏幕列，必须用显示列数，而不是内存占用或代码单元数。"
+          },
+          {
+            "id": "overwrite-continuation",
+            "question": "准备覆盖一个双宽字符的续格时，正确做法是什么？",
+            "options": [
+              {
+                "id": "only-second",
+                "text": "只覆盖第二格"
+              },
+              {
+                "id": "clear-pair",
+                "text": "先清理对应首格和续格，再写新内容"
+              },
+              {
+                "id": "ignore-write",
+                "text": "忽略这次写入"
+              }
+            ],
+            "correctOptionId": "clear-pair",
+            "explanation": "双宽字符的两格属于同一显示单元，只改一格会留下幽灵半字。"
+          }
+        ],
+        "bridgeToCode": "先用测试写清 ASCII、常用汉字、右边界和覆盖规则，再实现 draw_text、draw_box 与居中大字。"
+      }
     },
     {
       "id": "input-events",
       "title": "把按键、超时和窗口变化统一成事件",
       "phase": "终端画布",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "将 Windows INPUT_RECORD 翻译成平台无关事件，并为动画提供可靠的超时唤醒。",
       "concepts": [
         "ReadConsoleInputW",
@@ -541,13 +936,137 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 10 章会用同一 timeout 事件推进抽奖状态机。"
+      "laterReencounter": "第 10 章会用同一 timeout 事件推进抽奖状态机。",
+      "conceptModule": {
+        "title": "没有按键时程序为什么仍能前进",
+        "learningGoal": "理解原始控制台事件、等待超时和应用事件之间的转换，让动画、按键与 resize 共用一个主循环。",
+        "phenomenon": {
+          "title": "抽奖动画怎样同时等待按键",
+          "observation": "如果 ReadConsoleInputW 一直阻塞，动画没有机会更新；如果不停轮询，程序会空转占满 CPU。窗口尺寸变化还必须及时重建 Frame。",
+          "question": "主循环怎样同时得到按键、超时和 resize，又不直接依赖 Windows 虚拟键码？"
+        },
+        "mentalModel": {
+          "summary": "平台层等待“输入事件或截止时间”中先发生的一个，再把 Windows 记录翻译成统一 AppEvent。超时是正常时钟事件，不是错误。",
+          "flow": [
+            {
+              "id": "wait-source",
+              "title": "等待输入或截止时间",
+              "explanation": "WaitForSingleObject 在有事件时提前醒来，没有事件时按超时返回。"
+            },
+            {
+              "id": "read-record",
+              "title": "读取原始记录",
+              "explanation": "INPUT_RECORD 可能是按键、窗口尺寸或其他控制台事件。"
+            },
+            {
+              "id": "translate-event",
+              "title": "翻译成应用语言",
+              "explanation": "虚拟键码、修饰键和重复计数转换为 AppEvent。"
+            },
+            {
+              "id": "dispatch-event",
+              "title": "交给当前视图",
+              "explanation": "业务层只处理 KEY、TIMEOUT、RESIZE、QUIT 等稳定枚举。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "ReadConsoleInputW",
+            "plainMeaning": "从 Windows 控制台输入队列读取原始事件记录的 API。",
+            "codeMapping": "input_win32.c 的读取循环"
+          },
+          {
+            "term": "WaitForSingleObject",
+            "plainMeaning": "等待一个句柄变为可用，或等到给定毫秒数。",
+            "codeMapping": "input_wait(timeout_ms)"
+          },
+          {
+            "term": "按键枚举",
+            "plainMeaning": "应用自己定义的按键语义，隔离 Windows 虚拟键码。",
+            "codeMapping": "KeyCode 与 AppEvent.key"
+          },
+          {
+            "term": "重复计数",
+            "plainMeaning": "长按按键时一条记录可能代表同一按键重复多次。",
+            "codeMapping": "KEY_EVENT_RECORD.wRepeatCount"
+          },
+          {
+            "term": "resize",
+            "plainMeaning": "可见控制台行列数发生变化的事件。",
+            "codeMapping": "EVENT_RESIZE 与新的 rows/cols"
+          }
+        ],
+        "workedExample": {
+          "title": "40ms 动画节拍",
+          "steps": [
+            "主循环请求最多等待 40ms。",
+            "20ms 时收到方向键，立即返回 KEY 事件。",
+            "下一轮 40ms 内无输入，返回 TIMEOUT，动画推进一帧。",
+            "随后收到 resize，重建 Frame 并重绘，但不改变业务结果。"
+          ],
+          "takeaway": "同一条事件通道让界面保持响应，也让时间可测试。"
+        },
+        "misconceptions": [
+          {
+            "claim": "等待超时表示输入层发生错误。",
+            "correction": "超时是动画时钟的正常事件，错误需要单独状态。"
+          },
+          {
+            "claim": "业务视图直接判断 VK_UP 最方便。",
+            "correction": "这样上层被 Windows 绑死，也难以用纯数据测试。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "timeout-event",
+            "question": "等待 40ms 后没有任何输入，输入层应该返回什么？",
+            "options": [
+              {
+                "id": "input-error",
+                "text": "不可恢复的输入错误"
+              },
+              {
+                "id": "timeout",
+                "text": "EVENT_TIMEOUT"
+              },
+              {
+                "id": "quit",
+                "text": "自动退出事件"
+              }
+            ],
+            "correctOptionId": "timeout",
+            "explanation": "超时只是“这段时间没有输入”，主循环可用它推进动画。"
+          },
+          {
+            "id": "translate-keycodes",
+            "question": "为什么要把 Windows 虚拟键码翻译成自己的 KeyCode？",
+            "options": [
+              {
+                "id": "isolate-platform",
+                "text": "让视图只依赖应用事件，便于测试和替换平台层"
+              },
+              {
+                "id": "brighter-screen",
+                "text": "提高终端亮度"
+              },
+              {
+                "id": "skip-resize",
+                "text": "省略窗口变化处理"
+              }
+            ],
+            "correctOptionId": "isolate-platform",
+            "explanation": "翻译层把平台细节关在一个模块里，上层逻辑才稳定。"
+          }
+        ],
+        "bridgeToCode": "先定义平台无关的 AppEvent 和 KeyCode，再完成纯翻译函数测试，最后接入 Windows 等待与读取。"
+      }
     },
     {
       "id": "view-stack",
       "title": "用视图栈组织可返回的食堂界面",
       "phase": "状态与数据",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "建立 draw/handle 接口、视图栈和非阻塞模态视图，让导航、焦点和 resize 仍由单一主循环控制。",
       "concepts": [
         "函数指针",
@@ -654,13 +1173,137 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 10 至 13 章会在同一栈上加入推荐、表单、分类标签和历史视图。"
+      "laterReencounter": "第 10 至 13 章会在同一栈上加入推荐、表单、分类标签和历史视图。",
+      "conceptModule": {
+        "title": "页面返回为什么适合用栈",
+        "learningGoal": "理解函数指针、视图所有权和后进先出导航，能解释详情返回与模态框如何共用主循环。",
+        "phenomenon": {
+          "title": "Esc 怎样回到原列表位置",
+          "observation": "学习者从菜单列表进入菜品详情，再按 Esc 返回。若重新创建列表，原来的筛选、选中行和滚动位置都会丢失。",
+          "question": "程序怎样保存访问路径，并保证同一时刻只有正确的页面接收按键？"
+        },
+        "mentalModel": {
+          "summary": "把视图想成叠起来的盘子：进入页面 push，返回 pop，栈顶独占输入。每个视图拥有自己的状态，并在 pop 时由 destroy 释放。",
+          "flow": [
+            {
+              "id": "push-list",
+              "title": "压入列表",
+              "explanation": "主页仍在栈下方，列表保存筛选和选中位置。"
+            },
+            {
+              "id": "push-detail",
+              "title": "压入详情",
+              "explanation": "详情成为栈顶并接收输入。"
+            },
+            {
+              "id": "push-modal",
+              "title": "压入确认框",
+              "explanation": "模态框只是临时的栈顶视图，不启动第二个循环。"
+            },
+            {
+              "id": "pop-back",
+              "title": "弹出返回",
+              "explanation": "destroy 当前视图，下面的列表以原状态继续。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "函数指针",
+            "plainMeaning": "保存函数地址，使不同视图能通过同一接口执行 draw、handle 和 destroy。",
+            "codeMapping": "View.draw、View.handle、View.destroy"
+          },
+          {
+            "term": "状态机",
+            "plainMeaning": "明确当前状态和允许转换的规则。",
+            "codeMapping": "视图内部状态与 handle_event"
+          },
+          {
+            "term": "视图栈",
+            "plainMeaning": "用后进先出顺序保存导航历史。",
+            "codeMapping": "ViewStack.items 与 push/pop/top"
+          },
+          {
+            "term": "模态视图",
+            "plainMeaning": "暂时覆盖页面并独占输入的栈顶视图。",
+            "codeMapping": "view_dialog"
+          },
+          {
+            "term": "焦点",
+            "plainMeaning": "当前键盘操作作用于哪个控件或列表项。",
+            "codeMapping": "ViewState.focus_index"
+          }
+        ],
+        "workedExample": {
+          "title": "列表、详情与删除确认",
+          "steps": [
+            "列表 push 详情，列表对象继续保存在栈中。",
+            "详情 push 删除确认框，确认框独占 y/n 与 Esc。",
+            "取消时 pop 确认框，详情仍在。",
+            "再按 Esc pop 详情，列表原选中项和滚动位置保持。"
+          ],
+          "takeaway": "导航历史和页面状态由同一个结构维护，不需要嵌套阻塞循环。"
+        },
+        "misconceptions": [
+          {
+            "claim": "确认框必须在函数里阻塞等待 y/n。",
+            "correction": "阻塞小循环会绕开统一事件、resize 和退出处理；确认框应是普通栈顶视图。"
+          },
+          {
+            "claim": "pop 只移动栈顶索引，不必调用 destroy。",
+            "correction": "视图拥有的字符串、向量或表单草稿会因此泄漏。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "detail-back",
+            "question": "从菜品详情返回原列表，最合适的栈操作是什么？",
+            "options": [
+              {
+                "id": "clear-all",
+                "text": "清空整个视图栈"
+              },
+              {
+                "id": "pop-detail",
+                "text": "pop 当前详情视图"
+              },
+              {
+                "id": "second-loop",
+                "text": "启动第二个主循环"
+              }
+            ],
+            "correctOptionId": "pop-detail",
+            "explanation": "pop 详情会暴露原列表对象，因此列表的状态自然保留。"
+          },
+          {
+            "id": "modal-input-owner",
+            "question": "删除确认框显示时，哪个视图应接收按键？",
+            "options": [
+              {
+                "id": "home",
+                "text": "栈底主页"
+              },
+              {
+                "id": "all",
+                "text": "所有视图同时接收"
+              },
+              {
+                "id": "top-dialog",
+                "text": "栈顶确认框"
+              }
+            ],
+            "correctOptionId": "top-dialog",
+            "explanation": "栈顶独占输入才能避免同一次按键同时触发背景页面。"
+          }
+        ],
+        "bridgeToCode": "先用三个假视图测试 push、pop、top、destroy 和空栈边界，再把主页、列表与确认框接入。"
+      }
     },
     {
       "id": "vec-and-memory",
       "title": "让菜单容量增长而不丢数据",
       "phase": "状态与数据",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "实现类型化动态数组和可故障注入的内存封装，为真实数据模型提供稳定容器。",
       "concepts": [
         "动态数组",
@@ -761,13 +1404,143 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 13 章会用同一 HistoryVec 实现最近 N 条滚动记录。"
+      "laterReencounter": "第 13 章会用同一 HistoryVec 实现最近 N 条滚动记录。",
+      "conceptModule": {
+        "title": "动态数组扩容时谁拥有内存",
+        "learningGoal": "分清 size、capacity、指针所有权和 realloc 失败语义，能写出不丢旧数据的扩容流程。",
+        "phenomenon": {
+          "title": "第五道菜放在哪里",
+          "observation": "当前数组能放 4 道菜。加入第 5 道时需要更大的连续内存，但 realloc 可能搬家，也可能失败。",
+          "question": "怎样扩容才能保证失败时旧数据、size 和 capacity 全部仍然有效？"
+        },
+        "mentalModel": {
+          "summary": "size 是已经放入的元素数，capacity 是当前内存最多能容纳的元素数。扩容先计算安全的新容量，再用临时指针接收结果，成功后才提交新地址。",
+          "flow": [
+            {
+              "id": "check-room",
+              "title": "检查剩余容量",
+              "explanation": "size < capacity 时直接在尾部构造元素。"
+            },
+            {
+              "id": "calculate-capacity",
+              "title": "计算新容量",
+              "explanation": "先检查乘法和翻倍是否溢出。"
+            },
+            {
+              "id": "allocate-temp",
+              "title": "尝试扩容",
+              "explanation": "用临时指针接收 realloc，旧指针在失败时仍有效。"
+            },
+            {
+              "id": "commit-buffer",
+              "title": "提交新地址",
+              "explanation": "只有成功后才更新 data 和 capacity。"
+            },
+            {
+              "id": "append-item",
+              "title": "写入并增加 size",
+              "explanation": "元素构造成功后 size 才加一。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "动态数组",
+            "plainMeaning": "元素连续存放、容量可在运行时增长的容器。",
+            "codeMapping": "DishVec.data/size/capacity"
+          },
+          {
+            "term": "realloc",
+            "plainMeaning": "尝试改变一块内存的大小；成功后地址可能改变，失败时旧块仍归调用者。",
+            "codeMapping": "vec_reserve 中的临时指针"
+          },
+          {
+            "term": "溢出",
+            "plainMeaning": "容量或字节数超过整数能表示的范围，结果绕回小值。",
+            "codeMapping": "capacity > SIZE_MAX / sizeof(T) 检查"
+          },
+          {
+            "term": "所有权",
+            "plainMeaning": "明确哪一层负责最终释放指针指向的资源。",
+            "codeMapping": "vec_destroy 与元素 destroy 回调"
+          },
+          {
+            "term": "泄漏跟踪",
+            "plainMeaning": "记录分配和释放，退出时报告未释放块。",
+            "codeMapping": "xmalloc、xfree 与 mem_report"
+          }
+        ],
+        "workedExample": {
+          "title": "size=4、capacity=4 的 push",
+          "steps": [
+            "确认需要扩容。",
+            "检查 8 * sizeof(Dish) 不溢出。",
+            "tmp = realloc(data, new_bytes)。",
+            "tmp 为空则返回失败，data/size/capacity 不变；成功才令 data=tmp、capacity=8。",
+            "构造第 5 个 Dish 成功后令 size=5。"
+          ],
+          "takeaway": "所有状态更新都发生在所依赖操作成功之后。"
+        },
+        "misconceptions": [
+          {
+            "claim": "realloc 失败会自动释放旧内存。",
+            "correction": "失败返回空指针，旧块仍然有效；若直接覆盖原指针反而会失去它。"
+          },
+          {
+            "claim": "size 和 capacity 始终相等更简单。",
+            "correction": "这会让每次 push 都重新分配，增加失败点和复制成本。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "realloc-failure",
+            "question": "realloc 返回空指针时，正确做法是什么？",
+            "options": [
+              {
+                "id": "overwrite",
+                "text": "把原指针覆盖为空"
+              },
+              {
+                "id": "keep-state",
+                "text": "保留原指针、size 和 capacity，并返回失败"
+              },
+              {
+                "id": "grow-size",
+                "text": "仍把 size 增加一"
+              }
+            ],
+            "correctOptionId": "keep-state",
+            "explanation": "realloc 失败不会破坏旧内存；只有用临时指针才能保住它。"
+          },
+          {
+            "id": "size-capacity",
+            "question": "size=6、capacity=8 表示什么？",
+            "options": [
+              {
+                "id": "eight-items",
+                "text": "已经有 8 个元素"
+              },
+              {
+                "id": "two-free",
+                "text": "已有 6 个元素，还能直接容纳 2 个"
+              },
+              {
+                "id": "corrupt",
+                "text": "数组已经损坏"
+              }
+            ],
+            "correctOptionId": "two-free",
+            "explanation": "size 统计已用数量，capacity 统计当前总容量。"
+          }
+        ],
+        "bridgeToCode": "先写具体的 DishVec 和失败测试，理解生命周期后再把重复逻辑提炼成泛型向量宏。"
+      }
     },
     {
       "id": "recommendation-model",
       "title": "建立为推荐服务的真实数据模型",
       "phase": "状态与数据",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "用稳定 ID 表达菜品、分类、标签和历史，并固定推荐与接受的不同语义。",
       "concepts": [
         "结构体",
@@ -869,13 +1642,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 9、13 和 14 章会直接读取这些字段实现选择、历史与策略。"
+      "laterReencounter": "第 9、13 和 14 章会直接读取这些字段实现选择、历史与策略。",
+      "conceptModule": {
+        "title": "身份为什么不能用数组下标",
+        "learningGoal": "理解实体、稳定 ID、引用完整性和历史快照，能区分对象身份与当前存放位置。",
+        "phenomenon": {
+          "title": "删除第一项为何让历史指错菜",
+          "observation": "历史保存“数组第 4 项”。当删除前面的菜后，原第 4 项移动到第 3 项，新第 4 项成了另一道菜。",
+          "question": "哪些信息应保持稳定，哪些只是当前存放位置？对象删除后历史怎样继续可读？"
+        },
+        "mentalModel": {
+          "summary": "ID 表示身份，下标只表示当前地址。关系通过稳定 ID 建立；历史同时保存 ID 和当时的名称快照，既能回跳也能解释已删除对象。",
+          "flow": [
+            {
+              "id": "create-entity",
+              "title": "创建实体",
+              "explanation": "分配不会因排序或删除而改变的 DishId。"
+            },
+            {
+              "id": "store-position",
+              "title": "放入容器",
+              "explanation": "数组下标可以随着排序和压缩变化。"
+            },
+            {
+              "id": "reference-id",
+              "title": "用 ID 建立关系",
+              "explanation": "历史、分类和命令通过查找函数解析当前对象。"
+            },
+            {
+              "id": "snapshot-event",
+              "title": "保存事件快照",
+              "explanation": "历史记录当时名称和查询条件。"
+            },
+            {
+              "id": "handle-delete",
+              "title": "处理已删除对象",
+              "explanation": "仍显示快照，但回跳按钮明确不可用。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "结构体",
+            "plainMeaning": "把一道菜或一条历史所需的多个字段组成一个有意义的数据类型。",
+            "codeMapping": "Dish、Category、Tag、HistoryEntry"
+          },
+          {
+            "term": "稳定 ID",
+            "plainMeaning": "对象移动、排序或重新加载后仍保持不变的身份。",
+            "codeMapping": "DishId、CategoryId、TagId"
+          },
+          {
+            "term": "引用完整性",
+            "plainMeaning": "每个分类或标签引用都必须指向存在的对象，或使用明确的空值语义。",
+            "codeMapping": "model_validate_references"
+          },
+          {
+            "term": "历史快照",
+            "plainMeaning": "记录事件发生时的人类可读字段，避免对象后来变化后无法解释过去。",
+            "codeMapping": "HistoryEntry.name_snapshot 与 query_snapshot"
+          },
+          {
+            "term": "业务动作",
+            "plainMeaning": "对模型产生明确语义变化的一次操作。",
+            "codeMapping": "Command 与 ActionType"
+          }
+        ],
+        "workedExample": {
+          "title": "DishId 107 被移动和删除",
+          "steps": [
+            "DishId 107 当前位于数组下标 4。",
+            "删除前一项后它移动到下标 3，ID 仍为 107。",
+            "历史用 107 查找，所以不会误跳到新下标 4。",
+            "随后菜品删除，历史仍显示 name_snapshot，但详情回跳变为不可用。"
+          ],
+          "takeaway": "稳定身份和可读快照解决的是两个不同问题，两者都需要。"
+        },
+        "misconceptions": [
+          {
+            "claim": "数组下标就是最简单的稳定 ID。",
+            "correction": "排序、删除和载入顺序变化都会让下标指向不同对象。"
+          },
+          {
+            "claim": "历史只存 DishId 就够了。",
+            "correction": "对象删除后 ID 无法提供名称和当时条件，历史会失去解释能力。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "stable-after-delete",
+            "question": "删除前一项导致菜品下标改变时，什么必须保持不变？",
+            "options": [
+              {
+                "id": "dish-id",
+                "text": "DishId"
+              },
+              {
+                "id": "array-index",
+                "text": "数组下标"
+              },
+              {
+                "id": "row-number",
+                "text": "当前屏幕行号"
+              }
+            ],
+            "correctOptionId": "dish-id",
+            "explanation": "身份必须独立于存放位置，数组下标只是当前实现细节。"
+          },
+          {
+            "id": "deleted-history",
+            "question": "历史引用的菜品已经删除，界面应怎样处理？",
+            "options": [
+              {
+                "id": "remove-history",
+                "text": "连同历史一起删除"
+              },
+              {
+                "id": "snapshot-no-link",
+                "text": "显示名称快照，并明确禁用详情回跳"
+              },
+              {
+                "id": "reuse-index",
+                "text": "跳到当前相同下标的菜品"
+              }
+            ],
+            "correctOptionId": "snapshot-no-link",
+            "explanation": "历史保存过去事实；对象不存在时不能伪造回跳目标。"
+          }
+        ],
+        "bridgeToCode": "先定义实体类型、ID 分配、按 ID 查找和模型不变量测试，再让视图读取模型。"
+      }
     },
     {
       "id": "versioned-replacement-store",
       "title": "让食堂数据安全跨越重启",
       "phase": "状态与数据",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "实现带 schema 版本、转义、全量校验和替换式崩溃保护的单文件存储。",
       "concepts": [
         "UTF-8",
@@ -981,13 +1883,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 15 章会把保存事务和业务 Command 合并验证内存/磁盘一致性。"
+      "laterReencounter": "第 15 章会把保存事务和业务 Command 合并验证内存/磁盘一致性。",
+      "conceptModule": {
+        "title": "保存失败时怎样保住旧数据",
+        "learningGoal": "理解序列化、schema 版本、临时模型与替换式保存，能说清内存提交和文件提交的边界。",
+        "phenomenon": {
+          "title": "写到一半崩溃会发生什么",
+          "observation": "直接以写模式打开唯一数据文件会先截断旧内容。如果程序只写完一半就失败，旧文件和新文件都不可用。",
+          "question": "怎样让任何失败点都至少保留一份完整、可再次读取的数据？"
+        },
+        "mentalModel": {
+          "summary": "不要在唯一有效文件上直接施工。先把完整快照写到同目录临时文件，刷新并验证，再原子式替换；读取也先进入临时模型，全部成功后才交换。",
+          "flow": [
+            {
+              "id": "encode-state",
+              "title": "编码完整状态",
+              "explanation": "把内存对象转换为带 schema 头的 UTF-8 行格式。"
+            },
+            {
+              "id": "write-temp",
+              "title": "写同目录临时文件",
+              "explanation": "写入失败只删除临时文件，不碰原文件。"
+            },
+            {
+              "id": "flush-validate",
+              "title": "刷新并重新验证",
+              "explanation": "确认完整内容能被读取和校验。"
+            },
+            {
+              "id": "replace-file",
+              "title": "替换正式文件",
+              "explanation": "新文件完整后才取代旧文件。"
+            },
+            {
+              "id": "commit-memory",
+              "title": "提交内存副本",
+              "explanation": "持久化成功后，全局状态才指向新模型。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "UTF-8",
+            "plainMeaning": "磁盘文本采用的字节编码，使中文字段有确定的跨工具表示。",
+            "codeMapping": "codec 写入与读取边界"
+          },
+          {
+            "term": "行格式",
+            "plainMeaning": "一行一条记录、字段按约定转义和分隔的自定义序列化格式。",
+            "codeMapping": "codec_encode_line 与 codec_decode_line"
+          },
+          {
+            "term": "schema 迁移",
+            "plainMeaning": "识别旧结构版本并按明确规则转换到当前模型。",
+            "codeMapping": "文件头 schema_version 与 migrate_v1"
+          },
+          {
+            "term": "临时模型",
+            "plainMeaning": "解析期间与当前状态隔离的 AppState，全部验证后才能替换。",
+            "codeMapping": "AppState loaded 与 app_state_swap"
+          },
+          {
+            "term": "ReplaceFileW",
+            "plainMeaning": "Windows 上用完整新文件替换现有文件的系统 API。",
+            "codeMapping": "store_win32_replace"
+          }
+        ],
+        "workedExample": {
+          "title": "替换前写入失败",
+          "steps": [
+            "把当前 AppState 编码到 canteen.tsv.tmp。",
+            "第三十行写入失败，关闭并删除 tmp。",
+            "canteen.tsv 从未被截断，重启仍能读取。",
+            "如果 tmp 写完，则重新读取验证，再调用 ReplaceFileW；替换失败仍不提交内存副本。"
+          ],
+          "takeaway": "文件和内存只有在完整链路成功后一起跨过提交边界。"
+        },
+        "misconceptions": [
+          {
+            "claim": "直接 fopen(path, \"w\") 保存最简单，也足够安全。",
+            "correction": "写模式会先截断唯一旧文件，中途失败会损坏最后一份有效数据。"
+          },
+          {
+            "claim": "一次替换就等于数据库在所有断电场景下的完整事务。",
+            "correction": "课程只保证明确范围内的替换式保护，不能夸大操作系统和硬件层保证。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "temp-write-failure",
+            "question": "临时文件写到一半失败时，正式数据应怎样？",
+            "options": [
+              {
+                "id": "old-intact",
+                "text": "原文件保持不变，临时文件被清理"
+              },
+              {
+                "id": "old-empty",
+                "text": "原文件被清空"
+              },
+              {
+                "id": "memory-saved",
+                "text": "内存先标记为已保存"
+              }
+            ],
+            "correctOptionId": "old-intact",
+            "explanation": "临时文件的目的就是把不完整写入与最后一份有效文件隔离。"
+          },
+          {
+            "id": "future-schema",
+            "question": "读取到未知的未来 schema 版本时应怎样做？",
+            "options": [
+              {
+                "id": "guess",
+                "text": "猜测字段含义并继续"
+              },
+              {
+                "id": "reject-keep",
+                "text": "明确拒绝，并保留当前内存与原文件"
+              },
+              {
+                "id": "delete",
+                "text": "删除这个文件"
+              }
+            ],
+            "correctOptionId": "reject-keep",
+            "explanation": "不知道未来结构时继续解析可能静默误读，安全做法是拒绝且不覆盖现状。"
+          }
+        ],
+        "bridgeToCode": "先完成纯内存 encode/decode 往返与坏行测试，再接临时文件、刷新、验证和 ReplaceFileW。"
+      }
     },
     {
       "id": "basic-recommend-engine",
       "title": "写出与界面无关的推荐核心",
       "phase": "推荐核心",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "用可注入随机数和时间完成全集、分类、标签组合过滤及无偏整数选择。",
       "concepts": [
         "纯函数边界",
@@ -1091,13 +2122,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 10 章由应用层在最终定格时提交 RECOMMENDED 动作。"
+      "laterReencounter": "第 10 章由应用层在最终定格时提交 RECOMMENDED 动作。",
+      "conceptModule": {
+        "title": "推荐为什么要先筛选再随机",
+        "learningGoal": "理解 Query、候选集、纯逻辑边界和可注入随机源，能区分“选择结果”与“提交业务事实”。",
+        "phenomenon": {
+          "title": "川菜加下饭应该怎样抽",
+          "observation": "如果先从所有菜随机抽一个再判断，它可能反复抽到不合格项，也难以说明空结果。若推荐函数顺便改历史，测试一次选择也会污染业务数据。",
+          "question": "推荐核心最小、可复现的输入和输出应该是什么？"
+        },
+        "mentalModel": {
+          "summary": "推荐是一条纯逻辑流水线：Query 决定资格，遍历得到候选 ID，随机数只在候选中选择。统计和历史由外层命令在确认业务动作时更新。",
+          "flow": [
+            {
+              "id": "receive-query",
+              "title": "接收 Query",
+              "explanation": "包含分类、标签和当前启用的策略开关。"
+            },
+            {
+              "id": "filter-candidates",
+              "title": "过滤候选",
+              "explanation": "一次遍历只保留满足全部条件的 DishId。"
+            },
+            {
+              "id": "handle-empty",
+              "title": "处理空集合",
+              "explanation": "明确返回 NO_CANDIDATE，而不是除零或死循环。"
+            },
+            {
+              "id": "draw-index",
+              "title": "映射随机索引",
+              "explanation": "使用注入 RNG 和拒绝采样得到均匀候选下标。"
+            },
+            {
+              "id": "return-id",
+              "title": "返回稳定 ID",
+              "explanation": "调用方决定何时记录推荐并持久化。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "纯函数边界",
+            "plainMeaning": "同样输入得到同样逻辑结果，函数内部不改 UI、历史或磁盘。",
+            "codeMapping": "recommend_select 的参数与返回值"
+          },
+          {
+            "term": "AND 过滤",
+            "plainMeaning": "多个条件全部成立，菜品才进入候选集。",
+            "codeMapping": "dish_matches_query"
+          },
+          {
+            "term": "可注入 RNG",
+            "plainMeaning": "随机数由调用方提供，测试可使用固定序列。",
+            "codeMapping": "Rng.next 回调或 rng 参数"
+          },
+          {
+            "term": "拒绝取模偏差",
+            "plainMeaning": "丢弃无法均匀分配到候选区间的随机尾部值。",
+            "codeMapping": "uniform_bounded"
+          },
+          {
+            "term": "空结果",
+            "plainMeaning": "筛选后没有候选，是需要清楚返回和展示的正常业务结果。",
+            "codeMapping": "RECOMMEND_NO_CANDIDATE"
+          }
+        ],
+        "workedExample": {
+          "title": "固定随机数选择候选",
+          "steps": [
+            "Query 要求 category=川菜 且 tag=下饭。",
+            "遍历得到候选 ID [12, 25, 41]。",
+            "固定 RNG 产生可映射到索引 1 的值。",
+            "核心返回 DishId 25，不修改 recommendCount 或历史。"
+          ],
+          "takeaway": "把选择与提交分开，才能稳定测试空集合、单元素和随机边界。"
+        },
+        "misconceptions": [
+          {
+            "claim": "推荐函数应顺便增加推荐次数。",
+            "correction": "这会把纯选择与业务提交混在一起，失败回滚和测试都更困难。"
+          },
+          {
+            "claim": "random % count 永远均匀。",
+            "correction": "当随机数空间不能被 count 整除时，各余数出现次数不同。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "and-filter",
+            "question": "“川菜 + 下饭”的 AND 语义是什么？",
+            "options": [
+              {
+                "id": "either",
+                "text": "满足任意一个条件即可"
+              },
+              {
+                "id": "both",
+                "text": "分类和标签两个条件都满足"
+              },
+              {
+                "id": "after-random",
+                "text": "先抽到菜，再把它改成对应标签"
+              }
+            ],
+            "correctOptionId": "both",
+            "explanation": "AND 查询先确定同时满足所有条件的候选集合。"
+          },
+          {
+            "id": "fixed-rng",
+            "question": "为什么测试要给推荐核心注入固定 RNG？",
+            "options": [
+              {
+                "id": "reproduce",
+                "text": "让相同候选和随机序列稳定复现边界结果"
+              },
+              {
+                "id": "same-production",
+                "text": "让生产环境永远推荐同一道菜"
+              },
+              {
+                "id": "skip-empty",
+                "text": "省略空候选处理"
+              }
+            ],
+            "correctOptionId": "reproduce",
+            "explanation": "可替换随机源让随机逻辑变得可复现，而生产仍使用真实随机源。"
+          }
+        ],
+        "bridgeToCode": "先实现候选过滤、空结果和固定 RNG 测试，再加入生产用随机源；本章不接终端动画。"
+      }
     },
     {
       "id": "recommendation-view",
       "title": "做出有仪式感的抽奖推荐",
       "phase": "推荐核心",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "实现 IDLE→ROLLING→RESULT 状态机、逐渐减速动画和 Enter/Esc/f 快捷交互。",
       "concepts": [
         "有限状态机",
@@ -1202,13 +2362,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 14 章会在同一视图加入排除、去重和权重策略。"
+      "laterReencounter": "第 14 章会在同一视图加入排除、去重和权重策略。",
+      "conceptModule": {
+        "title": "动画预览为什么不是业务推荐",
+        "learningGoal": "用有限状态机区分展示与业务事实，理解 timeout、final_id、RECOMMENDED 和 ACCEPTED 的提交时机。",
+        "phenomenon": {
+          "title": "滚动二十个名字要记几次历史",
+          "observation": "抽奖动画快速显示很多菜名，最后定格一个。若每个预览都更新次数和历史，动画速度会改变业务数据，resize 甚至可能换掉最后结果。",
+          "question": "哪些画面只是展示，哪个状态转换才代表真实推荐或接受？"
+        },
+        "mentalModel": {
+          "summary": "状态机规定每个阶段允许的事件。开始滚动时确定 final_id，TIMEOUT 只更新预览；进入 RESULT 时提交一次 RECOMMENDED，Enter 再提交 ACCEPTED。",
+          "flow": [
+            {
+              "id": "idle-start",
+              "title": "IDLE 接受开始",
+              "explanation": "构建查询并选定 final_id，然后进入 ROLLING。"
+            },
+            {
+              "id": "rolling-tick",
+              "title": "ROLLING 响应 TIMEOUT",
+              "explanation": "更换预览名称并逐步拉长间隔，不写业务历史。"
+            },
+            {
+              "id": "rolling-finish",
+              "title": "定格进入 RESULT",
+              "explanation": "显示 final_id，并提交一次 RECOMMENDED。"
+            },
+            {
+              "id": "result-action",
+              "title": "处理 Enter、Esc、f",
+              "explanation": "Enter 提交 ACCEPTED；Esc 重新开始；f 切换收藏。"
+            },
+            {
+              "id": "persist-command",
+              "title": "持久化业务变化",
+              "explanation": "命令成功后才更新全局模型和画面。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "有限状态机",
+            "plainMeaning": "有限个状态以及每个状态允许接受的事件和转换。",
+            "codeMapping": "RecommendViewState 与 handle_event"
+          },
+          {
+            "term": "超时动画",
+            "plainMeaning": "由 EVENT_TIMEOUT 推进的视觉更新，不阻塞按键和 resize。",
+            "codeMapping": "ROLLING 状态的 next_tick_ms"
+          },
+          {
+            "term": "业务提交",
+            "plainMeaning": "在明确边界把真实动作写入模型、历史和磁盘。",
+            "codeMapping": "command_record_recommended/accepted"
+          },
+          {
+            "term": "键盘交互",
+            "plainMeaning": "Enter、Esc 和 f 在不同状态下拥有明确语义。",
+            "codeMapping": "RecommendView.handle"
+          },
+          {
+            "term": "即时持久化",
+            "plainMeaning": "收藏或接受等修改成功后立即安全写盘。",
+            "codeMapping": "command_execute_and_save"
+          }
+        ],
+        "workedExample": {
+          "title": "滚动中发生 resize",
+          "steps": [
+            "开始时选定 final_id=25。",
+            "多个 TIMEOUT 只更新 preview_id。",
+            "resize 重建 Frame 并按当前状态重绘，final_id 仍是 25。",
+            "定格时提交一条 RECOMMENDED；Enter 时再提交一条 ACCEPTED。"
+          ],
+          "takeaway": "画面可以频繁变化，业务事实只在定义好的状态边界变化。"
+        },
+        "misconceptions": [
+          {
+            "claim": "动画里出现的每个菜名都是一次推荐。",
+            "correction": "它们只是视觉预览，只有最终定格产生 RECOMMENDED。"
+          },
+          {
+            "claim": "窗口 resize 后重新抽一个结果更方便。",
+            "correction": "这会让同一次操作悄悄改变业务结果，破坏可解释性。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "recommended-count",
+            "question": "动画显示 20 个预览名，最后定格一次，应写入几条 RECOMMENDED？",
+            "options": [
+              {
+                "id": "zero",
+                "text": "0 条"
+              },
+              {
+                "id": "one",
+                "text": "1 条"
+              },
+              {
+                "id": "twenty",
+                "text": "20 条"
+              }
+            ],
+            "correctOptionId": "one",
+            "explanation": "只有从 ROLLING 进入 RESULT 的最终定格是一次真实推荐。"
+          },
+          {
+            "id": "resize-rolling",
+            "question": "ROLLING 时发生 resize，正确处理是什么？",
+            "options": [
+              {
+                "id": "redraw-same",
+                "text": "保持同一状态和 final_id，只重建画布并重绘"
+              },
+              {
+                "id": "reroll",
+                "text": "重新抽取 final_id"
+              },
+              {
+                "id": "accept",
+                "text": "自动接受当前预览"
+              }
+            ],
+            "correctOptionId": "redraw-same",
+            "explanation": "resize 是显示条件变化，不应该改变已经选定的业务结果。"
+          }
+        ],
+        "bridgeToCode": "先把 IDLE、ROLLING、RESULT 和事件写成转换表，再实现纯 handle_event，最后接绘制与持久化命令。"
+      }
     },
     {
       "id": "dish-management",
       "title": "让菜单管理真正服务推荐",
       "phase": "管理与历史",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "完成菜品列表、详情、搜索、表单和增删改查，并保证保存失败可回滚。",
       "concepts": [
         "宽字符输入",
@@ -1311,13 +2600,143 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 12 章将表单中的分类和标签占位项替换为真实管理数据。"
+      "laterReencounter": "第 12 章将表单中的分类和标签占位项替换为真实管理数据。",
+      "conceptModule": {
+        "title": "表单修改为什么先写草稿",
+        "learningGoal": "理解 CRUD、草稿、校验、命令与回滚，能保证保存失败时全局内存和磁盘仍保持旧状态。",
+        "phenomenon": {
+          "title": "保存失败后显示哪个名字",
+          "observation": "学习者把“宫保鸡丁”改成新名字，内存先改了，但磁盘替换失败。如果界面显示新名，重启后又变回旧名，状态就自相矛盾。",
+          "question": "一次编辑从输入到持久化成功，应在哪一步真正改变全局状态？"
+        },
+        "mentalModel": {
+          "summary": "表单只修改独立草稿。提交时先校验，再在 AppState 副本执行 Command，副本持久化成功后才与全局状态交换；任一步失败都丢弃副本。",
+          "flow": [
+            {
+              "id": "edit-draft",
+              "title": "编辑 Draft",
+              "explanation": "输入、光标和临时错误都属于表单，不污染模型。"
+            },
+            {
+              "id": "validate-draft",
+              "title": "校验业务规则",
+              "explanation": "检查空名、重复名、长度和引用。"
+            },
+            {
+              "id": "apply-copy",
+              "title": "在模型副本执行",
+              "explanation": "命令修改完整副本并生成结果。"
+            },
+            {
+              "id": "persist-copy",
+              "title": "保存副本",
+              "explanation": "替换式写盘失败时全局状态仍旧。"
+            },
+            {
+              "id": "swap-state",
+              "title": "成功后交换",
+              "explanation": "内存和磁盘在同一提交边界后都代表新状态。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "宽字符输入",
+            "plainMeaning": "在 Windows 输入路径中用宽字符保存中文表单内容。",
+            "codeMapping": "DishForm.name 与输入事件字符"
+          },
+          {
+            "term": "表单状态",
+            "plainMeaning": "尚未提交的字段、焦点、光标和错误提示。",
+            "codeMapping": "DishFormState"
+          },
+          {
+            "term": "CRUD",
+            "plainMeaning": "Create、Read、Update、Delete 四类基础管理操作。",
+            "codeMapping": "dish_command_add/update/delete 与列表/详情读取"
+          },
+          {
+            "term": "校验结果",
+            "plainMeaning": "明确表示成功或某个可操作错误，而不是只返回模糊布尔值。",
+            "codeMapping": "CommandResult 与 ErrorCode"
+          },
+          {
+            "term": "事务回滚",
+            "plainMeaning": "任一步失败后保持提交前的全局状态。",
+            "codeMapping": "副本执行与 app_state_swap"
+          }
+        ],
+        "workedExample": {
+          "title": "编辑后磁盘替换失败",
+          "steps": [
+            "把当前 Dish 复制到表单 Draft。",
+            "学习者修改名称并通过重复检查。",
+            "在 AppState 副本中更新 Dish。",
+            "保存副本失败，丢弃副本并显示“未保存，可重试”。",
+            "全局列表和重启后的文件都仍显示旧名称。"
+          ],
+          "takeaway": "最可靠的回滚不是“尽量改回去”，而是失败前从未提交全局变化。"
+        },
+        "misconceptions": [
+          {
+            "claim": "先修改全局对象，保存失败再逐字段改回去就行。",
+            "correction": "关联字段和计数很容易漏回滚，副本提交更清晰。"
+          },
+          {
+            "claim": "Esc 取消时需要逐字符撤销输入。",
+            "correction": "表单是独立 Draft，直接销毁即可恢复模型视角。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "save-failure-state",
+            "question": "磁盘保存失败后，全局 AppState 应处于什么状态？",
+            "options": [
+              {
+                "id": "old-state",
+                "text": "保持提交前的旧状态"
+              },
+              {
+                "id": "half-new",
+                "text": "保留已经改过的一半字段"
+              },
+              {
+                "id": "pretend",
+                "text": "显示成功并等待下次保存"
+              }
+            ],
+            "correctOptionId": "old-state",
+            "explanation": "只有持久化成功后才交换副本，因此失败不会产生内存与磁盘分裂。"
+          },
+          {
+            "id": "cancel-form",
+            "question": "Esc 取消尚未提交的表单，最可靠的处理是什么？",
+            "options": [
+              {
+                "id": "discard-draft",
+                "text": "销毁独立 Draft，模型不变"
+              },
+              {
+                "id": "restart",
+                "text": "重新启动程序"
+              },
+              {
+                "id": "reverse-typing",
+                "text": "逐字符反向输入"
+              }
+            ],
+            "correctOptionId": "discard-draft",
+            "explanation": "草稿与模型隔离后，取消只需要释放草稿。"
+          }
+        ],
+        "bridgeToCode": "先定义 DishFormState、校验错误和 CommandResult，再完成“新增菜品”的副本执行与失败测试。"
+      }
     },
     {
       "id": "taxonomy-management",
       "title": "用分类和标签控制推荐范围",
       "phase": "管理与历史",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "完成分类、标签管理及删除关联规则，让‘川菜 + 下饭’等组合范围在列表和推荐中共用。",
       "concepts": [
         "一对多",
@@ -1426,13 +2845,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 14 章以同一 Query 签名区分不同去重轮次。"
+      "laterReencounter": "第 14 章以同一 Query 签名区分不同去重轮次。",
+      "conceptModule": {
+        "title": "分类和标签为什么有不同删除规则",
+        "learningGoal": "理解一对多、多对多和引用清理，能让列表与推荐共享完全一致的筛选语义。",
+        "phenomenon": {
+          "title": "删除川菜与删除下饭有什么不同",
+          "observation": "一道菜最多属于一个分类，却可以带多个标签。直接删除被引用对象会留下悬空 ID，或者错误删除整道菜。",
+          "question": "删除分类和标签时，各自的引用应该怎样变化，推荐结果才能继续可信？"
+        },
+        "mentalModel": {
+          "summary": "分类是一对多：Dish 保存一个 category_id；标签是多对多：Dish 保存多个 tag_id。删除动作必须按关系类型执行明确策略，并在操作后重新验证引用。",
+          "flow": [
+            {
+              "id": "find-references",
+              "title": "找出所有引用",
+              "explanation": "删除前枚举受影响的 Dish。"
+            },
+            {
+              "id": "apply-category-rule",
+              "title": "处理分类删除",
+              "explanation": "菜品保留，category_id 置为未分类 0。"
+            },
+            {
+              "id": "apply-tag-rule",
+              "title": "处理标签删除",
+              "explanation": "从每道菜的 tag_ids 中摘除该 ID。"
+            },
+            {
+              "id": "validate-links",
+              "title": "验证引用完整性",
+              "explanation": "任何非零 ID 都必须能查到实体。"
+            },
+            {
+              "id": "share-filter",
+              "title": "复用筛选 predicate",
+              "explanation": "列表与推荐调用同一个 dish_matches_query。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "一对多",
+            "plainMeaning": "一个分类可对应多道菜，而一道菜最多引用一个分类。",
+            "codeMapping": "Dish.category_id 与 CategoryVec"
+          },
+          {
+            "term": "多对多",
+            "plainMeaning": "一道菜可有多个标签，一个标签也可属于多道菜。",
+            "codeMapping": "Dish.tag_ids 与 TagVec"
+          },
+          {
+            "term": "未分类",
+            "plainMeaning": "分类删除后的合法兜底状态，用保留 ID 0 表示。",
+            "codeMapping": "CATEGORY_UNCATEGORIZED"
+          },
+          {
+            "term": "关联清理",
+            "plainMeaning": "删除实体时同步移除或重定向所有引用。",
+            "codeMapping": "command_delete_category/tag"
+          },
+          {
+            "term": "共享过滤器",
+            "plainMeaning": "列表浏览与推荐使用同一条件判断，避免语义漂移。",
+            "codeMapping": "dish_matches_query"
+          }
+        ],
+        "workedExample": {
+          "title": "删除两个被引用对象",
+          "steps": [
+            "删除分类“川菜”，遍历菜品把对应 category_id 改为 0。",
+            "菜品仍存在，可在“未分类”中找到。",
+            "删除标签“下饭”，从所有 tag_ids 向量移除该 ID。",
+            "列表和推荐再次调用同一 predicate，结果一致。"
+          ],
+          "takeaway": "关系不同，删除策略也不同；共同底线是不保留悬空引用。"
+        },
+        "misconceptions": [
+          {
+            "claim": "删除分类时应级联删除所有菜品。",
+            "correction": "课程产品规则是菜品保留并转为未分类。"
+          },
+          {
+            "claim": "多标签筛选默认是 OR。",
+            "correction": "本课程明确使用 AND：选中的标签都必须具备。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "delete-category",
+            "question": "删除普通分类后，引用它的菜品应怎样处理？",
+            "options": [
+              {
+                "id": "delete-dish",
+                "text": "同时删除菜品"
+              },
+              {
+                "id": "uncategorized",
+                "text": "把 category_id 改为未分类"
+              },
+              {
+                "id": "dangling",
+                "text": "保留已经不存在的分类 ID"
+              }
+            ],
+            "correctOptionId": "uncategorized",
+            "explanation": "菜品仍是有效推荐对象，只是分类回到明确的未分类状态。"
+          },
+          {
+            "id": "multi-condition",
+            "question": "筛选“川菜 + 下饭”时，候选菜品必须满足什么？",
+            "options": [
+              {
+                "id": "either",
+                "text": "任一条件"
+              },
+              {
+                "id": "both",
+                "text": "分类和标签两个条件"
+              },
+              {
+                "id": "random-condition",
+                "text": "每次随机选一个条件"
+              }
+            ],
+            "correctOptionId": "both",
+            "explanation": "共享 predicate 使用 AND 语义，列表与推荐必须一致。"
+          }
+        ],
+        "bridgeToCode": "先写删除后的模型不变量测试和 dish_matches_query，再让分类页、标签页、列表页与推荐页共同使用。"
+      }
     },
     {
       "id": "history-and-recency",
       "title": "让历史解释每一次推荐",
       "phase": "管理与历史",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "记录推荐、接受、查看、新增和编辑，支持回跳、容量滚动和多久未被推荐/接受的反查。",
       "concepts": [
         "动作日志",
@@ -1536,13 +3084,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "第 14 章的排除最近规则直接复用 lastRecommendedAt 或 lastAcceptedAt。"
+      "laterReencounter": "第 14 章的排除最近规则直接复用 lastRecommendedAt 或 lastAcceptedAt。",
+      "conceptModule": {
+        "title": "当前状态为什么解释不了过去",
+        "learningGoal": "区分当前模型与动作日志，理解快照、容量上限、时间边界和安全回跳。",
+        "phenomenon": {
+          "title": "昨天为什么推荐了这道菜",
+          "observation": "Dish 只保存最后推荐时间，无法回答昨天那次用了什么分类、哪些标签，也无法区分动画预览、定格和最终接受。",
+          "question": "一条历史记录至少要保存哪些当时事实，才能在数据变化后仍可解释？"
+        },
+        "mentalModel": {
+          "summary": "当前状态回答“现在是什么”，动作日志回答“何时发生了什么”。只有真实业务动作才追加日志，并保存名称与查询快照；对象仍存在时才能回跳。",
+          "flow": [
+            {
+              "id": "business-event",
+              "title": "识别真实动作",
+              "explanation": "RECOMMENDED、ACCEPTED、ADD、EDIT 等有明确语义。"
+            },
+            {
+              "id": "capture-snapshot",
+              "title": "截取当时信息",
+              "explanation": "保存时间、ID、名称和查询条件。"
+            },
+            {
+              "id": "append-entry",
+              "title": "追加日志",
+              "explanation": "使用注入时钟生成可测试时间。"
+            },
+            {
+              "id": "trim-capacity",
+              "title": "维持容量上限",
+              "explanation": "超过 N 条时淘汰最旧记录。"
+            },
+            {
+              "id": "resolve-link",
+              "title": "决定是否回跳",
+              "explanation": "ID 仍存在则进入详情，否则只展示快照。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "动作日志",
+            "plainMeaning": "按时间追加、描述真实业务动作的记录。",
+            "codeMapping": "HistoryEntry 与 ActionType"
+          },
+          {
+            "term": "名称快照",
+            "plainMeaning": "事件发生时的菜名副本，不随后来编辑或删除而改变。",
+            "codeMapping": "HistoryEntry.name_snapshot"
+          },
+          {
+            "term": "容量上限",
+            "plainMeaning": "只保留最近 N 条，避免日志无限占用内存和文件。",
+            "codeMapping": "history_append 的 trim 逻辑"
+          },
+          {
+            "term": "时间边界",
+            "plainMeaning": "明确比较是否包含等于截止时刻，并统一时间来源。",
+            "codeMapping": "Clock.now 与 recency_cutoff"
+          },
+          {
+            "term": "回跳",
+            "plainMeaning": "从历史进入仍存在对象的详情。",
+            "codeMapping": "history_resolve_target"
+          }
+        ],
+        "workedExample": {
+          "title": "重抽前的一次定格",
+          "steps": [
+            "ROLLING 中的预览名称不记录。",
+            "第一次定格追加 RECOMMENDED，保存 Query 快照。",
+            "用户按 Esc 重抽，第一次记录仍保留。",
+            "第二次定格再追加一条；只有按 Enter 才追加 ACCEPTED。"
+          ],
+          "takeaway": "历史记录业务事实，不记录纯视觉帧，也不因后来不满意而改写过去。"
+        },
+        "misconceptions": [
+          {
+            "claim": "动画滚动也是用户看见的内容，应该全部记录。",
+            "correction": "它会污染统计；历史只记定义好的业务动作。"
+          },
+          {
+            "claim": "对象删除后相关历史也应级联删除。",
+            "correction": "历史用于解释过去，应保留快照，只关闭无效回跳。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "reroll-history",
+            "question": "结果定格后用户按 Esc 重抽，第一次定格应怎样记录？",
+            "options": [
+              {
+                "id": "keep-recommended",
+                "text": "保留一条 RECOMMENDED"
+              },
+              {
+                "id": "delete-first",
+                "text": "完全删除第一次结果"
+              },
+              {
+                "id": "accepted",
+                "text": "改记为 ACCEPTED"
+              }
+            ],
+            "correctOptionId": "keep-recommended",
+            "explanation": "定格已经是一条真实推荐事实；Esc 只开始下一次推荐。"
+          },
+          {
+            "id": "history-capacity",
+            "question": "容量 N 已满后追加第 N+1 条，应该淘汰哪一条？",
+            "options": [
+              {
+                "id": "newest",
+                "text": "最新一条"
+              },
+              {
+                "id": "oldest",
+                "text": "最旧一条"
+              },
+              {
+                "id": "random",
+                "text": "随机一条"
+              }
+            ],
+            "correctOptionId": "oldest",
+            "explanation": "保留最近 N 条意味着从队首移除最旧记录。"
+          }
+        ],
+        "bridgeToCode": "先用注入时钟写纯 history_append、容量边界和删除后快照测试，再接 Command 与历史视图。"
+      }
     },
     {
       "id": "recommend-strategies",
       "title": "加入排除、去重和加权策略",
       "phase": "推荐核心",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "实现可解释的最近排除、按查询签名去重和 64 位整数加权随机。",
       "concepts": [
         "最近排除",
@@ -1647,13 +3324,142 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 会把组合筛选、排除、去重和中途收藏放在同一高峰流程中。"
+      "laterReencounter": "Boss 会把组合筛选、排除、去重和中途收藏放在同一高峰流程中。",
+      "conceptModule": {
+        "title": "资格和概率为什么必须分开",
+        "learningGoal": "理解最近排除、查询签名、去重轮次与整数权重，能解释高权重不是必选。",
+        "phenomenon": {
+          "title": "收藏菜为什么仍不一定被选中",
+          "observation": "权重只提高机会，不改变资格。去重状态若在所有筛选间共享，“全部菜品”抽过的条目会错误影响“川菜 + 下饭”。",
+          "question": "怎样先决定谁能参加，再决定合格者各有多大机会？"
+        },
+        "mentalModel": {
+          "summary": "资格过滤与概率选择是两层。先按范围、最近时间和当前查询的去重轮次剔除不合格项，再计算合格项整数权重，在半开区间中命中一个。",
+          "flow": [
+            {
+              "id": "scope-filter",
+              "title": "范围过滤",
+              "explanation": "分类与标签决定基础候选。"
+            },
+            {
+              "id": "recency-filter",
+              "title": "最近排除",
+              "explanation": "按照明确的 recommended 或 accepted 时间语义排除。"
+            },
+            {
+              "id": "cycle-filter",
+              "title": "当前轮次排除",
+              "explanation": "只读取相同查询签名下已经抽过的 ID。"
+            },
+            {
+              "id": "sum-weights",
+              "title": "累加整数权重",
+              "explanation": "用 uint64_t 检查总和溢出。"
+            },
+            {
+              "id": "hit-interval",
+              "title": "命中半开区间",
+              "explanation": "随机值落入 [start,end) 对应的候选。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "最近排除",
+            "plainMeaning": "在指定天数内推荐过或接受过的菜暂不进入候选。",
+            "codeMapping": "exclude_recent 与 RecencyKind"
+          },
+          {
+            "term": "查询签名",
+            "plainMeaning": "把规范化筛选条件编码成去重轮次的身份。",
+            "codeMapping": "query_signature"
+          },
+          {
+            "term": "去重轮次",
+            "plainMeaning": "相同查询下未抽完所有候选前不重复，耗尽后只重置该轮次一次。",
+            "codeMapping": "NoRepeatCycle"
+          },
+          {
+            "term": "整数权重",
+            "plainMeaning": "用整数表示相对机会，避免浮点边界和不可复现比较。",
+            "codeMapping": "dish_weight 与 weighted_pick"
+          },
+          {
+            "term": "溢出保护",
+            "plainMeaning": "累加和乘法前检查是否超过 uint64_t 等类型范围。",
+            "codeMapping": "checked_add_u64"
+          }
+        ],
+        "workedExample": {
+          "title": "普通 1、收藏 3 的区间",
+          "steps": [
+            "两道合格菜的权重分别为 1 和 3，总和为 4。",
+            "普通菜对应 [0,1)，收藏菜对应 [1,4)。",
+            "均匀随机值 0 选普通菜，1、2、3 选收藏菜。",
+            "切换筛选条件后使用另一查询签名的独立轮次。"
+          ],
+          "takeaway": "权重 3 表示约三倍机会，而不是收藏菜必然被选中。"
+        },
+        "misconceptions": [
+          {
+            "claim": "高权重等于保证抽中。",
+            "correction": "权重只改变区间大小，低权重候选仍有非零机会。"
+          },
+          {
+            "claim": "所有筛选范围共用一个去重列表更简单。",
+            "correction": "这会把不同候选集合相互污染，必须按查询签名隔离。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "weight-meaning",
+            "question": "权重 3 与权重 1 表示什么？",
+            "options": [
+              {
+                "id": "guaranteed",
+                "text": "权重 3 的菜必然被选中"
+              },
+              {
+                "id": "three-times",
+                "text": "前者机会约为后者三倍，但两者都可能被选中"
+              },
+              {
+                "id": "exclude-low",
+                "text": "权重 1 的菜被排除"
+              }
+            ],
+            "correctOptionId": "three-times",
+            "explanation": "权重决定相对区间长度，不是确定性优先级。"
+          },
+          {
+            "id": "new-query-cycle",
+            "question": "从“全部菜品”切换到“川菜 + 下饭”后，去重状态应怎样处理？",
+            "options": [
+              {
+                "id": "signature-cycle",
+                "text": "使用新查询签名对应的轮次"
+              },
+              {
+                "id": "global-cycle",
+                "text": "强制沿用全局轮次"
+              },
+              {
+                "id": "clear-history",
+                "text": "清空全部业务历史"
+              }
+            ],
+            "correctOptionId": "signature-cycle",
+            "explanation": "候选集合改变后，去重轮次的身份也必须改变，但历史无需删除。"
+          }
+        ],
+        "bridgeToCode": "先把 candidate_is_eligible 与 weighted_pick 拆成独立函数，再加入查询签名和轮次状态的组合测试。"
+      }
     },
     {
       "id": "release-hardening",
       "title": "把食堂收束成可交付应用",
       "phase": "发布验收",
-      "estimatedSessions": 4,
+      "estimatedSessions": 5,
       "goal": "统一业务 Command，补齐反馈与空状态，并在组合故障、压力和发布构建下验证完整作品。",
       "concepts": [
         "事务边界",
@@ -1761,7 +3567,137 @@
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 只整合并排查这 15 章已经完成的能力，不再讲新接口。"
+      "laterReencounter": "Boss 只整合并排查这 15 章已经完成的能力，不再讲新接口。",
+      "conceptModule": {
+        "title": "模块都通过为什么系统仍会坏",
+        "learningGoal": "理解跨模块不变量、事务边界、故障注入、压力测试与发布验收，能设计可复现的失败场景。",
+        "phenomenon": {
+          "title": "编辑和保存组合起来为什么会不一致",
+          "observation": "表单、命令和存储模块单独测试都成功，不代表“命令副本已修改、文件替换恰好失败”时全局状态仍正确。普通成功路径跑一千次也不会主动触发这个边界。",
+          "question": "哪些规则必须跨模块一直成立？怎样在确定的第 N 步制造失败并检查恢复？"
+        },
+        "mentalModel": {
+          "summary": "可靠性来自可声明的不变量和可控失败点。每个 Command 标出提交边界；故障注入让第 N 次分配或写入稳定失败；端到端检查内存、文件、终端和用户反馈是否一起保持一致。",
+          "flow": [
+            {
+              "id": "state-invariants",
+              "title": "列出不变量",
+              "explanation": "引用完整、历史上限、内存与磁盘提交关系必须始终成立。"
+            },
+            {
+              "id": "mark-boundaries",
+              "title": "标出事务边界",
+              "explanation": "明确哪些变化要么全部提交，要么全部不提交。"
+            },
+            {
+              "id": "inject-failure",
+              "title": "注入确定失败",
+              "explanation": "让指定分配、写入或替换调用失败，而非依赖偶然。"
+            },
+            {
+              "id": "observe-recovery",
+              "title": "检查恢复状态",
+              "explanation": "验证旧内存、旧文件、终端模式和错误提示。"
+            },
+            {
+              "id": "release-accept",
+              "title": "按发布配置验收",
+              "explanation": "重新构建、运行组合测试并留下可复现证据。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "事务边界",
+            "plainMeaning": "一组相关变化跨过边界后全部可见；失败时全部保持旧状态。",
+            "codeMapping": "command_execute_and_save"
+          },
+          {
+            "term": "故障注入",
+            "plainMeaning": "可控地让第 N 次分配、写入或替换失败。",
+            "codeMapping": "mem_fail_after 与 store_fault"
+          },
+          {
+            "term": "压力测试",
+            "plainMeaning": "长序列、大数据和不同操作顺序下寻找累积问题。",
+            "codeMapping": "test_app_flow 的随机但可复现序列"
+          },
+          {
+            "term": "发布构建",
+            "plainMeaning": "使用最终编译器、警告与优化配置重新构建可交付程序。",
+            "codeMapping": "CMake Release、/W4、/WX"
+          },
+          {
+            "term": "可操作反馈",
+            "plainMeaning": "错误信息说明什么没保存、当前状态是否安全以及下一步能做什么。",
+            "codeMapping": "CommandResult.message 与状态栏"
+          }
+        ],
+        "workedExample": {
+          "title": "替换文件在提交点失败",
+          "steps": [
+            "在副本中完成菜品编辑并通过模型校验。",
+            "临时文件写入和回读成功。",
+            "ReplaceFileW 被故障注入设为失败。",
+            "丢弃副本，原 AppState 与正式文件保持旧值。",
+            "界面提示“未保存，原数据仍安全，可重试”，退出时恢复终端模式。"
+          ],
+          "takeaway": "可靠性验证要穿过模块边界，检查用户真正会依赖的整体结果。"
+        },
+        "misconceptions": [
+          {
+            "claim": "多加 retry、catch 或默认值就等于一致性。",
+            "correction": "这些手段可能掩盖提交边界错误；先定义不变量和失败语义。"
+          },
+          {
+            "claim": "连续运行很多次成功路径就证明失败路径可靠。",
+            "correction": "没有主动触发分配、写入和替换失败，就没有验证恢复。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "integration-failure-test",
+            "question": "模块单测都通过，但组合保存失败仍有风险，最需要什么验证？",
+            "options": [
+              {
+                "id": "fault-e2e",
+                "text": "跨模块端到端故障注入"
+              },
+              {
+                "id": "button-color",
+                "text": "更换按钮颜色"
+              },
+              {
+                "id": "normal-start",
+                "text": "再运行一次普通启动"
+              }
+            ],
+            "correctOptionId": "fault-e2e",
+            "explanation": "只有在真实提交链中控制失败点，才能验证内存、文件和反馈的一致性。"
+          },
+          {
+            "id": "actionable-error",
+            "question": "保存失败后的提示至少要告诉学习者什么？",
+            "options": [
+              {
+                "id": "only-error",
+                "text": "只显示“错误”"
+              },
+              {
+                "id": "state-next",
+                "text": "当前是否已保存、旧数据是否安全，以及下一步能做什么"
+              },
+              {
+                "id": "address",
+                "text": "内部内存地址"
+              }
+            ],
+            "correctOptionId": "state-next",
+            "explanation": "可操作反馈帮助用户判断风险并恢复，不暴露无意义实现细节。"
+          }
+        ],
+        "bridgeToCode": "先为每个 Command 写出提交边界和不变量表，再构造分配、写入、替换、resize 与退出交错的故障矩阵。"
+      }
     }
   ],
   "boss": {

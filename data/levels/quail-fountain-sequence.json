@@ -143,7 +143,7 @@
           "id": "seconds-split",
           "prompt": "读取 hours、minutes、seconds，校验 hours≥0 且 minutes/seconds 在 0–59，再同时输出总秒数和补零后的时钟格式；非法时间必须以状态 1 结束且不输出。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int hours, minutes, seconds;\n  if (scanf(\"%d %d %d\", &hours, &minutes, &seconds) != 3) return 1;\n  /* 校验范围，计算总秒数并输出 HH:MM:SS */\n  return 0;\n}\n"
+          "main.c": "#include <stdio.h>\nint main(void) {\n  int hours, minutes, seconds;\n  if (scanf(\"%d %d %d\", &hours, &minutes, &seconds) != 3) return 1;\n  if (hours < 0 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return 1;\n  int total = hours * 3600 + minutes * 60 + seconds;\n  printf(\"total_seconds=%d,clock=%02d:%02d:%02d\\n\", total, hours, minutes, seconds);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
@@ -180,7 +180,7 @@
           "id": "centimeter-split",
           "prompt": "读取 meters、centimeters、millimeters，校验 meters≥0、centimeters 在 0–99、millimeters 在 0–9，再输出总毫米数和补零格式；非法量值必须以状态 1 结束且不输出。",
           "starterFiles": {
-            "main.c": "#include <stdio.h>\nint main(void) {\n  int meters, centimeters, millimeters;\n  if (scanf(\"%d %d %d\", &meters, &centimeters, &millimeters) != 3) return 1;\n  /* 校验范围，换算总毫米数并输出 */\n  return 0;\n}\n"
+          "main.c": "#include <stdio.h>\nint main(void) {\n  int meters, centimeters, millimeters;\n  if (scanf(\"%d %d %d\", &meters, &centimeters, &millimeters) != 3) return 1;\n  if (meters < 0 || centimeters < 0 || centimeters > 99 || millimeters < 0 || millimeters > 9) return 1;\n  int total = meters * 1000 + centimeters * 10 + millimeters;\n  printf(\"total_mm=%d,measure=%d:%02d:%d\\n\", total, meters, centimeters, millimeters);\n  return 0;\n}\n"
           },
           "grader": {
             "kind": "stdin-stdout-cases",
@@ -215,21 +215,21 @@
         }
       ],
       "hints": [
-        {
-          "tier": 1,
-          "kind": "observation-focus",
-          "text": "先写出一个正常值和一个小于换算单位的值。"
-        },
-        {
-          "tier": 2,
-          "kind": "code-region",
-          "text": "检查 scanf 返回值、整数除法、取余和 printf 格式。"
-        },
-        {
-          "tier": 3,
-          "kind": "cause-and-direction",
-          "text": "商表示完整单位，余数表示不足一个完整单位的部分。"
-        }
+              {
+                      "tier": 1,
+                      "kind": "observation-focus",
+                      "text": "先写出一个正常值。2 小时 5 分 9 秒应换算为 7509 秒；小时不能为负数，分钟和秒都必须在 0–59。"
+              },
+              {
+                      "tier": 2,
+                      "kind": "code-region",
+                      "text": "先检查 scanf 是否读到了 3 个整数；任一数值越界就 return 1。总秒数用 hours * 3600 + minutes * 60 + seconds，输出格式是 total_seconds=%d,clock=%02d:%02d:%02d。"
+              },
+              {
+                      "tier": 3,
+                      "kind": "code-region",
+                      "text": "程序顺序是：读取并检查输入数量 → 检查范围 → 计算 total → printf 输出。格式中的 %02d 会把分钟、秒补成两位。"
+              }
       ],
       "fullSolutionPolicy": {
         "availableAfterTier": 3,

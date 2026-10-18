@@ -11,6 +11,7 @@ import {
   sanitizeWeekCard,
   submitAttempt,
   submitProjectCheckpoint,
+  submitProjectConceptCheck,
   summary
 } from '../shared/park-domain.mjs';
 
@@ -40,6 +41,7 @@ function richProjectCourse() {
   assert.ok(project, '测试基线须包含蛋仔食堂项目');
   project.guidancePolicy = {
     mode: 'fully-guided-until-final-capstone',
+    conceptLessonsPerChapter: 1,
     guidedLessonsPerChapter: 4,
     independentCheckpointPerChapter: true,
     cumulativeArtifact: true,
@@ -148,6 +150,19 @@ function projectInput(projectId, checkpointId, requestId, overrides = {}, course
   };
 }
 
+function projectConceptInput(projectId, chapterId, checkId, selectedOptionId, requestId, overrides = {}, course = COURSE) {
+  const project = course.projects.find(item => item.id === projectId);
+  return {
+    requestId,
+    projectId,
+    contentVersion: project.version,
+    chapterId,
+    checkId,
+    selectedOptionId,
+    ...overrides
+  };
+}
+
 function flow(initial = freshProgress(COURSE, 'learner-1'), course = COURSE) {
   return {
     progress: initial,
@@ -161,6 +176,12 @@ function flow(initial = freshProgress(COURSE, 'learner-1'), course = COURSE) {
     project(input) {
       const number = ++this.clock;
       const output = submitProjectCheckpoint(course, this.progress, input, { id: `attempt-${number}`, submittedAt: iso(number) });
+      this.progress = output.progress;
+      return output;
+    },
+    concept(input) {
+      const number = ++this.clock;
+      const output = submitProjectConceptCheck(course, this.progress, input, { id: `concept-attempt-${number}`, submittedAt: iso(number) });
       this.progress = output.progress;
       return output;
     }
@@ -209,7 +230,7 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
 
 test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
-  assert.equal(indexOnly.publishedRevision, 4);
+  assert.equal(indexOnly.publishedRevision, 5);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
@@ -220,6 +241,23 @@ test('the checked-in schema-v2 documents publish the V3 early curriculum and hyd
   assert.equal(COURSE.ranks[8].title, '无敌凤凰蛋');
   assert.doesNotThrow(() => sanitizeProgress(indexOnly, INITIAL_PROGRESS));
   assert.doesNotThrow(() => sanitizeWeekCard(indexOnly, INITIAL_WEEK_CARD));
+});
+
+test('三层提示与完整答案分别保存，第四层占位提示不能进入课程数据', () => {
+  const lesson = COURSE.levels.find(level => level.id === 'quail-fountain-sequence').content;
+  const independent = lesson.steps.find(step => step.type === 'independent-variation');
+  assert.deepEqual(independent.hints.map(hint => hint.tier), [1, 2, 3]);
+  assert.equal(independent.fullSolutionPolicy.availableAfterTier, 3);
+  for (const variant of independent.variants) {
+    assert.match(variant.fullSolution, /int main\(void\)/);
+  }
+
+  const malformed = clone(LEVEL_DOCS);
+  const step = malformed.find(level => level.id === lesson.id).steps.find(step => step.id === independent.id);
+  step.hints.push({ tier: 4, kind: 'full-code', text: '第四层将显示当前变式的完整 C 代码。' });
+  assert.throws(() => sanitizeCourse(RAW_COURSE, malformed), /提示阶梯须为列表且不超过 3 项/);
+  step.hints.pop();
+  assert.doesNotThrow(() => sanitizeCourse(RAW_COURSE, malformed));
 });
 
 test('project validation accepts a complete guided curriculum while preserving legacy project documents', () => {
@@ -314,11 +352,134 @@ test('guided complete-build projects keep lesson counts and session totals consi
 
   invalid(project => {
     project.chapters[0].estimatedSessions = project.guidancePolicy.guidedLessonsPerChapter;
-  }, /未给独立检查预留课时/);
+  }, /未给概念理解和独立检查预留课时/);
 
   invalid(project => {
     project.estimatedSessions.minimum += 1;
   }, /预计场次必须覆盖全部章节场次/);
+});
+
+test('code delivery contract is opt-in and requires every chapter and guided step to reference an external snapshot package', () => {
+  function contractedFixture() {
+    const fixture = guidedCompleteProjectCourse();
+    fixture.project.guidancePolicy.codeDeliveryContractVersion = 1;
+    fixture.project.codeDelivery = {
+      schemaVersion: 1,
+      packageFile: `${'project-code'}/${fixture.project.id}.json`,
+      packageSha256: 'a'.repeat(64),
+      baselineStateId: 'project-start',
+      finalStateId: 'project-final'
+    };
+    for (const [chapterIndex, chapter] of fixture.project.chapters.entries()) {
+      chapter.snapshotStateId = `chapter-${chapterIndex + 1}-snapshot`;
+      for (const [stepIndex, step] of chapter.guidedSteps.entries()) step.codeStepId = `code-${chapterIndex + 1}-${stepIndex + 1}`;
+    }
+    return fixture;
+  }
+
+  const accepted = contractedFixture();
+  const sanitized = sanitizeCourse(accepted.course).projects.find(project => project.id === accepted.project.id);
+  assert.equal(sanitized.guidancePolicy.codeDeliveryContractVersion, 1);
+  assert.equal(sanitized.chapters[0].guidedSteps[0].codeStepId, 'code-1-1');
+  assert.equal(sanitized.chapters[0].snapshotStateId, 'chapter-1-snapshot');
+
+  const legacy = guidedCompleteProjectCourse();
+  assert.doesNotThrow(() => sanitizeCourse(legacy.course), '未迁移的旧作品仍须可读取');
+
+  for (const keepReference of ['snapshotStateId', 'codeStepId']) {
+    const orphanedReferences = contractedFixture();
+    delete orphanedReferences.project.codeDelivery;
+    delete orphanedReferences.project.guidancePolicy.codeDeliveryContractVersion;
+    if (keepReference === 'snapshotStateId') {
+      for (const chapter of orphanedReferences.project.chapters) {
+        for (const step of chapter.guidedSteps) delete step.codeStepId;
+      }
+    } else {
+      for (const chapter of orphanedReferences.project.chapters) delete chapter.snapshotStateId;
+    }
+    assert.throws(
+      () => sanitizeCourse(orphanedReferences.course),
+      /代码快照或代码步骤引用时必须显式启用代码交付合同版本/,
+      `${keepReference} 单独存在时也不能脱离代码交付合同`
+    );
+  }
+
+  const uncontractedPackage = contractedFixture();
+  delete uncontractedPackage.project.guidancePolicy.codeDeliveryContractVersion;
+  for (const chapter of uncontractedPackage.project.chapters) {
+    delete chapter.snapshotStateId;
+    for (const step of chapter.guidedSteps) delete step.codeStepId;
+  }
+  assert.throws(
+    () => sanitizeCourse(uncontractedPackage.course),
+    /作品提供代码包时必须显式启用代码交付合同版本/
+  );
+
+  for (const [mutator, pattern] of [
+    [fixture => delete fixture.project.codeDelivery, /必须提供外置代码包/],
+    [fixture => delete fixture.project.chapters[0].snapshotStateId, /缺少章末完整快照编号/],
+    [fixture => delete fixture.project.chapters[0].guidedSteps[0].codeStepId, /缺少代码包步骤编号/],
+    [fixture => { fixture.project.codeDelivery.packageFile = 'levels/source.json'; }, /必须位于 data\/project-code/],
+    [fixture => { fixture.project.codeDelivery.packageSha256 = 'not-a-digest'; }, /小写 SHA-256/],
+    [fixture => { fixture.project.guidancePolicy.codeDeliveryContractVersion = 2; }, /合同版本无效/]
+  ]) {
+    const fixture = contractedFixture();
+    mutator(fixture);
+    assert.throws(() => sanitizeCourse(fixture.course), pattern);
+  }
+});
+
+test('蛋仔食堂的 15 章都先解释概念，再进入三个代码步骤和独立检查', () => {
+  const project = COURSE.projects.find(item => item.id === 'goose-food-street-project');
+  assert.equal(project.version, 3);
+  assert.deepEqual(project.estimatedSessions, { minimum: 75, typical: 79 });
+  assert.equal(project.guidancePolicy.conceptLessonsPerChapter, 1);
+  assert.equal(project.guidancePolicy.guidedLessonsPerChapter, 3);
+  assert.equal(project.chapters.length, 15);
+
+  for (const chapter of project.chapters) {
+    assert.equal(chapter.estimatedSessions, 5, `${chapter.id} 应有概念、三段代码和独立检查共 5 课时`);
+    assert.ok(chapter.conceptModule, `${chapter.id} 应有概念理解模块`);
+    assert.equal(chapter.conceptModule.checks.length >= 2, true, `${chapter.id} 至少应有两道理解题`);
+    assert.equal(chapter.guidedSteps.length, 3, `${chapter.id} 应有三个代码引导步骤`);
+    const explained = new Set(chapter.conceptModule.terms.map(item => item.term));
+    assert.equal(chapter.concepts.every(term => explained.has(term)), true, `${chapter.id} 的概念标签都应有白话解释`);
+  }
+
+  const frameChapter = project.chapters.find(item => item.id === 'frame-buffer');
+  for (const term of ['Frame', 'Cell', 'VT 帧编码']) {
+    const explanation = frameChapter.conceptModule.terms.find(item => item.term === term);
+    assert.ok(explanation, `Frame 章节应解释 ${term}`);
+    assert.ok(explanation.plainMeaning.trim());
+    assert.ok(explanation.codeMapping.trim());
+  }
+});
+
+
+
+test('完整引导课程拒绝缺失、未覆盖或不可判定的概念模块', () => {
+  function invalid(mutator, pattern) {
+    const fixture = guidedCompleteProjectCourse();
+    mutator(fixture.project.chapters[0]);
+    assert.throws(() => sanitizeCourse(fixture.course), pattern);
+  }
+
+  invalid(chapter => {
+    delete chapter.conceptModule;
+  }, /缺少代码教学字段/);
+
+  invalid(chapter => {
+    const requiredTerm = chapter.concepts[0];
+    chapter.conceptModule.terms = chapter.conceptModule.terms.filter(item => item.term !== requiredTerm);
+  }, /概念缺少白话解释/);
+
+  invalid(chapter => {
+    chapter.conceptModule.checks[0].correctOptionId = 'missing-option';
+  }, /正确选项不存在/);
+
+  invalid(chapter => {
+    chapter.conceptModule.checks[0].options[1].id = chapter.conceptModule.checks[0].options[0].id;
+  }, /概念理解题选项编号重复/);
 });
 
 test('V3 binds the first two ranks to C17 and the third rank to the deterministic Linux terminal', () => {
@@ -438,6 +599,10 @@ test('course validation rejects incomplete hydration, index/detail drift, mirror
   const mirror = clone(LEVEL_DOCS);
   mirror.find(item => item.id === 'goose-food-street-project').story = 'changed story';
   assert.throws(() => sanitizeCourse(RAW_COURSE, mirror), /作品镜像与课程索引不一致/);
+
+  const conceptMirror = clone(LEVEL_DOCS);
+  conceptMirror.find(item => item.id === 'goose-food-street-project').chapters[0].conceptModule.checks[0].question = 'changed question';
+  assert.throws(() => sanitizeCourse(RAW_COURSE, conceptMirror), /作品镜像与课程索引不一致/);
 
   const topUnknown = clone(RAW_COURSE);
   topUnknown.unknown = true;
@@ -609,7 +774,7 @@ test('viewing a complete answer requires an unused equivalent variation before a
   playToIndependentVariation(run, levelId, 'solution-path');
 
   run.level(levelInput(levelId, 'view-solution', {
-    variantId: firstVariant.id, answer: 'copied complete answer', hintLevel: 3, viewedFullAnswer: true, passed: true, independent: false
+    variantId: firstVariant.id, action: 'reveal', answer: '', hintLevel: 3, viewedFullAnswer: true, passed: false, independent: false
   }));
   assert.equal(run.progress.current.activityId, levelId);
   assert.equal(run.progress.current.stepId, variationStep.id);
@@ -617,19 +782,72 @@ test('viewing a complete answer requires an unused equivalent variation before a
   assert.equal(run.progress.xp.total, 10);
 
   const exposed = run.level(levelInput(levelId, 'clear-exposed', { variantId: firstVariant.id }));
-  assert.equal(exposed.result.levelCompleted, false);
+  assert.equal(exposed.result.levelCompleted, true);
   assert.equal(exposed.result.starAwarded, false);
-  assert.equal(exposed.result.xpAwarded, 0);
-  assert.equal(run.progress.current.activityId, levelId);
-  assert.equal(run.progress.current.stepId, variationStep.id);
+  assert.equal(exposed.result.xpAwarded, 25);
+  assert.equal(run.progress.current.activityId, 'quail-piano-output');
+  assert.equal(run.progress.current.stepId, 'predict');
   assert.equal(run.progress.awardLedger.some(item => item.kind === 'star'), false);
 
   const recovered = run.level(levelInput(levelId, 'clear-replacement', { variantId: replacement.id }));
-  assert.equal(recovered.result.levelCompleted, true);
+  assert.equal(recovered.result.levelCompleted, false, '已完成章节的独立复验只补星，不重复完成');
   assert.equal(recovered.result.starAwarded, true);
-  assert.equal(recovered.result.xpAwarded, 25);
+  assert.equal(recovered.result.xpAwarded, 0);
   assert.equal(run.progress.current.activityId, 'quail-piano-output');
   assert.equal(run.progress.awardLedger.find(item => item.kind === 'star').sourceId, replacement.id);
+});
+
+test('引导修改查看思路不需要变式编号，但独立变式的答案记录仍须编号', () => {
+  const run = flow();
+  const levelId = 'quail-fountain-sequence';
+  const steps = COURSE.levels.find(level => level.id === levelId).content.steps;
+  for (const step of steps.slice(0, 3)) {
+    run.level(levelInput(levelId, `guided-prior-${step.id}`, { stepId: step.id, variantId: '', independent: false }));
+  }
+  const input = levelInput(levelId, 'guided-after-solution', {
+    stepId: 'short-edit', variantId: '', hintLevel: 3, viewedFullAnswer: true, independent: false
+  });
+  const result = run.level(input);
+  assert.equal(result.progress.current.stepId, 'independent-variation');
+  assert.equal(result.progress.attempts.at(-1).payload.viewedFullAnswer, true);
+  assert.equal(result.result.starAwarded, false);
+  assert.doesNotThrow(() => sanitizeProgress(COURSE, clone(result.progress)));
+  assert.throws(() => run.level({ ...input, requestId: 'independent-missing-variant', stepId: 'independent-variation' }), /须记录变式编号/);
+});
+
+test('全部变式看过答案后，练习通过仍推进章节，重放和刷新不刷经验或星星', () => {
+  const levelId = 'quail-fountain-sequence';
+  const step = COURSE.levels.find(level => level.id === levelId).content.steps.find(step => step.type === 'independent-variation');
+  const run = flow();
+  playToIndependentVariation(run, levelId, 'assisted-progress');
+  for (const variant of step.variants) {
+    const reveal = run.level(levelInput(levelId, `reveal-${variant.id}`, {
+      action: 'reveal', variantId: variant.id, answer: '', hintLevel: 3,
+      viewedFullAnswer: true, passed: false, independent: false
+    }));
+    assert.equal(reveal.result.levelCompleted, false);
+  }
+  const payload = levelInput(levelId, 'assisted-clear', {
+    variantId: step.variants.at(-1).id, hintLevel: 3, viewedFullAnswer: true, independent: false
+  });
+  const failed = run.level({ ...payload, requestId: 'assisted-failed', passed: false });
+  assert.equal(failed.result.levelCompleted, false);
+  const passed = run.level(payload);
+  assert.equal(passed.result.levelCompleted, true);
+  assert.equal(passed.result.starAwarded, false);
+  assert.equal(passed.result.xpAwarded, 25);
+  assert.equal(run.progress.current.activityId, 'quail-piano-output');
+  assert.equal(run.progress.rankStates.find(rank => rank.rankId === 'quail').bossStatus, 'not-started');
+  const reloaded = flow(sanitizeProgress(COURSE, clone(run.progress)));
+  const replay = reloaded.level(payload);
+  assert.equal(replay.result.replayed, true);
+  const repeated = submitAttempt(COURSE, reloaded.progress, { ...payload, requestId: 'assisted-repeated' }, {
+    id: 'assisted-repeat-after-reload', submittedAt: iso(30)
+  });
+  assert.equal(repeated.result.levelCompleted, false);
+  assert.equal(repeated.result.xpAwarded, 0);
+  assert.equal(repeated.result.starAwarded, false);
+  assert.equal(reloaded.progress.current.activityId, 'quail-piano-output');
 });
 
 test('the last lesson unlocks and advances to the online Boss, whose checkpoints resume in order', () => {
@@ -709,6 +927,80 @@ test('an assisted project checkpoint can later earn its star, and the Boss promo
   assert.equal(promoted.result.rankPromoted, 'ostrich');
   assert.equal(promoted.result.tokenAwarded, 'trophy-food-street-sign');
   assert.equal(run.progress.current.rankId, 'ostrich');
+});
+
+test('概念理解由服务端判题并留痕，但不发奖励、不完成章节或越过章节顺序', () => {
+  const run = flow();
+  for (const rankId of ['quail', 'pigeon', 'chicken']) completeOnlineRank(run, rankId);
+  assert.equal(run.progress.current.rankId, 'goose');
+
+  const project = COURSE.projects.find(item => item.id === 'goose-food-street-project');
+  const chapter = project.chapters[0];
+  const check = chapter.conceptModule.checks[0];
+  const wrongOption = check.options.find(item => item.id !== check.correctOptionId);
+  const before = clone(run.progress);
+
+  const wrongInput = projectConceptInput(project.id, chapter.id, check.id, wrongOption.id, 'concept-wrong');
+  const wrong = run.concept(wrongInput);
+  assert.equal(wrong.result.passed, false);
+  assert.equal(wrong.feedback.explanation, check.explanation);
+  assert.equal(run.progress.conceptAttempts.length, 1);
+  assert.equal(run.progress.revision, before.revision + 1);
+  assert.deepEqual(run.progress.xp, before.xp);
+  assert.deepEqual(run.progress.awardLedger, before.awardLedger);
+  assert.deepEqual(run.progress.projectArtifacts, before.projectArtifacts);
+  assert.deepEqual(run.progress.current, before.current);
+
+  const correctInput = projectConceptInput(project.id, chapter.id, check.id, check.correctOptionId, 'concept-correct');
+  const correct = run.concept(correctInput);
+  assert.equal(correct.result.passed, true);
+  assert.equal(run.progress.conceptAttempts.length, 2);
+  assert.deepEqual(run.progress.xp, before.xp);
+  assert.deepEqual(run.progress.awardLedger, before.awardLedger);
+  assert.deepEqual(run.progress.projectArtifacts, before.projectArtifacts);
+
+  const replay = submitProjectConceptCheck(COURSE, run.progress, correctInput, {
+    id: 'unused-on-idempotent-replay',
+    submittedAt: iso(++run.clock)
+  });
+  assert.equal(replay.result.replayed, true);
+  assert.equal(replay.progress.revision, run.progress.revision);
+  assert.equal(replay.progress.conceptAttempts.length, 2);
+
+  assert.throws(
+    () => submitProjectConceptCheck(COURSE, run.progress, {
+      ...correctInput,
+      requestId: 'concept-unknown-option',
+      selectedOptionId: 'unknown-option'
+    }, { id: 'concept-unknown-option-attempt', submittedAt: iso(++run.clock) }),
+    error => error.status === 400 && error.code === 'concept_option_not_found'
+  );
+
+  assert.throws(
+    () => submitProjectConceptCheck(COURSE, run.progress, {
+      ...correctInput,
+      requestId: 'concept-wrong-version',
+      contentVersion: project.version - 1
+    }, { id: 'concept-wrong-version-attempt', submittedAt: iso(++run.clock) }),
+    error => error.status === 409 && error.code === 'content_version_conflict'
+  );
+
+  const nextChapter = project.chapters[1];
+  const nextCheck = nextChapter.conceptModule.checks[0];
+  assert.throws(
+    () => submitProjectConceptCheck(COURSE, run.progress, projectConceptInput(
+      project.id,
+      nextChapter.id,
+      nextCheck.id,
+      nextCheck.correctOptionId,
+      'concept-next-chapter'
+    ), { id: 'concept-next-chapter-attempt', submittedAt: iso(++run.clock) }),
+    error => error.status === 409 && error.code === 'checkpoint_locked'
+  );
+
+  const forged = clone(run.progress);
+  forged.conceptAttempts[0].result.passed = true;
+  assert.throws(() => sanitizeProgress(COURSE, forged), /概念理解尝试题目、选项或判定/);
 });
 
 test('a full nine-rank playthrough reaches course completion without duplicated rewards', () => {
