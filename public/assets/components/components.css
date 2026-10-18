@@ -1,0 +1,22 @@
+eggy-select, eggy-week-card, eggy-notice { display: block; min-width: 0; }
+eggy-select { position: relative; }
+eggy-select > select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.15rem;
+}
+eggy-select::after {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  content: '';
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+eggy-notice[hidden] { display: none; }
+eggy-comfort-controls { display: flex; align-items: center; gap: 8px; }
+eggy-week-card .error-message { color: var(--red, #ad3636); }

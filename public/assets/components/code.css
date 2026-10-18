@@ -1,0 +1,28 @@
+eggy-code { display: block; position: relative; min-width: 0; color: #e9f5ff; background: #142b3f; border-radius: 17px; }
+/* Text and its mirror must switch atomically, even under global motion rules. */
+eggy-code, eggy-code * { transition-property: none; }
+eggy-code .eggy-code__pre, eggy-code .eggy-code__input {
+  box-sizing: border-box; margin: 0; padding: 15px; border: 2px solid #294862; border-radius: 17px;
+  font: 13px/1.7 ui-monospace, "SFMono-Regular", Consolas, monospace; font-variant-ligatures: none;
+  letter-spacing: normal; tab-size: 2; text-align: left;
+}
+eggy-code .eggy-code__pre { width: 100%; overflow: auto; color: #e9f5ff; background: #142b3f; white-space: pre; }
+eggy-code .eggy-code__pre code { padding: 0; font: inherit; white-space: inherit; background: none; color: inherit; }
+eggy-code .eggy-code__input { display: block; width: 100%; min-height: 230px; color: #e9f5ff; background: #142b3f; caret-color: #ffe16c; resize: vertical; white-space: pre; overflow: auto; }
+eggy-code[data-editor] .eggy-code__pre { display: none; position: absolute; inset: 0 auto auto 0; overflow: hidden; pointer-events: none; border-color: transparent; }
+eggy-code[data-editor][data-highlight="highlighted"]:not([data-composing]) .eggy-code__pre { display: block; }
+eggy-code[data-editor][data-highlight="highlighted"]:not([data-composing]) .eggy-code__input { position: relative; background: transparent; color: transparent; -webkit-text-fill-color: transparent; }
+eggy-code .eggy-code__input::selection { background: rgb(96 165 250 / .35); }
+eggy-code .hljs-comment, eggy-code .hljs-quote { color: #94b2c7; }
+eggy-code .hljs-keyword, eggy-code .hljs-selector-tag, eggy-code .hljs-literal { color: #ffb4c4; }
+eggy-code .hljs-string, eggy-code .hljs-regexp { color: #a4e5b6; }
+eggy-code .hljs-number, eggy-code .hljs-attr { color: #ffe196; }
+eggy-code .hljs-type, eggy-code .hljs-built_in { color: #92d7ff; }
+eggy-code .hljs-title, eggy-code .hljs-variable, eggy-code .hljs-symbol { color: #cbbaff; }
+eggy-code .hljs-meta { color: #9acaff; }
+eggy-code .hljs-subst { color: #e9f5ff; }
+@media (forced-colors: active) {
+  eggy-code[data-editor][data-highlight="highlighted"]:not([data-composing]) .eggy-code__pre { display: none; }
+  eggy-code[data-editor][data-highlight="highlighted"]:not([data-composing]) .eggy-code__input { background: Canvas; color: CanvasText; -webkit-text-fill-color: CanvasText; caret-color: CanvasText; }
+  eggy-code .eggy-code__pre, eggy-code .eggy-code__pre span { color: CanvasText; background: Canvas; }
+}

@@ -6,70 +6,76 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#72c8ff">
   <title>蛋仔编程乐园</title>
-  <link rel="stylesheet" href="/assets/park.css">
+  <link rel="icon" type="image/png" href="/assets/brand/eggy-programming-park-icon.png">
+  <link rel="stylesheet" href="/assets/park.css?v=mastery-challenges-5">
   <link rel="stylesheet" href="/assets/interaction.css">
+  <link rel="stylesheet" href="/assets/brand.css">
+  <link rel="stylesheet" href="/assets/characters.css">
+  <link rel="stylesheet" href="/assets/components/components.css">
 </head>
 <body class="park-body">
   <a class="skip-link" href="#park-main">跳到主要内容</a>
 
   <header class="park-topbar">
-    <a class="park-brand" href="#lobby" data-route="lobby" aria-label="蛋仔编程乐园大厅">
-      <span class="brand-egg" aria-hidden="true"><span>蛋</span></span>
-      <span><strong>蛋仔编程乐园</strong><small>从第一行代码，玩到自己的作品</small></span>
+    <a class="park-brand site-brand" href="#lobby" data-route="lobby" aria-label="蛋仔编程乐园大厅">
+      <img class="site-wordmark" src="/assets/brand/eggy-programming-park-logo.png" alt="蛋仔编程乐园" width="600" height="200" decoding="async">
+      <small class="site-brand-tagline">从第一行代码，玩到自己的作品</small>
     </a>
 
     <nav class="park-nav" aria-label="乐园导航">
       <a href="#lobby" data-route="lobby" aria-current="page">蛋仔岛大厅</a>
-      <a href="#map" data-route="map">乐园地图</a>
+      <a href="#map" data-route="map">段位地图</a>
       <a href="#honors" data-route="honors">荣誉殿堂</a>
       <a href="#week" data-route="week">本周游玩卡</a>
     </nav>
 
     <div class="topbar-tools">
       <div class="player-hud" id="player-hud" aria-label="当前成长信息">
+        <span class="hud-rank-art" aria-hidden="true"></span>
         <span class="hud-rank">正在读取段位</span>
         <span class="hud-level">Lv. --</span>
         <span class="hud-stars" aria-label="星星">-- 星</span>
       </div>
-      <button class="utility-button" type="button" data-comfort="sound" aria-pressed="false">
+      <eggy-comfort-controls><button class="utility-button" type="button" data-comfort="sound" aria-pressed="false">
         <span class="tool-symbol sound-symbol" aria-hidden="true"></span>
         <span data-comfort-label>声音已开</span>
       </button>
       <button class="utility-button" type="button" data-comfort="motion" aria-pressed="false">
         <span class="tool-symbol motion-symbol" aria-hidden="true"></span>
         <span data-comfort-label>标准动效</span>
-      </button>
+      </button></eggy-comfort-controls>
       <a class="manager-link" href="/admin.html">岛务管理处</a>
     </div>
   </header>
 
-  <div id="app-notice" class="app-notice" role="status" aria-live="polite" hidden></div>
+  <eggy-notice id="app-notice" class="app-notice" role="status" aria-live="polite" hidden duration="4600"></eggy-notice>
 
   <main id="park-main" tabindex="-1">
     <section id="loading-view" class="state-view" aria-labelledby="loading-title">
-      <div class="loading-egg" aria-hidden="true"><span></span></div>
+      <img class="eggy-character state-character" src="/assets/characters/eggy-yellow-wave.png" alt="" width="800" height="800" decoding="async">
       <h1 id="loading-title">正在打开蛋仔岛…</h1>
       <p>正在读取关卡、成长记录和本周游玩卡。</p>
       <div class="loading-lines" aria-hidden="true"><i></i><i></i><i></i></div>
     </section>
 
     <section id="error-view" class="state-view" hidden aria-labelledby="error-title">
-      <div class="state-illustration state-illustration-error" aria-hidden="true">!</div>
+      <img class="eggy-character state-character" src="/assets/characters/eggy-headset.png" alt="" width="1254" height="1254" decoding="async">
       <h1 id="error-title">乐园大门暂时没有打开</h1>
       <p id="error-message">没有读到学习数据。</p>
       <button id="retry-home" class="park-button primary" type="button">重新读取</button>
     </section>
 
     <section id="empty-view" class="state-view" hidden aria-labelledby="empty-title">
-      <div class="state-illustration" aria-hidden="true">?</div>
+      <img class="eggy-character state-character" src="/assets/characters/eggy-yellow-wave.png" alt="" width="800" height="800" decoding="async">
       <h1 id="empty-title">第一张游玩地图还在准备</h1>
       <p>乐园结构已经就位，管理者发布首个关卡后，这里会直接出现“开始游玩”。</p>
-      <a class="park-button" href="#map" data-route="map">先看乐园地图</a>
+      <a class="park-button" href="#map" data-route="map">先看段位地图</a>
     </section>
 
     <section id="view-lobby" class="app-view lobby-view" hidden aria-labelledby="lobby-title">
       <div class="island-hero">
-        <img src="/assets/park/island-axis-hero.png" alt="漂浮在云海上方的蛋仔岛，摩天轮、中央广场、游戏厅和商店环绕分布">
+        <img class="island-backdrop" src="/assets/park/views/island-front-left.png" alt="从左前方俯瞰漂浮在云海上的蛋仔岛，中央大道连接摩天轮、广场和黄色建筑">
+        <img class="eggy-character lobby-mascot" src="/assets/characters/eggy-black-wave.png" alt="坐在蛋仔岛上招手的黑色蛋仔" width="800" height="800" fetchpriority="high" decoding="async">
         <div class="hero-copy">
           <p class="hero-welcome" id="hero-welcome">欢迎回到蛋仔岛</p>
           <h1 id="lobby-title">继续当前训练</h1>
@@ -86,7 +92,7 @@
       </div>
 
       <section class="lobby-progress" aria-label="当前成长进度">
-        <div class="rank-emblem" id="rank-emblem" aria-hidden="true"><span>1</span></div>
+        <div class="rank-emblem" id="rank-emblem" aria-hidden="true"></div>
         <div class="rank-progress-copy">
           <div class="section-heading compact">
             <div><h2 id="current-rank-name">鹌鹑蛋</h2><p id="current-rank-domain">C 基础、流程控制与函数</p></div>
@@ -126,15 +132,15 @@
 
     <section id="view-map" class="app-view content-view" hidden aria-labelledby="map-title">
       <header class="view-heading">
-        <div><h1 id="map-title">乐园地图</h1><p>九个段位各自绑定一组技术目标。前两段建立 C 基础与数据能力，第三段进入 Linux 终端，从鹅蛋起每段用一个乐园项目整合能力。</p></div>
+        <div><h1 id="map-title">段位地图</h1><p>九个段位各自绑定一组技术目标。前两段建立 C 基础与数据能力，第三段进入 Linux 终端，从鹅蛋起每段用一个乐园项目整合能力。</p></div>
         <button class="park-button subtle" type="button" data-route-target="lobby">回到大厅</button>
       </header>
       <ol id="rank-route" class="rank-route" aria-label="九阶段位路线"></ol>
     </section>
 
     <section id="view-honors" class="app-view content-view honor-view" hidden aria-labelledby="honors-title">
-      <header class="view-heading">
-        <div><h1 id="honors-title">蛋仔荣誉殿堂</h1><p>作品就是战利品。能力信物、Boss 信物和作品成果会在这里永久陈列。</p></div>
+      <header class="view-heading character-heading">
+        <div class="character-heading-content"><div><h1 id="honors-title">蛋仔荣誉殿堂</h1><p>作品就是战利品。能力信物、Boss 信物和作品成果会在这里永久陈列。</p></div><img class="eggy-character heading-character" src="/assets/characters/eggy-pink-wink.png" alt="" width="800" height="800" loading="lazy" decoding="async"></div>
         <button class="park-button subtle" type="button" data-route-target="lobby">回到大厅</button>
       </header>
       <div class="honor-stage">
@@ -144,10 +150,11 @@
     </section>
 
     <section id="view-week" class="app-view content-view week-view" hidden aria-labelledby="week-title">
-      <header class="view-heading">
-        <div><h1 id="week-title">本周游玩卡</h1><p>先安排真实可用的时间。没完成的关卡下周继续，不会变成欠课或补作业。</p></div>
+      <header class="view-heading character-heading">
+        <div class="character-heading-content"><div><h1 id="week-title">本周游玩卡</h1><p>先安排真实可用的时间。没完成的关卡下周继续，不会变成欠课或补作业。</p></div><img class="eggy-character heading-character reader-character" src="/assets/characters/eggy-reader.png" alt="" width="1254" height="1254" loading="lazy" decoding="async"></div>
         <button class="park-button subtle" type="button" data-route-target="lobby">回到大厅</button>
       </header>
+      <eggy-week-card id="week-editor" scope="current-rank" short-label="由系统建议" default-mode="active" default-days="3" trim-note>
       <form id="week-card-form" class="week-card-form">
         <fieldset class="week-mode-fieldset">
           <legend>这一周想怎么玩？</legend>
@@ -156,20 +163,21 @@
         </fieldset>
 
         <div class="week-form-body" id="week-active-fields">
-          <label class="range-field" for="play-days"><span><strong>预计游玩几次</strong><output id="play-days-output" for="play-days">2 次</output></span><input id="play-days" name="playDays" type="range" min="1" max="7" step="1" value="2"></label>
-          <label for="main-goal"><span>本周主目标</span><select id="main-goal" name="mainGoal"></select></label>
-          <label for="short-level"><span>短关卡</span><select id="short-level" name="shortLevelId"><option value="">由系统建议</option></select></label>
+          <label class="range-field" for="play-days"><span><strong>预计游玩几次</strong><output id="play-days-output" data-week-field="count" for="play-days">2 次</output></span><input id="play-days" data-week-field="playDays" name="playDays" type="range" min="1" max="7" step="1" value="2"></label>
+          <label for="main-goal-input"><span>本周主目标</span><eggy-select id="main-goal" data-week-field="mainGoal"><select id="main-goal-input" required name="mainGoal"></select></eggy-select></label>
+          <label for="short-level-input"><span>短关卡</span><eggy-select id="short-level" data-week-field="shortLevelId"><select id="short-level-input" name="shortLevelId"><option value="">由系统建议</option></select></eggy-select></label>
         </div>
-        <label for="week-note"><span>给自己的一句话（可选）</span><textarea id="week-note" name="note" rows="3" maxlength="240" placeholder="例如：这周只要看懂程序为什么走这条路径。"></textarea></label>
-        <div class="form-message" id="week-form-message" role="status" aria-live="polite"></div>
+        <label for="week-note"><span>给自己的一句话（可选）</span><textarea id="week-note" data-week-field="note" name="note" rows="3" maxlength="240" placeholder="例如：这周只要看懂程序为什么走这条路径。"></textarea></label>
+        <div class="form-message" id="week-form-message" data-week-field="message" role="status" aria-live="polite"></div>
         <div class="week-form-actions"><button id="save-week-card" class="park-button primary" type="submit">保存本周游玩卡</button><span>只记录大致节奏，不制造过期状态。</span></div>
       </form>
+      </eggy-week-card>
     </section>
   </main>
 
   <nav class="mobile-dock" aria-label="移动端乐园导航">
     <a href="#lobby" data-route="lobby" aria-current="page"><span aria-hidden="true">●</span>大厅</a>
-    <a href="#map" data-route="map"><span aria-hidden="true">◇</span>地图</a>
+    <a href="#map" data-route="map"><span aria-hidden="true">◇</span>段位</a>
     <a href="#honors" data-route="honors"><span aria-hidden="true">★</span>荣誉</a>
     <a href="#week" data-route="week"><span aria-hidden="true">▣</span>本周</a>
   </nav>
@@ -179,6 +187,6 @@
   </footer>
 
   <noscript><div class="noscript-note">蛋仔编程乐园需要 JavaScript 来读取关卡和保存进度。</div></noscript>
-  <script type="module" src="/assets/learner.js"></script>
+  <script type="module" src="/assets/learner.js?v=mastery-challenges-5"></script>
 </body>
 </html>

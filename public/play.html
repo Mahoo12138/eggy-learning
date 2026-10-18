@@ -6,8 +6,10 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#72c8ff">
   <title>游玩关卡 · 蛋仔编程乐园</title>
-  <link rel="stylesheet" href="/assets/park.css">
+  <link rel="icon" type="image/png" href="/assets/brand/eggy-programming-park-icon.png">
+  <link rel="stylesheet" href="/assets/park.css?v=park-views-1">
   <link rel="stylesheet" href="/assets/interaction.css">
+  <link rel="stylesheet" href="/assets/components/components.css">
 </head>
 <body class="park-body play-body">
   <a class="skip-link" href="#play-main">跳到当前步骤</a>
@@ -15,13 +17,13 @@
     <a class="back-link" href="/learner.html#lobby"><span aria-hidden="true">←</span> 回到蛋仔岛</a>
     <div class="play-title-lockup"><strong id="top-level-title">正在读取关卡</strong><span id="top-step-count">第 -- 步 / 共 -- 步</span></div>
     <div class="play-tools">
-      <button class="utility-button compact" type="button" data-comfort="sound" aria-pressed="false"><span class="tool-symbol sound-symbol" aria-hidden="true"></span><span data-comfort-label>声音已开</span></button>
-      <button class="utility-button compact" type="button" data-comfort="motion" aria-pressed="false"><span class="tool-symbol motion-symbol" aria-hidden="true"></span><span data-comfort-label>标准动效</span></button>
+      <eggy-comfort-controls><button class="utility-button compact" type="button" data-comfort="sound" aria-pressed="false"><span class="tool-symbol sound-symbol" aria-hidden="true"></span><span data-comfort-label>声音已开</span></button>
+      <button class="utility-button compact" type="button" data-comfort="motion" aria-pressed="false"><span class="tool-symbol motion-symbol" aria-hidden="true"></span><span data-comfort-label>标准动效</span></button></eggy-comfort-controls>
     </div>
   </header>
 
   <div class="play-progress" aria-label="关卡进度"><span id="play-progress-bar"></span></div>
-  <div id="play-notice" class="app-notice play-notice" role="status" aria-live="polite" hidden></div>
+  <eggy-notice id="play-notice" class="app-notice play-notice" role="status" aria-live="polite" hidden duration="4800"></eggy-notice>
 
   <main id="play-main" tabindex="-1">
     <section id="play-loading" class="state-view play-state" aria-labelledby="play-loading-title">
@@ -47,7 +49,7 @@
     <section id="play-view" class="play-view" hidden aria-labelledby="step-title">
       <div class="scene-column">
         <div id="scene-panel" class="scene-panel">
-          <img src="/assets/park/island-axis-hero.png" alt="" aria-hidden="true">
+          <img id="scene-backdrop" src="/assets/park/views/island-plaza-to-wheel.png" alt="" aria-hidden="true">
           <div class="scene-location"><span id="scene-rank">段位作品</span><strong id="scene-building">当前作品场景</strong></div>
           <div id="scene-output" class="scene-output" aria-live="polite">
             <span class="scene-dot" aria-hidden="true"></span>
@@ -104,6 +106,6 @@
   </dialog>
 
   <noscript><div class="noscript-note">游玩关卡需要 JavaScript 运行交互和保存进度。</div></noscript>
-  <script type="module" src="/assets/play.js"></script>
+  <script type="module" src="/assets/play.js?v=mastery-challenges-5"></script>
 </body>
 </html>

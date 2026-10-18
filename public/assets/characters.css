@@ -1,0 +1,140 @@
+/* Character artwork accompanies the park; rank artwork continues to identify ranks. */
+.eggy-character {
+  display: block;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.landing-hero .hero-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+}
+
+.landing-hero-content { min-width: 0; }
+.landing-hero h1 { font-size: clamp(3rem, 6vw, 5.8rem); }
+.landing-mascot { width: 100%; max-width: 490px; justify-self: end; }
+
+.island-hero > .lobby-mascot {
+  position: absolute;
+  z-index: 1;
+  right: clamp(16px, 3vw, 48px);
+  bottom: 32px;
+  width: clamp(310px, 39vw, 530px);
+  height: auto;
+  object-fit: contain;
+}
+
+.state-character { width: min(200px, 52vw); }
+
+.character-heading-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.character-heading > .park-button { flex: none; }
+.character-heading h1 { font-size: clamp(32px, 5vw, 60px); }
+.heading-character { width: 140px; }
+.reader-character { width: 150px; }
+
+.map-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 60px);
+}
+
+.map-hero > div { min-width: 0; }
+.map-hero h1 { font-size: clamp(3rem, 6vw, 5.5rem); }
+.map-mascot { width: 100%; max-width: 340px; justify-self: end; }
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .island-hero .hero-copy { width: 49%; }
+  .island-hero > .lobby-mascot { right: 12px; width: 42%; }
+}
+
+@media (max-width: 900px) {
+  .island-hero {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+  }
+
+  .island-hero > .island-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .island-hero > .lobby-mascot {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: clamp(205px, 43vw, 310px);
+    margin: 70px auto 12px;
+    flex: none;
+  }
+
+  .island-hero .hero-copy {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    z-index: 2;
+    width: calc(100% - 36px);
+    margin: 0 18px 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .landing-hero .hero-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 16px;
+    padding-top: 7rem;
+    padding-bottom: 2.5rem;
+  }
+
+  .landing-mascot {
+    order: -1;
+    align-self: center;
+    width: clamp(150px, 43vw, 210px);
+  }
+
+  .landing-hero h1 { font-size: clamp(2.6rem, 11vw, 4.2rem); line-height: 1.04; }
+  .landing-hero .hero-lead { margin-top: 1.15rem; font-size: 1rem; }
+  .landing-hero .hero-actions { margin-top: 1.4rem; }
+  .landing-hero .hero-facts { margin-top: 2rem; }
+
+  .map-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 18px;
+    padding-top: 7rem;
+    padding-bottom: 3rem;
+  }
+
+  .map-mascot { order: -1; align-self: center; width: 145px; }
+  .map-hero h1 { font-size: clamp(2.7rem, 11vw, 4.2rem); line-height: 1.04; }
+}
+
+@media (max-width: 650px) {
+  .island-hero > .lobby-mascot { width: 205px; margin-top: 66px; margin-bottom: 6px; }
+  .island-hero .hero-copy { width: calc(100% - 28px); margin: 0 14px 14px; padding: 20px; }
+  .island-hero .hero-copy h1 { font-size: 32px; }
+  .character-heading-content { grid-template-columns: minmax(0, 1fr) 90px; gap: 12px; }
+  .heading-character, .reader-character { width: 90px; }
+  .character-heading h1 { font-size: 32px; }
+}

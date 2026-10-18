@@ -6,13 +6,16 @@
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#eef5fb">
   <title>岛务管理处 · 蛋仔编程乐园</title>
+  <link rel="icon" type="image/png" href="/assets/brand/eggy-programming-park-icon.png">
   <link rel="stylesheet" href="/assets/admin.css">
+  <link rel="stylesheet" href="/assets/brand.css">
+  <link rel="stylesheet" href="/assets/components/components.css">
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
   <header class="admin-topbar">
-    <a class="admin-brand" href="/"><span aria-hidden="true">C</span><span><strong>岛务管理处</strong><small>蛋仔编程乐园</small></span></a>
-    <nav aria-label="页面入口"><a href="/learner.html">学习者大厅</a><a href="/plan.html">乐园地图</a></nav>
+    <a class="admin-brand site-brand" href="/" aria-label="返回蛋仔编程乐园首页"><img class="site-brand-icon" src="/assets/brand/eggy-programming-park-icon.png" alt="" width="256" height="256" decoding="async"><span><strong>岛务管理处</strong><small>蛋仔编程乐园</small></span></a>
+    <nav aria-label="页面入口"><a href="/learner.html">学习者大厅</a><a href="/plan.html">段位地图</a></nav>
   </header>
 
   <main id="main" class="admin-shell">
@@ -28,7 +31,7 @@
       <button type="button" data-tab="operations" aria-selected="false">周卡与数据</button>
     </nav>
 
-    <div id="admin-notice" class="notice" role="alert" hidden></div>
+    <eggy-notice id="admin-notice" class="notice" role="status" aria-live="polite" hidden></eggy-notice>
 
     <section id="panel-overview" class="admin-panel" aria-labelledby="overview-title">
       <div class="section-heading"><div><p>当前状态</p><h2 id="overview-title">学习者在乐园中的位置</h2></div><button class="button quiet" type="button" data-refresh>刷新</button></div>
@@ -42,7 +45,7 @@
     <section id="panel-archive" class="admin-panel" hidden aria-labelledby="archive-title">
       <div class="section-heading"><div><p>可复盘证据</p><h2 id="archive-title">学习档案</h2><span>保留每次尝试、提示层级、作答、代码与反馈。</span></div><button class="button quiet" type="button" data-refresh>刷新</button></div>
       <div class="filter-row">
-        <label>按结果筛选<select id="attempt-filter"><option value="all">全部尝试</option><option value="passed">已通过</option><option value="failed">未通过</option><option value="hinted">使用过提示</option></select></label>
+        <label>按结果筛选<eggy-select id="attempt-filter"><select id="attempt-filter-input"><option value="all">全部尝试</option><option value="passed">已通过</option><option value="failed">未通过</option><option value="hinted">使用过提示</option></select></eggy-select></label>
         <label>搜索关卡或答案<input id="attempt-search" type="search" placeholder="输入关卡、步骤或作答内容"></label>
       </div>
       <div id="attempt-table" class="table-card"></div>
@@ -50,12 +53,12 @@
     </section>
 
     <section id="panel-workshop" class="admin-panel" hidden aria-labelledby="workshop-title">
-      <div class="section-heading"><div><p>课程工坊</p><h2 id="workshop-title">维护地图、步骤、提示与奖励</h2><span>保存前会校验九阶段位、前置关系、星星与 Boss 规则。</span></div><div class="actions"><button id="reload-course" class="button quiet" type="button">读取服务器版本</button><button id="save-course" class="button primary" type="button">保存课程</button></div></div>
+      <div class="section-heading"><div><p>课程工坊</p><h2 id="workshop-title">维护段位、步骤、提示与奖励</h2><span>模拟学习可预览当前草稿；保存前会校验前置关系、星星与 Boss 规则。</span></div><div class="actions workshop-actions"><button id="reload-course" class="button quiet" type="button">读取服务器版本</button><button id="preview-course" class="button" type="button" disabled aria-haspopup="dialog">模拟学习</button><button id="save-course" class="button primary" type="button">保存课程</button></div></div>
       <div class="workshop-layout">
-        <aside class="workshop-sidebar"><label for="rank-select">当前段位</label><select id="rank-select"></select><label for="level-select">关卡或作品</label><select id="level-select"></select><div id="workshop-summary" class="workshop-summary"></div></aside>
+        <aside class="workshop-sidebar"><label for="rank-select-input">当前段位</label><eggy-select id="rank-select"><select id="rank-select-input"></select></eggy-select><label for="level-select-input">关卡或作品</label><eggy-select id="level-select"><select id="level-select-input"></select></eggy-select><div id="workshop-summary" class="workshop-summary"></div></aside>
         <div class="editor-stack">
-          <article class="card"><h3>段位设置</h3><div id="rank-editor" class="form-grid"></div></article>
-          <article class="card"><div class="card-heading"><h3 id="content-editor-title">内容设置</h3><span>JSON 编辑</span></div><p class="editor-help">这是本地单人管理工具。稳定编号用于连接历史记录；已有记录后不要随意修改编号。</p><label class="json-label" for="content-json">当前内容</label><textarea id="content-json" class="json-editor" spellcheck="false" rows="24"></textarea><p id="json-error" class="inline-error" role="alert"></p></article>
+          <article class="card"><div class="card-heading"><h3>段位设置</h3><span>当前段位</span></div><div id="rank-editor" class="form-grid"></div></article>
+          <article class="card course-editor-card"><eggy-course-editor id="content-editor"></eggy-course-editor></article>
         </div>
       </div>
     </section>
@@ -63,15 +66,18 @@
     <section id="panel-operations" class="admin-panel" hidden aria-labelledby="operations-title">
       <div class="section-heading"><div><p>节奏与恢复</p><h2 id="operations-title">本周游玩卡与数据</h2><span>休息周不会形成欠课，已经获得的经验、星星和信物不会回退。</span></div></div>
       <div class="dashboard-grid">
+        <eggy-week-card id="week-editor" scope="all" default-days="2">
         <form id="week-card-form" class="card form-card">
-          <div class="card-heading"><h3>本周游玩卡</h3><span id="week-start-label"></span></div>
+          <div class="card-heading"><h3>本周游玩卡</h3><span id="week-start-label" data-week-field="weekStart"></span></div>
           <fieldset><legend>本周模式</legend><label class="radio-row"><input type="radio" name="mode" value="active"><span><strong>正常游玩</strong><small>安排一个主目标</small></span></label><label class="radio-row"><input type="radio" name="mode" value="rest"><span><strong>休息周</strong><small>不制造补课压力</small></span></label></fieldset>
-          <label>预计游玩次数<input id="admin-play-days" type="number" min="1" max="7" value="2"></label>
-          <label>主目标<select id="admin-main-goal"></select></label>
-          <label>短关卡<select id="admin-short-level"><option value="">不指定</option></select></label>
-          <label>备注<textarea id="admin-week-note" rows="3" maxlength="2000"></textarea></label>
+          <label>预计游玩次数<input id="admin-play-days" data-week-field="playDays" type="number" min="1" max="7" value="2"></label>
+          <label>主目标<eggy-select id="admin-main-goal" data-week-field="mainGoal"><select id="admin-main-goal-input" required></select></eggy-select></label>
+          <label>短关卡<eggy-select id="admin-short-level" data-week-field="shortLevelId"><select id="admin-short-level-input"><option value="">不指定</option></select></eggy-select></label>
+          <label>备注<textarea id="admin-week-note" data-week-field="note" rows="3" maxlength="2000"></textarea></label>
+          <div data-week-field="message" class="form-message" role="status" aria-live="polite"></div>
           <button class="button primary" type="submit">保存周卡</button>
         </form>
+        </eggy-week-card>
         <div class="stack">
           <article class="card"><div class="card-heading"><h3>本地数据</h3><span>JSON</span></div><p>导出包含课程、关卡、成长记录和本周游玩卡，可用于审阅与备份。</p><div class="actions"><button id="export-data" class="button primary" type="button">导出全部数据</button><button id="copy-summary" class="button quiet" type="button">复制学习摘要</button></div></article>
           <article class="card"><div class="card-heading"><h3>Git 历史</h3><button id="refresh-history" class="text-button" type="button">刷新</button></div><p id="history-status" class="muted"></p><div id="history-list" class="history-list"></div></article>
@@ -79,6 +85,8 @@
       </div>
     </section>
   </main>
+
+  <eggy-course-preview id="course-preview"></eggy-course-preview>
 
   <footer><p>非官方个人学习项目，仅供本地学习使用；相关游戏名称与素材版权归原权利人所有。</p></footer>
   <noscript><p class="notice">岛务管理处需要 JavaScript 才能读取和保存本地数据。</p></noscript>

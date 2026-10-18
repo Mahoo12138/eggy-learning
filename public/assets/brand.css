@@ -1,0 +1,87 @@
+.site-brand {
+  min-width: 0;
+}
+
+.site-brand:focus-visible {
+  outline: 3px solid #208bc4;
+  outline-offset: 5px;
+  border-radius: 6px;
+}
+
+.site-wordmark {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 1;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brand.site-brand {
+  display: block;
+  width: 222px;
+  flex: 0 1 222px;
+}
+
+.park-brand.site-brand {
+  display: flex;
+  width: 192px;
+  flex: 0 0 192px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.park-brand .site-brand-tagline {
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.admin-brand .site-brand-icon {
+  display: block;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  object-fit: contain;
+}
+
+.landing-nav,
+.map-nav {
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .landing-nav,
+  .map-nav {
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand.site-brand {
+    width: 180px;
+    flex-basis: 180px;
+  }
+
+  .landing-nav nav,
+  .map-nav nav {
+    flex: none;
+  }
+
+  .landing-nav nav a,
+  .map-nav nav a {
+    padding: .55rem .5rem;
+    font-size: .78rem;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 650px) {
+  .park-brand.site-brand {
+    width: 156px;
+    flex: 0 1 156px;
+  }
+
+  .park-brand .site-brand-tagline {
+    display: none;
+  }
+}

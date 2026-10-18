@@ -4,13 +4,14 @@ export const RANK_BLUEPRINTS = [
   { id: 'chicken', name: '鸡蛋', short: 'Linux 入门', domain: 'Linux 系统与终端基础', building: '', summary: '认识内核、Shell 和进程，在目录树中组合权限、重定向与管道。', reward: 'Linux 终端徽章' },
   { id: 'goose', name: '鹅蛋', short: '内存与数据组织', domain: 'C 数组、字符串、指针与文件', building: '苹果派雪雪烘焙店 · 淘气丸子奶茶店', summary: '把零散数据放进可靠的内存与文件结构。', reward: '美食街奖杯', project: '蛋仔食堂·今天吃什么' },
   { id: 'ostrich', name: '鸵鸟蛋', short: '嵌入式机关', domain: 'STM32 与外设', building: '巨型摩天轮', summary: '用按键、定时器、中断和传感器守住设备安全。', reward: '摩天轮控制钥匙', project: '蛋仔摩天轮安全中控站' },
-  { id: 'dinosaur', name: '恐龙蛋', short: '进程调度', domain: 'Linux 进程与系统接口', building: '中央喷泉夜间总控台', summary: '让多个进程协作，也能在故障时安全退出。', reward: '夜班巡检徽章', project: '蛋仔岛夜班巡检台' },
-  { id: 'peak-phoenix', name: '巅峰凤凰蛋', short: '并发协作', domain: 'C++ 线程、同步与资源管理', building: '商城建筑 · 道具仓库', summary: '让多个工作线程安全处理订单与共享库存。', reward: '配送中心印章', project: '蛋仔商城道具配送中心' },
-  { id: 'super-phoenix', name: '超级凤凰蛋', short: '联机数据', domain: 'C 网络 + C++ / SQL / SQLite', building: '游戏厅 · 联网终端', summary: '接收、去重、持久化并查询乐园比赛事件。', reward: '全岛联机信标', project: '蛋仔游戏厅联机积分中心' },
+  { id: 'dinosaur', name: '恐龙蛋', short: '操作系统底层', domain: 'Linux 系统调用、进程与多进程监督', building: '中央喷泉夜间总控台', summary: '从内核与用户态开始理解 Linux，让多个夜巡进程通信、受控退出并从故障中恢复。', reward: '夜班巡检灯', project: '蛋仔岛夜巡总控系统' },
+  { id: 'peak-phoenix', name: '巅峰凤凰蛋', short: '封装与并行计算', domain: 'C++ 封装、密集计算与并发处理', building: '商城建筑 · 道具仓库', summary: '用封装守住订单与库存合同，优化配送计算，再让线程安全协作与关店。', reward: '配送中心印章', project: '蛋仔商城道具配送中心' },
+  { id: 'super-phoenix', name: '超级凤凰蛋', short: '联机数据', domain: 'TCP 网络 · SQLite 事务与持久化', building: '游戏厅 · 联网终端', summary: '从消息分帧与超时重试，逐步构建可去重、可回滚、重启后可查询的积分中心。', reward: '全岛联机信标', project: '蛋仔游戏厅联机积分中心' },
   { id: 'invincible-phoenix', name: '无敌凤凰蛋', short: '独立整合', domain: '跨系统设计与故障恢复', building: '整座蛋仔岛', summary: '独立定义问题、连接系统，并让作品经得起异常。', reward: '无敌凤凰冠冕', project: '学习者自主设计的毕业作品' }
 ];
 
-const PREF_KEY = 'eggy-code-park-comfort-v1';
+import { readComfort } from './comfort.mjs';
+export { readComfort, applyComfort } from './comfort.mjs';
 let audioContext;
 
 export const $ = (selector, root = document) => root.querySelector(selector);
@@ -54,48 +55,6 @@ export async function requestJSON(path, options = {}) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-export function readComfort() {
-  let saved = {};
-  try { saved = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); } catch {}
-  const systemReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return {
-    muted: saved.muted === true,
-    reducedMotion: typeof saved.reducedMotion === 'boolean' ? saved.reducedMotion : systemReduced
-  };
-}
-
-export function applyComfort(preferences) {
-  document.documentElement.dataset.motion = preferences.reducedMotion ? 'reduced' : 'full';
-  document.documentElement.dataset.sound = preferences.muted ? 'muted' : 'on';
-  $$('[data-comfort="sound"]').forEach(button => {
-    button.setAttribute('aria-pressed', String(preferences.muted));
-    const label = preferences.muted ? '声音已关' : '声音已开';
-    button.title = `${label}，点击${preferences.muted ? '开启' : '静音'}`;
-    $('[data-comfort-label]', button)?.replaceChildren(label);
-  });
-  $$('[data-comfort="motion"]').forEach(button => {
-    button.setAttribute('aria-pressed', String(preferences.reducedMotion));
-    const label = preferences.reducedMotion ? '减少动效' : '标准动效';
-    button.title = `${label}，点击切换`;
-    $('[data-comfort-label]', button)?.replaceChildren(label);
-  });
-}
-
-export function initComfortControls(root = document) {
-  const preferences = readComfort();
-  applyComfort(preferences);
-  root.addEventListener('click', event => {
-    const button = event.target.closest('[data-comfort]');
-    if (!button) return;
-    if (button.dataset.comfort === 'sound') preferences.muted = !preferences.muted;
-    if (button.dataset.comfort === 'motion') preferences.reducedMotion = !preferences.reducedMotion;
-    try { localStorage.setItem(PREF_KEY, JSON.stringify(preferences)); } catch {}
-    applyComfort(preferences);
-    if (!preferences.muted) playTone('tap');
-  });
-  return preferences;
 }
 
 export function playTone(kind = 'success') {

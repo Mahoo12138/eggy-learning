@@ -1,8 +1,12 @@
+import './components/week-card.mjs';
+import './components/notice.mjs';
+import './components/comfort-controls.mjs';
 import {
   $, $$, RANK_BLUEPRINTS, clamp, currentRank as blueprintCurrentRank, esc,
-  formatCount, initComfortControls, mergedRanks, mondayFor, playTone,
+  formatCount, mergedRanks, mondayFor, playTone,
   progressPercent, requestJSON
 } from './park-ui.mjs';
+import { rankArtMarkup } from './rank-art.mjs';
 
 const VIEWS = new Set(['lobby', 'map', 'honors', 'week']);
 const state = {
@@ -10,11 +14,8 @@ const state = {
   home: null,
   homeEtag: '',
   view: 'lobby',
-  noticeTimer: null,
-  weekSaving: false
 };
 
-initComfortControls();
 
 function course() { return state.home?.course || state.home?.catalog || {}; }
 function progress() { return state.home?.progress || state.home?.summary?.progress || state.home?.summary || {}; }
@@ -33,6 +34,14 @@ function currentLevel() {
   if (supplied && typeof supplied === 'object') return expandLevel(supplied);
   const id = supplied || currentPointer().activityId || currentPointer().levelId || progress().currentLevelId;
   return expandLevel(courseLevels().find(level => level.id === id)) || null;
+}
+
+function nextMasteryLevel(rankId) {
+  const chapters = courseLevels().filter(level => level.rankId === rankId && level.kind === 'interactive-lesson');
+  const completed = new Set((progress().attempts || []).filter(item => item.kind === 'level' && item.result?.levelCompleted).map(item => item.payload.levelId));
+  if (!chapters.length || !chapters.every(chapter => completed.has(chapter.id))) return null;
+  const starred = new Set((progress().awardLedger || []).filter(item => item.kind === 'star').map(item => item.activityId));
+  return chapters.find(chapter => !starred.has(chapter.id)) || null;
 }
 
 function normalizeRanks() {
@@ -137,14 +146,7 @@ function setPhase(phase, message = '') {
   renderRoute();
 }
 
-function showNotice(message, kind = 'info') {
-  const element = $('#app-notice');
-  clearTimeout(state.noticeTimer);
-  element.textContent = message;
-  element.dataset.kind = kind;
-  element.hidden = !message;
-  if (message) state.noticeTimer = setTimeout(() => { element.hidden = true; }, 4600);
-}
+function showNotice(message, kind = 'info') { $('#app-notice').show(message, { kind }); }
 
 function routeFromHash() {
   const next = location.hash.slice(1).split('?')[0];
@@ -171,7 +173,9 @@ function renderHeader() {
   const rank = normalizeRanks().find(item => item.status === 'current') || blueprintCurrentRank(state.home || {});
   const xp = xpState();
   const stars = normalizeRanks().reduce((sum, item) => sum + Number(item.earnedStars || 0), 0);
+  $('.hud-rank-art').innerHTML = rankArtMarkup(rank?.id, { eager: true });
   $('.hud-rank').textContent = rank?.name || '待定段位';
+  $('#player-hud').setAttribute('aria-label', `当前段位：${rank?.name || '待定段位'}，等级 ${xp.level}，${stars} 颗星`);
   $('.hud-level').textContent = `Lv. ${xp.level}`;
   $('.hud-stars').textContent = `${stars} 星`;
   $('.hud-stars').setAttribute('aria-label', `${stars} 颗星`);
@@ -193,14 +197,21 @@ function renderLobby() {
     && attempt.payload?.contentVersion === level?.version);
 
   $('#hero-welcome').textContent = `${displayName}，欢迎回到蛋仔岛`;
-  $('#lobby-title').textContent = level ? `${projectMode ? '继续作品' : '继续训练'}：${level.title}` : '今天先看看乐园地图';
+  $('#lobby-title').textContent = level ? `${projectMode ? '继续作品' : '继续训练'}：${level.title}` : '今天先看看段位地图';
   $('#hero-summary').textContent = projectMode ? (level?.story || trainingSummary) : trainingSummary;
   $('#continue-link').href = `/play.html?level=${encodeURIComponent(level?.id || '')}`;
   $('#continue-link').textContent = hasStarted ? '继续游玩' : '开始这一关';
-  $('#continue-meta').textContent = `${level?.estimatedMinutes || course().learningPolicy?.lessonMinutes?.typical || 20} 分钟 · 每一步自动记录`;
+  const mastery = nextMasteryLevel(rank?.id);
+  if (mastery) {
+    $('#lobby-title').textContent = `补齐独立星星：${mastery.title}`;
+    $('#hero-summary').textContent = '本段章节练习已完成。直接挑战未看答案的等价题，每章独立通过获得一颗星，补齐后进入 Boss。';
+    $('#continue-link').href = `/play.html?level=${encodeURIComponent(mastery.id)}&practice=mastery`;
+    $('#continue-link').textContent = '进入补星挑战';
+  }
+  $('#continue-meta').textContent = mastery ? '直接进入独立练习 · 无需重做已完成步骤' : `${level?.estimatedMinutes || course().learningPolicy?.lessonMinutes?.typical || 20} 分钟 · 每一步自动记录`;
   $('#hero-reward').innerHTML = `<span class="reward-mark" aria-hidden="true"></span><span><small>最近获得</small><strong>${esc(reward?.title || '还没有收藏')}</strong></span>`;
 
-  $('#rank-emblem span').textContent = rank?.order || 1;
+  $('#rank-emblem').innerHTML = rankArtMarkup(rank?.id, { eager: true });
   $('#current-rank-name').textContent = rank?.name || '鹌鹑蛋';
   $('#current-rank-domain').textContent = rank?.domain || 'C 程序如何运行';
   $('#xp-label').textContent = `${formatCount(xp.current)} / ${formatCount(xp.target)} XP`;
@@ -234,17 +245,37 @@ function rankStatusLabel(rank) {
 
 function renderMap() {
   const level = currentLevel();
-  $('#rank-route').innerHTML = normalizeRanks().map((rank, index) => {
+  const ranks = normalizeRanks();
+  $('#rank-route').innerHTML = ranks.map(rank => {
     const playable = !rank.locked && (rank.status === 'current' || rank.status === 'available') && level?.rankId === rank.id;
     const title = rank.project
       ? `${esc(rank.summary)}<span class="rank-building">段位作品：${esc(rank.project)}</span>`
       : `${esc(rank.summary)}<span class="rank-building">通关方式：在线互动题与综合挑战</span>`;
+    const definition = (course().ranks || []).find(item => item.id === rank.id);
+    const completed = new Set((progress().attempts || []).filter(item => item.kind === 'level' && item.result?.levelCompleted).map(item => item.payload.levelId));
+    const starred = new Set((progress().awardLedger || []).filter(item => item.kind === 'star').map(item => item.activityId));
+    const requiredStars = definition?.promotion?.requiredStars || 0;
+    const mastery = nextMasteryLevel(rank.id);
+    const primaryHref = mastery ? `/play.html?level=${encodeURIComponent(mastery.id)}&practice=mastery` : `/play.html?level=${encodeURIComponent(level?.id || '')}`;
+    const chapterLinks = !rank.locked && !definition?.projectId ? (definition?.activityIds || []).map(id => {
+      const chapter = courseLevels().find(item => item.id === id);
+      if (!chapter) return '';
+      const boss = chapter.kind === 'rank-boss';
+      const available = (chapter.prerequisiteLevelIds || []).every(id => completed.has(id)) && (!boss || rank.earnedStars >= requiredStars);
+      const done = completed.has(id), star = starred.has(id);
+      const action = boss ? '进入 Boss' : done && !star ? '补星挑战' : done ? '回顾练习' : '开始练习';
+      const href = `/play.html?level=${encodeURIComponent(id)}${done && !star && !boss ? '&practice=mastery' : ''}`;
+      return `<li><div><strong>${esc(chapter.title)}</strong><small>${boss ? available ? 'Boss 已解锁' : `Boss 需 ${requiredStars} 星，当前 ${rank.earnedStars} 星` : star ? '已获得独立星星' : done ? '练习已完成 · 独立星星待获得' : '尚未完成'}</small></div>${available ? `<a class="text-link" href="${href}">${action}</a>` : '<span class="rank-status-label">待解锁</span>'}</li>`;
+    }).join('') : '';
     return `<li class="rank-route-item"><article class="rank-card" data-status="${esc(rank.status)}">
-      <div class="rank-card-egg" aria-hidden="true">${index + 1}</div>
+      <div class="rank-card-egg" aria-hidden="true">${rankArtMarkup(rank.id)}</div>
       <div><h2>${esc(rank.name)}</h2><h3>${esc(rank.domain)}</h3><p>${title}</p>
-      <div class="rank-card-foot"><div class="rank-mini-progress" aria-hidden="true"><span style="width:${clamp(rank.progressPercent)}%"></span></div><span class="rank-status-label">${esc(rankStatusLabel(rank))}</span>${playable ? `<a class="text-link" href="/play.html?level=${encodeURIComponent(level.id)}">继续游玩</a>` : ''}</div></div>
+      <div class="rank-card-foot"><div class="rank-mini-progress" aria-hidden="true"><span></span></div><span class="rank-status-label">${esc(rankStatusLabel(rank))}</span>${playable ? `<a class="text-link" href="${primaryHref}">${mastery ? '补齐独立星星' : '继续游玩'}</a>` : ''}</div>${chapterLinks ? `<ul class="mastery-chapter-list" aria-label="${esc(rank.name)}章节与独立星星">${chapterLinks}</ul>` : ''}</div>
     </article></li>`;
   }).join('');
+  $$('#rank-route .rank-mini-progress span').forEach((bar, index) => {
+    bar.style.width = `${clamp(ranks[index].progressPercent)}%`;
+  });
 }
 
 function collectionSymbol(item) {
@@ -255,7 +286,7 @@ function collectionSymbol(item) {
 
 function renderHonors() {
   const rank = normalizeRanks().find(item => item.status === 'current') || normalizeRanks()[0];
-  $('#honor-current').innerHTML = `<div class="rank-emblem" aria-hidden="true"><span>${esc(rank?.order || 1)}</span></div><h2>${esc(rank?.name || '鹌鹑蛋')}</h2><p>${esc(rank?.domain || '')}</p>`;
+  $('#honor-current').innerHTML = `<div class="rank-emblem" aria-hidden="true">${rankArtMarkup(rank?.id, { eager: true })}</div><h2>${esc(rank?.name || '鹌鹑蛋')}</h2><p>${esc(rank?.domain || '')}</p>`;
   const collections = allCollections();
   const visible = collections.filter(item => item.earned || item.hidden !== true);
   const lockedFallback = visible.length ? [] : [
@@ -269,94 +300,23 @@ function renderHonors() {
   }).join('');
 }
 
-function availableLevels() {
-  const rank = normalizeRanks().find(item => item.status === 'current');
-  const candidates = courseLevels().filter(level => !level.archived && (!rank || level.rankId === rank.id));
-  return candidates.length ? candidates : currentLevel() ? [currentLevel()] : [];
-}
-
-function weekGoalValue(goal) {
-  if (!goal) return '';
-  return goal.kind === 'project-checkpoint' ? `project-checkpoint:${goal.projectId}:${goal.id}` : `level:${goal.id}`;
-}
-
-function weekGoalOptions() {
-  const rank = normalizeRanks().find(item => item.status === 'current');
-  const levels = courseLevels().filter(level => !level.archived && (!rank || level.rankId === rank.id)).map(level => ({ value: `level:${level.id}`, label: `${level.kind === 'rank-boss' ? 'Boss' : '关卡'} · ${level.title}` }));
-  const projects = (course().projects || []).filter(project => !rank || project.rankId === rank.id).flatMap(project => [
-    ...(project.chapters || []).map(chapter => ({ value: `project-checkpoint:${project.id}:${chapter.id}`, label: `${project.title} · ${chapter.title}` })),
-    ...(project.boss ? [{ value: `project-checkpoint:${project.id}:${project.boss.id}`, label: `${project.title} · Boss` }] : [])
-  ]);
-  return [...levels, ...projects];
-}
-
-function parseWeekGoal(value) {
-  const [kind, first, second] = value.split(':');
-  return kind === 'project-checkpoint' ? { kind, projectId: first, id: second } : { kind: 'level', id: first };
-}
-
 function renderWeek() {
-  const week = activeWeek();
-  const levels = availableLevels();
-  const goals = weekGoalOptions();
-  const mainGoalValue = weekGoalValue(week?.mainGoal) || (week?.mainGoalId ? `level:${week.mainGoalId}` : '');
-  $('#main-goal').innerHTML = goals.length
-    ? goals.map(goal => `<option value="${esc(goal.value)}"${goal.value === mainGoalValue ? ' selected' : ''}>${esc(goal.label)}</option>`).join('')
-    : '<option value="">暂无可选关卡</option>';
-  $('#short-level').innerHTML = '<option value="">由系统建议</option>' + levels.filter(level => level.kind !== 'rank-boss' && level.activityType !== 'rank-project').map(level => `<option value="${esc(level.id)}"${level.id === week?.shortLevelId ? ' selected' : ''}>${esc(level.title)} · ${level.estimatedMinutes || 20} 分钟</option>`).join('');
-  const mode = week?.mode || 'active';
-  const modeInput = $(`input[name="mode"][value="${CSS.escape(mode)}"]`);
-  if (modeInput) modeInput.checked = true;
-  $('#play-days').value = String(Math.max(1, Math.min(7, Number(week?.playDays || state.home?.weekCard?.preferences?.normalPlayCount || 3))));
-  $('#play-days-output').textContent = `${$('#play-days').value} 次`;
-  $('#week-note').value = week?.note || '';
-  updateWeekMode();
-}
-
-function updateWeekMode() {
-  const rest = $('input[name="mode"]:checked')?.value === 'rest';
-  $('#week-card-form').dataset.rest = String(rest);
-  $$('#week-active-fields :is(input,select)').forEach(control => { control.disabled = rest; });
-}
-
-async function saveWeek(event) {
-  event.preventDefault();
-  if (state.weekSaving) return;
-  const form = event.currentTarget;
-  const mode = $('input[name="mode"]:checked')?.value || 'active';
-  const mainGoalId = $('#main-goal').value;
   const source = state.home?.weekCard || {};
-  const body = {
-    schemaVersion: 2,
-    courseId: course().courseId || course().id || 'eggy-programming-park',
-    learnerId: learner().id || source.learnerId || 'learner-1',
-    weekStart: activeWeek()?.weekStart || mondayFor(),
-    mode,
-    playDays: mode === 'rest' ? 0 : Number($('#play-days').value),
-    mainGoal: mode === 'rest' || !mainGoalId ? null : parseWeekGoal(mainGoalId),
-    shortLevelId: mode === 'rest' ? '' : $('#short-level').value,
-    note: $('#week-note').value.trim(),
-    revision: Number(activeWeek()?.revision ?? source.revision ?? 0)
+  $('#week-editor').model = {
+    course: course(), rankId: normalizeRanks().find(item => item.status === 'current')?.id || '',
+    week: { ...source, ...activeWeek(), weekStart: activeWeek()?.weekStart || mondayFor() },
+    learnerId: learner().id || source.learnerId || 'learner-1'
   };
-  state.weekSaving = true;
-  $('#save-week-card').disabled = true;
-  $('#week-form-message').classList.remove('error-message');
-  $('#week-form-message').textContent = '正在保存…';
-  try {
-    const response = await requestJSON('/api/play/week-card', { method: 'PUT', body: JSON.stringify(body) });
-    state.home.weekCard = response.data.weekCard || response.data;
-    $('#week-form-message').classList.remove('error-message');
-    $('#week-form-message').textContent = mode === 'rest' ? '已保存休息周，进度和奖励保持原样。' : '本周游玩卡已保存。';
-    playTone('success');
-    renderLobby();
-  } catch (error) {
-    $('#week-form-message').textContent = `${error.message}已填内容仍保留在本页。`;
-    $('#week-form-message').classList.add('error-message');
-  } finally {
-    state.weekSaving = false;
-    $('#save-week-card').disabled = false;
-  }
 }
+
+$('#week-editor').save = async payload => {
+  const response = await requestJSON('/api/play/week-card', { method: 'PUT', body: JSON.stringify(payload) });
+  return response.data.weekCard || response.data;
+};
+$('#week-editor').addEventListener('week-saved', event => {
+  state.home.weekCard = event.detail.weekCard;
+  playTone('success'); renderLobby();
+});
 
 async function loadHome() {
   setPhase('loading');
@@ -378,8 +338,5 @@ document.addEventListener('click', event => {
   if (target) location.hash = target.dataset.routeTarget;
 });
 $('#retry-home').addEventListener('click', loadHome);
-$('#week-card-form').addEventListener('change', event => { if (event.target.name === 'mode') updateWeekMode(); });
-$('#play-days').addEventListener('input', event => { $('#play-days-output').textContent = `${event.target.value} 次`; });
-$('#week-card-form').addEventListener('submit', saveWeek);
 
 loadHome();

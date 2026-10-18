@@ -1,0 +1,47 @@
+{
+  "package": "@highlightjs/cdn-assets",
+  "version": "11.12.0",
+  "license": "BSD-3-Clause",
+  "files": {
+    "core.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/core.min.js",
+      "sha256": "67a339aa68880a40c9803def9c8cebb2225dec76230382db86e349370dee70e9",
+      "bytes": 20501
+    },
+    "languages/c.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/c.min.js",
+      "sha256": "edada72825cceb7dec51cc785efcc3e6378970917e11e4c7dfab29d0079e08a5",
+      "bytes": 4788
+    },
+    "languages/cpp.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/cpp.min.js",
+      "sha256": "aa67eeacdbbda9f40ca34c59147581aef1601f19b71a55966de4ccf4246e8c31",
+      "bytes": 6161
+    },
+    "languages/bash.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/bash.min.js",
+      "sha256": "7db1758fe6f04cd410760c29879812a3774edc54edcc91323511a24efc0b9e61",
+      "bytes": 3182
+    },
+    "languages/json.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/json.min.js",
+      "sha256": "8f2343ffbcc4fdea4b336a4241d54d223d52f99b67729d2d6d3556bbf66908ae",
+      "bytes": 689
+    },
+    "languages/javascript.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/javascript.min.js",
+      "sha256": "c3dbd515a79e2c00ff4535aa5ad2fe539fb2587d047f9ab826107d0784da7bb6",
+      "bytes": 6599
+    },
+    "languages/sql.min.js": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/es/languages/sql.min.js",
+      "sha256": "79bead5cf2bfa93d3982073d000a97802f394fe287736644bab30f40cb5c7380",
+      "bytes": 6545
+    },
+    "LICENSE": {
+      "source": "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.12.0/LICENSE",
+      "sha256": "6c081431591d9df696c82dc598fe1423765b8a299b200ed00b281afd0f64c490",
+      "bytes": 1514
+    }
+  }
+}
