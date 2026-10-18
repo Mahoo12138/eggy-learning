@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "courseId": "ostrich-ferris-wheel-project",
+  "artifact": "final-complete-reference-project",
+  "language": "C17",
+  "target": {
+    "mcu": "STM32F103C8T6",
+    "clock": "HSI 8 MHz",
+    "cubeConfig": "FerrisControl.ioc",
+    "hostSimulation": true
+  },
+  "entrypoints": {
+    "host": "Core/Src/main.c",
+    "stm32HalAdapter": "Core/Src/board_stm32f1.c",
+    "stm32Application": "Core/Src/ferris_app.c",
+    "cubeIntegration": "docs/cubemx-integration.md",
+    "verification": "scripts/verify.sh"
+  },
+  "targetIntegration": {
+    "compileCourseSources": [
+      "Core/Src/analog_sensor.c",
+      "Core/Src/app_events.c",
+      "Core/Src/app_time.c",
+      "Core/Src/board_config.c",
+      "Core/Src/board_io.c",
+      "Core/Src/board_stm32f1.c",
+      "Core/Src/button.c",
+      "Core/Src/diagnostics.c",
+      "Core/Src/door_sensor_i2c.c",
+      "Core/Src/drive_output.c",
+      "Core/Src/fault_supervisor.c",
+      "Core/Src/ferris_app.c",
+      "Core/Src/ferris_controller.c",
+      "Core/Src/ferris_interrupts.c",
+      "Core/Src/uart_rx.c"
+    ],
+    "excludeFromTarget": [
+      "Core/Src/main.c",
+      "Core/Src/board_sim.c",
+      "tests/",
+      "scripts/"
+    ],
+    "keepCubeGenerated": [
+      "Core/Src/main.c",
+      "Core/Src/stm32f1xx_it.c",
+      "startup and linker files",
+      "STM32CubeF1 HAL and CMSIS"
+    ],
+    "irqMergePolicy": "Keep CubeMX-generated TIM2/USART1/SysTick handlers. ferris_interrupts.c supplies only HAL callbacks, so no course IRQHandler is merged or duplicated."
+  },
+  "build": {
+    "commands": [
+      "make clean all",
+      "make test",
+      "make demo"
+    ],
+    "successMarkers": [
+      "12 PASS test lines",
+      "DEMO PASS",
+      "final state=FAULT pwm=0"
+    ]
+  },
+  "modules": [
+    {
+      "capability": "board abstraction and host simulation",
+      "files": [
+        "Core/Inc/board_config.h",
+        "Core/Src/board_config.c",
+        "Core/Inc/board_io.h",
+        "Core/Inc/board_sim.h",
+        "Core/Inc/board_stm32f1.h",
+        "Core/Inc/ferris_interrupts.h",
+        "Core/Src/board_io.c",
+        "Core/Src/board_sim.c",
+        "Core/Src/board_stm32f1.c",
+        "Core/Src/ferris_interrupts.c"
+      ]
+    },
+    {
+      "capability": "debounce and wrap-safe cooperative time",
+      "files": [
+        "Core/Inc/button.h",
+        "Core/Src/button.c",
+        "Core/Inc/app_time.h",
+        "Core/Src/app_time.c"
+      ]
+    },
+    {
+      "capability": "PWM ramp and ISR event transfer",
+      "files": [
+        "Core/Inc/drive_output.h",
+        "Core/Src/drive_output.c",
+        "Core/Inc/app_events.h",
+        "Core/Src/app_events.c"
+      ]
+    },
+    {
+      "capability": "bounded UART input and transition diagnostics",
+      "files": [
+        "Core/Inc/uart_rx.h",
+        "Core/Src/uart_rx.c",
+        "Core/Inc/diagnostics.h",
+        "Core/Src/diagnostics.c"
+      ]
+    },
+    {
+      "capability": "ADC calibration, moving average, and hysteresis",
+      "files": [
+        "Core/Inc/analog_sensor.h",
+        "Core/Src/analog_sensor.c"
+      ]
+    },
+    {
+      "capability": "DoorBus protocol and deterministic fake",
+      "files": [
+        "Core/Inc/door_sensor.h",
+        "Core/Src/door_sensor_i2c.c",
+        "tests/fake_door_bus.h",
+        "tests/fake_door_bus.c"
+      ]
+    },
+    {
+      "capability": "safety controller and fault supervisor",
+      "files": [
+        "Core/Inc/ferris_controller.h",
+        "Core/Src/ferris_controller.c",
+        "Core/Inc/fault_supervisor.h",
+        "Core/Src/fault_supervisor.c",
+        "Core/Inc/ferris_app.h",
+        "Core/Src/ferris_app.c"
+      ]
+    }
+  ],
+  "tests": [
+    "tests/test_board_io.c",
+    "tests/test_board_stm32f1.c",
+    "tests/stm32_hal_stub/stm32f1xx_hal.h",
+    "tests/stm32_hal_stub/stm32f1xx_hal.c",
+    "tests/test_button.c",
+    "tests/test_time.c",
+    "tests/test_drive_output.c",
+    "tests/test_app_events.c",
+    "tests/test_diagnostics.c",
+    "tests/test_uart_rx.c",
+    "tests/test_analog_sensor.c",
+    "tests/test_door_sensor.c",
+    "tests/test_ferris_controller.c",
+    "tests/test_ferris_app.c"
+  ],
+  "documentation": [
+    "README.md",
+    "docs/wiring.md",
+    "docs/cubemx-integration.md",
+    "docs/timing.md",
+    "docs/calibration.md",
+    "docs/sensor-profile.md",
+    "docs/fault-matrix.md"
+  ],
+  "packageSupport": [
+    ".gitignore",
+    "Makefile",
+    "manifest.json",
+    "scripts/verify.sh",
+    "scripts/verify_manifest.py",
+    "tests/test_support.h"
+  ],
+  "courseTargetFiles": [
+    "FerrisControl.ioc",
+    "Core/Inc/analog_sensor.h",
+    "Core/Inc/app_events.h",
+    "Core/Inc/app_time.h",
+    "Core/Inc/board_config.h",
+    "Core/Inc/board_io.h",
+    "Core/Inc/button.h",
+    "Core/Inc/diagnostics.h",
+    "Core/Inc/door_sensor.h",
+    "Core/Inc/drive_output.h",
+    "Core/Inc/fault_supervisor.h",
+    "Core/Inc/ferris_controller.h",
+    "Core/Inc/uart_rx.h",
+    "Core/Src/analog_sensor.c",
+    "Core/Src/app_events.c",
+    "Core/Src/app_time.c",
+    "Core/Src/board_config.c",
+    "Core/Src/board_io.c",
+    "Core/Src/button.c",
+    "Core/Src/diagnostics.c",
+    "Core/Src/door_sensor_i2c.c",
+    "Core/Src/drive_output.c",
+    "Core/Src/fault_supervisor.c",
+    "Core/Src/ferris_controller.c",
+    "Core/Src/main.c",
+    "Core/Inc/ferris_interrupts.h",
+    "Core/Src/ferris_interrupts.c",
+    "Core/Src/uart_rx.c",
+    "README.md",
+    "docs/calibration.md",
+    "docs/fault-matrix.md",
+    "docs/sensor-profile.md",
+    "docs/timing.md",
+    "docs/wiring.md",
+    "tests/fake_door_bus.c",
+    "tests/test_analog_sensor.c",
+    "tests/test_app_events.c",
+    "tests/test_button.c",
+    "tests/test_door_sensor.c",
+    "tests/test_drive_output.c",
+    "tests/test_ferris_controller.c",
+    "tests/test_time.c",
+    "tests/test_uart_rx.c",
+    "Core/Inc/ferris_app.h",
+    "Core/Src/ferris_app.c",
+    "tests/test_ferris_app.c"
+  ],
+  "completeness": {
+    "unfinishedImplementationMarkersAllowed": false,
+    "hostBuildVerified": true,
+    "hostTestsVerified": true,
+    "integratedDemoVerified": true,
+    "cubeMxGenerationVerified": false,
+    "armCrossBuildVerified": false,
+    "hardwareVerified": false
+  },
+  "hardwareBoundary": {
+    "reason": "STM32 tools, ST-LINK, target board, power stage, and concrete I2C door sensor were not present in the verification environment.",
+    "sensorProfile": "The default 0x32/0x01/0xA7 profile is a deterministic course protocol and must be replaced when a real sensor is selected.",
+    "acceptanceGuide": "README.md"
+  }
+}

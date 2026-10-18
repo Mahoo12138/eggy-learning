@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "id": "ostrich-ferris-wheel-project",
-  "version": 1,
+  "version": 4,
   "activityType": "rank-project",
   "rankId": "ostrich",
   "title": "蛋仔摩天轮安全中控站",
-  "technologyTheme": "STM32 裸机 C、GPIO、定时器、中断、UART、ADC、I²C/SPI 与非阻塞状态机",
+  "technologyTheme": "STM32 裸机 C、启动链、GPIO、非阻塞时间、定时器/PWM、中断、UART、ADC、I²C、看门狗与安全状态机",
   "languages": [
     "c"
   ],
@@ -14,13 +14,13 @@
   ],
   "propIds": [],
   "estimatedSessions": {
-    "minimum": 20,
-    "typical": 28
+    "minimum": 55,
+    "typical": 59
   },
   "prerequisiteActivityIds": [
     "goose-food-street-project"
   ],
-  "story": "摩天轮需要在按钮、传感器和故障信号共同作用下安全启动、运行、停靠和复位。",
+  "story": "巨型摩天轮需要一套能解释自身状态的安全中控。学习者将在同一块 STM32 开发板和同一个固件工程中，从构建、下载和断点证据开始，逐章接入安全灯、按钮、运行节拍、串口、模拟量和门锁传感器，最终完成可注入故障、可受控复位的中控模型。",
   "oneProjectRule": {
     "allChaptersModifySameArtifact": true,
     "chapterExercisesAreNotSeparateProjects": true
@@ -28,321 +28,2959 @@
   "artifact": {
     "kind": "stm32-firmware",
     "workingTitle": "摩天轮安全中控站",
-    "entryFile": "Core/Src/main.c",
-    "runTarget": "stm32-external-toolchain",
+    "entryFile": "Core/Src/ferris_app.c",
+    "runTarget": "STM32F103C8T6 CubeIDE 固件 + 主机仿真/HAL-stub 验证",
     "hardwareProfile": {
-      "strategy": "manager-configured-before-first-flash",
+      "strategy": "课程固定 STM32F103C8T6 与参考引脚，统一由 FerrisControl.ioc、board_config 和 sensor profile 表达；真实 I2C 模块选定后只替换 profile，不让学习者猜板卡和寄存器",
       "requiredCapabilities": [
-        "GPIO 输入输出",
-        "至少一个硬件定时器",
-        "UART",
-        "ADC",
-        "I²C 或 SPI 外设"
+        "SWD 构建、下载与断点调试",
+        "GPIO 输入输出与可配置上下拉",
+        "至少一个支持 PWM 和周期中断的硬件定时器",
+        "UART 收发",
+        "ADC 输入",
+        "I²C 主机与可识别外设",
+        "独立看门狗或等效硬件监督能力"
       ],
       "debugEvidence": [
-        "串口日志",
-        "真机状态视频或照片说明",
-        "关键寄存器或变量观察"
+        "构建与下载日志",
+        "Watch/寄存器或逻辑分析记录",
+        "结构化 UART 事件日志",
+        "主机侧纯逻辑测试结果",
+        "接线表、故障注入步骤与真机现象说明"
       ]
-    }
+    },
+    "components": [
+      {
+        "id": "board-profile",
+        "language": "c",
+        "entryFile": "Core/Inc/board_config.h"
+      },
+      {
+        "id": "board-io",
+        "language": "c",
+        "entryFile": "Core/Src/board_io.c"
+      },
+      {
+        "id": "event-time",
+        "language": "c",
+        "entryFile": "Core/Src/app_events.c"
+      },
+      {
+        "id": "diagnostics",
+        "language": "c",
+        "entryFile": "Core/Src/diagnostics.c"
+      },
+      {
+        "id": "sensors",
+        "language": "c",
+        "entryFile": "Core/Src/door_sensor_i2c.c"
+      },
+      {
+        "id": "controller",
+        "language": "c",
+        "entryFile": "Core/Src/ferris_controller.c"
+      },
+      {
+        "id": "firmware-app",
+        "language": "c",
+        "entryFile": "Core/Src/ferris_app.c"
+      },
+      {
+        "id": "host-tests",
+        "language": "c",
+        "entryFile": "tests/test_ferris_controller.c"
+      }
+    ],
+    "requiredDeliverables": [
+      "完整可运行主机工程、FerrisControl.ioc、完整目标端 ferris_app、中断回调、CubeMX 接入清单与全部手写 C 源码",
+      "固定 STM32F103C8T6 引脚表、断电接线表与真实 I2C 模块 profile",
+      "12 个主机/HAL-stub 测试、完整 demo 与每章绿色验证记录",
+      "CubeMX 生成、ARM Debug/Release 构建、ST-LINK 下载、UART/Watch/测量证据",
+      "正常运行、组合故障、看门狗复位和安全恢复轨迹"
+    ]
   },
   "coreContract": [
-    "启动、运行、停靠、故障和复位状态转换明确",
-    "按钮抖动和长按不会重复触发危险动作",
-    "中断只做短工作，主循环保持非阻塞",
-    "传感器异常或复位后进入安全状态"
+    "STM32F103C8T6、参考引脚、有效电平和外设实例集中在 .ioc、board_config 与 sensor profile；每步从完整脚手架做有界实验，不让学习者猜硬件",
+    "启动、运行、停靠、故障和复位状态转换明确，故障优先于普通运行请求",
+    "按钮抖动和长按不会重复触发，所有等待使用无符号时间差且能跨计数回绕",
+    "中断只记录有界事件，主循环处理业务；日志和总线操作不得阻塞安全路径",
+    "传感器错误、陈旧数据、事件溢出或异常复位都先进入安全输出并留下可追踪证据",
+    "真实功率负载不得由 MCU GPIO 直接驱动；课程默认以安全指示负载或额定驱动模块控制端验证 PWM"
   ],
   "chapterTeachingLoop": [
-    "experience",
-    "predict",
-    "concise-explanation",
-    "guided-build",
-    "immediate-feedback",
-    "independent-change",
-    "later-reencounter"
+    "observable-hardware-phenomenon",
+    "mental-model-and-terms",
+    "two-to-four-concept-checks",
+    "three-guided-code-increments",
+    "build-flash-observe",
+    "bounded-independent-change",
+    "later-fault-reencounter"
   ],
   "chapters": [
     {
-      "id": "gpio-start",
-      "title": "点亮第一盏安全灯",
-      "goal": "建立工程，读取按钮并控制状态灯。",
+      "id": "board-bringup",
+      "title": "从复位走到第一行 main",
+      "phase": "上电与工程",
+      "estimatedSessions": 5,
+      "milestone": "不用任何 LED 或按钮，只凭构建日志、下载校验、断点、PC 地址和 Watch 变量证明固件已经在目标板运行",
+      "goal": "区分构建、下载、复位和运行，用调试器证明程序从板载 Flash 进入 main；本章不提前使用 GPIO 或其他外设。",
       "concepts": [
-        "GPIO",
-        "输入输出",
-        "上拉下拉"
+        "复位到 main",
+        "Flash 与 SRAM",
+        "HAL 与寄存器",
+        "构建·下载·调试"
       ],
-      "guidedBuild": "完成按钮到状态灯的最小闭环。",
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/board_config.h",
+        "Core/Src/board_config.c",
+        "Core/Src/main.c",
+        "README.md",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "按下复位键后，谁先于 main 运行",
+        "learningGoal": "能说清编译、链接、下载、复位、启动代码、HAL 初始化和 main 之间的先后关系，并能用调试器证据证明目标板运行了固件，而不借助尚未学习的 GPIO。",
+        "phenomenon": {
+          "title": "断点还没到 main，板子已经做过很多事",
+          "observation": "同一份 main.c 编译成功后，程序下载到开发板；按下复位键，调试器先停在启动代码附近，随后才进入 main。断电后再次上电，程序仍然存在。",
+          "question": "源码怎样变成 Flash 中的指令？复位后是谁准备栈、内存和时钟，再把执行权交给 main？"
+        },
+        "mentalModel": {
+          "summary": "把固件启动看成一条接力链：编译器把每个 C 文件变成目标文件，链接器按链接脚本安排 Flash 与 SRAM，下载器写入 Flash；复位后处理器读取向量表，启动代码准备运行环境，HAL_Init 和时钟配置完成后才进入应用。",
+          "flow": [
+            {
+              "id": "compile-object",
+              "title": "编译与链接",
+              "explanation": "源文件先变成目标文件，再由链接器依据链接脚本排进 Flash 与 SRAM 地址。"
+            },
+            {
+              "id": "flash-image",
+              "title": "下载到 Flash",
+              "explanation": "调试器通过 SWD 把固件镜像写入掉电不丢失的 Flash。"
+            },
+            {
+              "id": "reset-vector",
+              "title": "复位与向量表",
+              "explanation": "处理器从向量表取得初始栈地址和复位处理函数地址。"
+            },
+            {
+              "id": "startup-runtime",
+              "title": "启动运行环境",
+              "explanation": "启动代码复制已初始化数据、清零 BSS，并完成系统级准备。"
+            },
+            {
+              "id": "enter-main",
+              "title": "进入应用",
+              "explanation": "HAL 和时钟初始化后，main 循环开始运行项目逻辑。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "复位到 main",
+            "plainMeaning": "从处理器复位入口经过启动代码、系统初始化，最终进入 C 入口函数的完整执行链。",
+            "codeMapping": "startup_stm32*.s、SystemInit、HAL_Init、SystemClock_Config、main"
+          },
+          {
+            "term": "Flash 与 SRAM",
+            "plainMeaning": "Flash 断电后保留程序；SRAM 保存运行时会变化的栈、全局变量和局部数据，断电后消失。",
+            "codeMapping": "链接映射文件中的 FLASH、RAM 段以及 .text、.data、.bss"
+          },
+          {
+            "term": "HAL 与寄存器",
+            "plainMeaning": "寄存器是外设的硬件控制位；HAL 是厂商提供的 C 接口，用结构体和函数替你组织常见寄存器操作。",
+            "codeMapping": "HAL_Init 与生成代码中的外设初始化函数；调试时可回看对应寄存器"
+          },
+          {
+            "term": "构建·下载·调试",
+            "plainMeaning": "构建生成固件，下载把固件写进板子，调试让处理器受控运行并观察断点和变量；三者是不同动作。",
+            "codeMapping": "Build Console、.elf/.bin、SWD Debug Configuration、断点和 Watch"
+          }
+        ],
+        "workedExample": {
+          "title": "不用指示灯，怎样证明程序真的跑进了开发板",
+          "steps": [
+            "构建日志确认源文件被编译、链接，并生成带调试信息的 ELF 固件。",
+            "下载日志确认调试器连接到目标芯片、写入 Flash 并完成校验。",
+            "在 main 第一行设置断点；复位后断点命中，PC 落在芯片 Flash 地址范围。",
+            "单步执行一行 boot_probe = 0x13572468，在 Watch 中看到变量由初值变成该标记。",
+            "结束调试并断电，再重新供电和连接；main 断点再次命中，说明程序不是只存在电脑内存里。"
+          ],
+          "takeaway": "“编译成功”只证明电脑产生了固件；下载校验、目标芯片地址、断点和 Watch 变化共同证明开发板执行了它。GPIO 指示灯将在下一章理解后再使用。"
+        },
+        "misconceptions": [
+          {
+            "claim": "下载按钮就是运行 C 源文件。",
+            "correction": "开发板执行的是编译链接后的机器指令；下载只是把镜像写入 Flash。"
+          },
+          {
+            "claim": "CubeMX 生成的每一行代码都应该直接修改。",
+            "correction": "生成区会被重新生成；课程把板卡差异放入 board_config 和 USER CODE 边界。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "boot-chain-order",
+            "question": "下列哪一条最接近复位后的真实执行顺序？",
+            "options": [
+              {
+                "id": "boot-chain-order-correct",
+                "text": "向量表 → 启动代码 → HAL/时钟初始化 → main"
+              },
+              {
+                "id": "boot-chain-order-wrong-a",
+                "text": "main → 编译器 → 向量表 → Flash"
+              },
+              {
+                "id": "boot-chain-order-wrong-b",
+                "text": "HAL → 下载器 → main → 启动代码"
+              }
+            ],
+            "correctOptionId": "boot-chain-order-correct",
+            "explanation": "复位时编译已经结束，处理器先从向量表和启动代码建立 C 运行环境，随后才进入 main。"
+          },
+          {
+            "id": "flash-ram-role",
+            "question": "为什么断电后程序仍在，但普通运行变量会回到初始状态？",
+            "options": [
+              {
+                "id": "flash-ram-role-correct",
+                "text": "程序镜像在 Flash，运行变量主要在易失的 SRAM"
+              },
+              {
+                "id": "flash-ram-role-wrong-a",
+                "text": "程序和变量都保存在调试器里"
+              },
+              {
+                "id": "flash-ram-role-wrong-b",
+                "text": "SRAM 永久保存程序，Flash 只保存日志"
+              }
+            ],
+            "correctOptionId": "flash-ram-role-correct",
+            "explanation": "Flash 与 SRAM 的掉电特性不同，启动代码还会重新初始化 .data 和 .bss。"
+          }
+        ],
+        "bridgeToCode": "先建立一个不依赖外设的最小工程，只用 main 断点、PC 地址和 boot_probe 变量完成第一条执行证据链。"
+      },
+      "guidedBuild": "从空工程建立可重复的构建—下载—调试闭环，并把自动生成区与课程手写区分开。",
+      "guidedSteps": [
+        {
+          "id": "bringup-01",
+          "title": "取得完整脚手架并建立绿色基线",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/main.c",
+            "README.md",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "先下载代码包的完整起始脚手架，执行 ./scripts/verify.sh，确认 12 个测试与 demo 全绿；再用 CubeMX 打开固定为 STM32F103C8T6 的 FerrisControl.ioc，按 docs/cubemx-integration.md 区分主机入口与 CubeMX 生成入口。本步不声称已完成 ARM 构建或真机下载。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "主机严格编译、12 个测试和 demo 全部通过；.ioc 显示 STM32F103C8T6。CubeMX 生成、ARM 构建、ST-LINK 下载和真机证据只有实际执行后才能填写。",
+          "codeStepId": "bringup-01-code"
+        },
+        {
+          "id": "bringup-02",
+          "title": "看懂生成代码和手写代码的边界",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/main.c",
+            "README.md",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "在 main 的 USER CODE 区加入 volatile uint32_t boot_probe = 0;，记录哪些区域由 CubeMX 生成、哪些区域允许手写；不要提前建立 board_config 或填写尚未学习的引脚极性。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "重新生成代码后 boot_probe 仍存在；能够指出 Reset_Handler、HAL_Init、SystemClock_Config 和 main 的位置。",
+          "codeStepId": "bringup-02-code"
+        },
+        {
+          "id": "bringup-03",
+          "title": "用断点、PC 和 Watch 证明固件在运行",
+          "targetFiles": [
+            "Core/Src/main.c",
+            "README.md",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "在 main 第一条手写语句设置断点，单步执行 boot_probe = 0x13572468；记录 PC 所在地址和 Watch 变化。断电重启后重新连接，再次确认 main 断点命中。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "构建、下载校验、Flash 地址、断点和 Watch 五类证据一致；全程没有借用未讲解的 GPIO 现象。",
+          "codeStepId": "bringup-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先核对按钮按下时电平是高还是低。"
+          "text": "先区分“电脑构建成功”“调试器下载成功”“目标芯片执行成功”三类证据。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 GPIO 初始化和读取条件。"
+          "text": "检查 Build Console、下载校验、main 断点、PC 地址与 boot_probe 的 Watch 值。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "硬件电平定义错误会让逻辑整体反向。"
+          "text": "ELF 出现在电脑上不等于芯片已运行；必须让目标芯片命中断点并产生可观察的变量变化。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "独立增加“未准备好时红灯常亮”。",
-        "evidence": "引脚表、串口或真机结果",
+        "task": "独立把 boot_probe 改成先写入 0x24681357、再经过一个手写函数变为 0xA5A55A5A；用两个断点证明执行顺序，且不修改生成区。",
+        "evidence": "芯片/调试器配置、0 error 构建日志、下载校验、两个断点的 PC 与 Watch 记录、断电重启后的复现记录",
         "automatedChecks": [],
         "selfChecks": [
-          "断电重启后默认红灯",
-          "按钮释放后状态明确"
+          "没有配置或使用任何 GPIO",
+          "手写代码只在允许区域",
+          "断电重启后仍能复现执行链"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 复位阶段再次检查安全默认输出。"
+      "laterReencounter": "第 2 章学会 GPIO 输出后，才会把调试器证据扩展为真实指示灯现象。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning"
+        ],
+        "runActions": [
+          "连接调试器并下载固件",
+          "在 main 设置断点并观察 PC 与 boot_probe",
+          "结束调试、断电、重新供电后再次连接和复位"
+        ],
+        "expectedResults": [
+          "main 断点稳定命中且 PC 位于目标芯片 Flash 地址范围",
+          "单步后 boot_probe 从 0 变为约定标记",
+          "断电重启后仍能从 Flash 重新进入 main"
+        ]
+      },
+      "snapshotStateId": "bringup-03-ready"
+    },
+    {
+      "id": "gpio-start",
+      "title": "一根芯片引脚怎样点亮一盏灯",
+      "phase": "上电与 GPIO",
+      "estimatedSessions": 5,
+      "milestone": "能从开发板原理图找到一个 LED 信号，解释电流路径，并用语义函数安全地点亮和熄灭它",
+      "goal": "先认识芯片、引脚、电压和地，再理解 GPIO 输出、高低电平、限流电阻及低电平有效，完成第一个安全物理输出。",
+      "concepts": [
+        "开发板、MCU 与引脚",
+        "VDD、GND 与电压",
+        "GPIO",
+        "数字高低电平",
+        "输出模式",
+        "限流电阻",
+        "有效电平",
+        "安全默认值"
+      ],
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/board_config.h",
+        "Core/Inc/board_io.h",
+        "Core/Src/board_io.c",
+        "Core/Src/main.c",
+        "docs/wiring.md",
+        "tests/test_board_io.c",
+        "docs/cubemx-integration.md"
+      ],
+      "guidedBuild": "先在原理图和实物上找到 MCU、引脚、LED、电阻、VDD 与 GND，再配置一个输出脚，最后用 board_status_led_set 隐藏板卡极性。",
+      "conceptModule": {
+        "title": "先别背 GPIO：从一根金属引脚和一条电流路径开始",
+        "learningGoal": "看到一张 LED 接线图时，能指出电流从哪里来、经过什么、回到哪里；能说明 GPIO 是芯片与外界连接的一组可配置引脚，并推导写高或写低时 LED 为什么亮或灭。",
+        "phenomenon": {
+          "title": "代码写 1，灯为什么不一定亮",
+          "observation": "开发板上的 LED 连到 MCU 的一根实体引脚。有的板写 1 点亮，有的板写 0 点亮；如果没有先看 LED 接在引脚与 VDD/GND 的哪一边，只背 HAL_GPIO_WritePin 的参数就会猜错。",
+          "question": "一根芯片引脚究竟是什么？程序写出的 0 或 1 怎样变成引脚电压，又怎样让电流经过 LED？"
+        },
+        "mentalModel": {
+          "summary": "先把 MCU 想成一块有许多金属连接点的芯片，每个连接点叫引脚。VDD 是供电一端，GND 是全板共同的 0V 参考；“引脚是高还是低”说的是它相对 GND 的电压区间。GPIO 是其中一类可由程序选择用途的通用引脚。配置成输出后，芯片内部驱动电路会把引脚接近 VDD 或 GND；只有接线形成从电源到地的完整路径，电流才会经过限流电阻和 LED，灯才亮。",
+          "flow": [
+            {
+              "id": "locate-pin",
+              "title": "先找到实体",
+              "explanation": "MCU 是开发板中央的芯片；PA5、PC13 之类名称对应芯片上的具体引脚，不是普通 C 变量。"
+            },
+            {
+              "id": "voltage-reference",
+              "title": "电压必须有参照",
+              "explanation": "GND 约定为 0V 参考，3.3V 的含义是某点相对 GND 高约 3.3V；没有共同 GND 就不能可靠比较电平。"
+            },
+            {
+              "id": "name-gpio",
+              "title": "这类引脚叫 GPIO",
+              "explanation": "General Purpose Input/Output 表示“通用输入/输出”；同一引脚通常可在若干功能之间选择，本章只选择普通数字输出。"
+            },
+            {
+              "id": "choose-output",
+              "title": "输出模式主动驱动",
+              "explanation": "配置为输出后，芯片不是被动观察，而是主动把引脚推向高电平或低电平。"
+            },
+            {
+              "id": "high-low",
+              "title": "高低是电压区间",
+              "explanation": "写高使引脚接近 VDD，写低使引脚接近 GND；真实电压允许小偏差，不要求数学上恰好等于 3.300V 或 0.000V。"
+            },
+            {
+              "id": "current-path",
+              "title": "有闭合路径才有电流",
+              "explanation": "LED 发光需要电流从电源出发，经过限流电阻和 LED，再回到 GND；只看一个引脚数值无法判断亮灭。"
+            },
+            {
+              "id": "active-level",
+              "title": "接线决定“几有效”",
+              "explanation": "LED 若从引脚接向 GND，写高可能点亮；若从 VDD 经 LED 接到引脚，写低让引脚吸收电流，反而点亮。"
+            },
+            {
+              "id": "safe-semantic",
+              "title": "用语义隔离板卡差异",
+              "explanation": "board_status_led_set(true) 表示“希望灯亮”，board_config 再决定底层写高还是写低；上电先选择安全的熄灭状态。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "开发板、MCU 与引脚",
+            "plainMeaning": "开发板是一整块带供电、调试器和外围器件的电路板；MCU 是执行固件的主芯片；引脚是 MCU 与板上导线连接的实体金属端点。PA5 表示 A 组端口中的第 5 根引脚。",
+            "codeMapping": "开发板原理图、数据手册 pinout、CubeMX Pinout 视图，以及 GPIOA/GPIO_PIN_5 这样的端口和引脚标识"
+          },
+          {
+            "term": "VDD、GND 与电压",
+            "plainMeaning": "VDD 是 MCU 的正电源一端，常见为 3.3V；GND 是共同的 0V 参考和电流回路返回端。说某点有 3.3V，实际是在说它比 GND 高约 3.3V。",
+            "codeMapping": "本章不把 VDD/GND 写成变量；它们体现在供电、接线图和万用表黑表笔接 GND 的测量方式中"
+          },
+          {
+            "term": "GPIO",
+            "plainMeaning": "GPIO 是 General Purpose Input/Output 的缩写，指 MCU 上可以被程序配置成普通数字输入或数字输出的一类实体引脚。GPIO 不是一个布尔变量，也不是整块开发板。",
+            "codeMapping": "CubeMX 的 GPIO 模式、GPIOA/GPIOB 端口、GPIO_PIN_x 引脚，以及 HAL_GPIO_ReadPin/HAL_GPIO_WritePin"
+          },
+          {
+            "term": "数字高低电平",
+            "plainMeaning": "数字电路把一段较高电压认作 1，把一段较低电压认作 0。它们是相对 GND 的电压区间；1 不等于“设备开启”，0 也不等于“设备关闭”。",
+            "codeMapping": "HAL 的 GPIO_PIN_SET/RESET 分别表示引脚物理高/低；逻辑含义要由接线和 board_config 决定"
+          },
+          {
+            "term": "输出模式",
+            "plainMeaning": "输出模式让 MCU 内部驱动电路主动把引脚拉向高电平或低电平。推挽输出既能向外提供有限电流，也能吸收有限电流，但不能当作电源或电机驱动器。",
+            "codeMapping": "GPIO_MODE_OUTPUT_PP、HAL_GPIO_WritePin，以及寄存器层的 ODR/BSRR"
+          },
+          {
+            "term": "限流电阻",
+            "plainMeaning": "LED 不能直接跨接在电源和地之间；串联电阻会限制电流，保护 LED 与 MCU 引脚。电阻值由电源、电压降和允许电流决定，不能把内部上拉电阻当作 LED 的正式限流电阻。",
+            "codeMapping": "限流电阻是原理图和实物中的器件，不是 HAL 配置；其数值必须记录在 hardware profile 或接线表"
+          },
+          {
+            "term": "有效电平",
+            "plainMeaning": "“有效”表示某个物理电平使功能成立。低电平有效 LED 写 0 才亮；高电平有效 LED 写 1 才亮。有效电平来自接线，不是由变量名决定。",
+            "codeMapping": "LED_ACTIVE_LOW、board_status_led_set(on)；业务代码只传 on/off，不直接散落 SET/RESET 反转"
+          },
+          {
+            "term": "安全默认值",
+            "plainMeaning": "刚复位、尚未初始化或发生故障时，输出应先处于不会启动危险负载的状态。对本课程的指示灯和控制信号，应先明确“安全是高还是低”，再初始化输出。",
+            "codeMapping": "board_outputs_safe、CubeMX 的初始输出电平，以及 main 在其他业务逻辑前调用的安全初始化"
+          }
+        ],
+        "workedExample": {
+          "title": "为什么一颗接在 VDD 侧的 LED 写 0 才亮",
+          "steps": [
+            "先沿原理图找到路径：3.3V → 限流电阻 → LED → MCU 引脚。",
+            "引脚配置为推挽输出，但暂时不把“1”等同于“亮”。",
+            "写高时，引脚接近 3.3V；LED 两端都接近 3.3V，电压差很小，几乎没有电流，灯灭。",
+            "写低时，引脚接近 0V；电流从 3.3V 经过电阻和 LED 流入引脚，再由芯片内部回到 GND，灯亮。",
+            "因此这颗 LED 是低电平有效：RESET/0 表示物理低电平，却对应“灯亮”。",
+            "在 board_config 中记录 LED_ACTIVE_LOW = true。",
+            "board_status_led_set(true) 根据该配置写低，board_status_led_set(false) 写高。",
+            "业务代码只表达“亮/灭”，以后换成高电平有效 LED 时无需改控制逻辑。"
+          ],
+          "takeaway": "先看接线和电流路径，再推导高低电平与设备状态；数字 1/0、GPIO 高低和“开/关”是三层不同含义。"
+        },
+        "misconceptions": [
+          {
+            "claim": "GPIO 就是代码里的一个 0/1 变量。",
+            "correction": "GPIO 首先是芯片上的实体引脚；代码只是配置内部电路并读写它的物理电平。"
+          },
+          {
+            "claim": "写 1 就一定表示灯亮或设备开启。",
+            "correction": "写 1 只表示引脚被驱动到高电平；设备状态由外部接线和有效极性决定。"
+          },
+          {
+            "claim": "GND 只是“负极”，不用和外设连接。",
+            "correction": "GND 是双方比较电压的共同参考，也是电流回路的一部分；外设与 MCU 通常必须共地。"
+          },
+          {
+            "claim": "LED 很小，可以不串电阻。",
+            "correction": "LED 的电流必须被限制；缺少合适限流会损坏 LED 或 MCU 引脚。"
+          },
+          {
+            "claim": "GPIO 输出可以直接给电机供电。",
+            "correction": "GPIO 只能处理有限电流；电机必须使用额定驱动级、独立电源与保护，课程只接安全指示负载或驱动器逻辑端。"
+          },
+          {
+            "claim": "GPIO_PIN_RESET 表示整个 MCU 被复位。",
+            "correction": "在 HAL GPIO API 中，RESET 表示把该引脚写为低电平，与处理器复位不是同一件事。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "gpio-is-physical-pin",
+            "question": "下列哪一种说法最准确地描述 GPIO？",
+            "options": [
+              {
+                "id": "gpio-is-physical-pin-correct",
+                "text": "它是 MCU 上可配置用途的一类实体引脚，程序可以把它设为数字输入或输出"
+              },
+              {
+                "id": "gpio-is-physical-pin-wrong-a",
+                "text": "它只是 C 语言里保存 0 或 1 的普通变量"
+              },
+              {
+                "id": "gpio-is-physical-pin-wrong-b",
+                "text": "它是给整个开发板供电的 3.3V 接口"
+              }
+            ],
+            "correctOptionId": "gpio-is-physical-pin-correct",
+            "explanation": "先有芯片上的实体引脚及其内部电路，软件配置和变量只是控制、记录这些硬件状态。"
+          },
+          {
+            "id": "gpio-voltage-reference",
+            "question": "说某引脚是 3.3V 高电平时，这个 3.3V 是相对谁测得的？",
+            "options": [
+              {
+                "id": "gpio-voltage-reference-correct",
+                "text": "相对同一电路的 GND 参考点"
+              },
+              {
+                "id": "gpio-voltage-reference-wrong-a",
+                "text": "相对任意另一根未连接引脚"
+              },
+              {
+                "id": "gpio-voltage-reference-wrong-b",
+                "text": "相对 C 变量的初始值"
+              }
+            ],
+            "correctOptionId": "gpio-voltage-reference-correct",
+            "explanation": "电压是两点之间的差；数字电平必须以共同 GND 为参考才能可靠判断。"
+          },
+          {
+            "id": "active-low-led-path",
+            "question": "LED 接线为“3.3V → 电阻 → LED → GPIO”。哪种状态通常会点亮它？",
+            "options": [
+              {
+                "id": "active-low-led-path-correct",
+                "text": "GPIO 输出低电平，让电流从 3.3V 经 LED 流入引脚并回到 GND"
+              },
+              {
+                "id": "active-low-led-path-wrong-a",
+                "text": "GPIO 输出高电平，因为数字 1 永远表示开启"
+              },
+              {
+                "id": "active-low-led-path-wrong-b",
+                "text": "把 GPIO 改为未连接状态，因为没有电流时 LED 最亮"
+              }
+            ],
+            "correctOptionId": "active-low-led-path-correct",
+            "explanation": "这类接线由 MCU 引脚吸收电流，写低才形成足够的电压差和闭合电流路径，因此是低电平有效。"
+          },
+          {
+            "id": "led-series-resistor",
+            "question": "LED 串联限流电阻的主要作用是什么？",
+            "options": [
+              {
+                "id": "led-series-resistor-correct",
+                "text": "限制流过 LED 和 GPIO 的电流，避免超过器件允许范围"
+              },
+              {
+                "id": "led-series-resistor-wrong-a",
+                "text": "把 GPIO 自动变成输入模式"
+              },
+              {
+                "id": "led-series-resistor-wrong-b",
+                "text": "让所有 LED 都变成高电平有效"
+              }
+            ],
+            "correctOptionId": "led-series-resistor-correct",
+            "explanation": "LED 的伏安关系很陡，必须用合适电阻或恒流驱动限制电流；有效极性由接线方向决定。"
+          }
+        ],
+        "bridgeToCode": "先在实物和原理图上标出 MCU 引脚、3.3V、GND、LED 与限流电阻，画出灯亮时的电流箭头；能独立推导亮灭后，再配置 GPIO 输出并写 board_status_led_set。"
+      },
+      "guidedSteps": [
+        {
+          "id": "gpio-01",
+          "title": "在原理图和实物上找到完整电流路径",
+          "targetFiles": [
+            "docs/wiring.md",
+            "FerrisControl.ioc"
+          ],
+          "instruction": "记录 MCU/开发板型号、LED 对应端口与引脚、LED 和限流电阻连接方向、VDD、GND、供电电压及预计有效电平；先画“灯亮时电流从哪里到哪里”，暂不写业务代码。",
+          "verify": "能在实物、原理图和 CubeMX 中指向同一根引脚；接线表包含限流电阻，且能口头解释写高和写低各自为什么亮或灭。",
+          "codeStepId": "gpio-01-code"
+        },
+        {
+          "id": "gpio-02",
+          "title": "只做一次物理高低电平实验",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/main.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "把 LED 引脚配置为推挽输出和安全初始电平；在调试器中单步执行一次写高、一次写低，每次都先预测 LED，再观察并记录结果。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "两次现象与原理图推导一致；能够区分 GPIO_PIN_SET/RESET 与 LED 的亮/灭语义。",
+          "codeStepId": "gpio-02-code"
+        },
+        {
+          "id": "gpio-03",
+          "title": "把板卡极性封装成“我要灯亮”",
+          "targetFiles": [
+            "Core/Inc/board_config.h",
+            "Core/Inc/board_io.h",
+            "Core/Src/board_io.c",
+            "Core/Src/main.c",
+            "tests/test_board_io.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "只为已经学过的状态灯加入 LED_PORT、LED_PIN 和 LED_ACTIVE_LOW，完整实现 board_status_led_set(bool on) 与 board_outputs_safe；main 不再直接写 SET/RESET。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "main 只表达 true/false；修改 LED_ACTIVE_LOW 和对应接线模型即可适配另一种极性；复位和故障默认不会输出运行命令。",
+          "codeStepId": "gpio-03-code"
+        }
+      ],
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning"
+        ],
+        "runActions": [
+          "断电确认 LED 和限流电阻属于板载安全电路",
+          "供电后单步执行写高与写低",
+          "复位并观察安全默认状态，再调用 board_status_led_set(true/false)"
+        ],
+        "expectedResults": [
+          "写高/写低现象与电流路径推导一致",
+          "业务 true/false 与底层有效极性分离",
+          "上电和复位首先进入已定义的安全输出"
+        ]
+      },
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "不要先猜 0/1；沿着 3.3V、限流电阻、LED、GPIO、GND 画出灯亮时的闭合路径。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "先确认 CubeMX 是推挽输出，再对照 board_config 的 LED_ACTIVE_LOW 和 board_status_led_set。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "若 LED 接在 VDD 一侧，GPIO 写低是在吸收电流，写 0 才亮是接线结果，不是 HAL 反着工作。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "给出另一张“GPIO → 电阻 → LED → GND”的高电平有效接线图：独立画出电流路径、填写高低电平真值表，并只修改 board_config 使同一个 board_status_led_set(true/false) 正常工作。",
+        "evidence": "两种接线图、电流箭头、真值表、board_config 差异、构建日志和亮灭观察记录",
+        "automatedChecks": [],
+        "selfChecks": [
+          "能指出 GPIO 是哪根实体引脚",
+          "能说明每种状态下 LED 两端电压和电流路径",
+          "业务代码没有直接依赖 SET/RESET"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "下一章把引脚从“主动输出电压”切换为“被动观察电压”，再解释按钮为什么需要上拉或下拉。",
+      "snapshotStateId": "gpio-03-ready"
+    },
+    {
+      "id": "gpio-input-pulls",
+      "title": "按钮松开时，输入引脚到底听谁的",
+      "phase": "上电与 GPIO",
+      "estimatedSessions": 5,
+      "milestone": "能从按钮接线推导释放与按下的电压、HAL 原始值和 pressed 语义，并解释浮空、上拉、下拉与消抖的边界",
+      "goal": "从“输入脚只观察电压”开始，理解高阻、浮空、内部上下拉和按钮电流路径，完成稳定的 button_pressed 板级接口。",
+      "concepts": [
+        "输入模式",
+        "高阻输入",
+        "浮空",
+        "上拉电阻",
+        "下拉电阻",
+        "按钮电路",
+        "原始电平与业务语义",
+        "上拉与消抖的边界"
+      ],
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/board_config.h",
+        "Core/Inc/board_io.h",
+        "Core/Src/board_io.c",
+        "Core/Src/main.c",
+        "docs/wiring.md",
+        "tests/test_board_io.c",
+        "docs/cubemx-integration.md"
+      ],
+      "guidedBuild": "先安全观察一个没有默认路径的输入，再加入内部上拉和按钮，逐态填写真值表，最后把 raw 电平转换成 board_button_pressed。",
+      "conceptModule": {
+        "title": "上拉不是一句配置：它是一条把输入轻轻带到 3.3V 的电阻路径",
+        "learningGoal": "面对上拉按钮或下拉按钮接线时，能沿电压与电流路径逐态推导释放/按下结果；能解释输入高阻、浮空和弱拉电阻，并区分原始 0/1、有效电平、按钮语义和机械消抖。",
+        "phenomenon": {
+          "title": "按钮没有按下，为什么输入值却不一定是 0",
+          "observation": "把一根安全的未连接引脚配置成输入且不启用上下拉时，Watch 中的值可能保持某个状态，也可能因手靠近、导线和环境噪声而变化。代码没有改，读数却不能被当作可靠默认值。",
+          "question": "输入脚既不主动输出高，也不主动输出低，那么按钮松开、没有器件驱动它时，究竟是谁决定它的电压？"
+        },
+        "mentalModel": {
+          "summary": "输入模式像一只几乎不取走电流的电压观察者。若引脚没有通过任何稳定路径连接到 VDD 或 GND，它就像一小块会保存残余电荷、又容易受噪声影响的金属，电压没有可靠答案，这叫浮空。上拉是在芯片内部或外部通过较大电阻把引脚弱连接到 VDD，下拉则弱连接到 GND；按钮闭合时提供更低电阻的强路径，所以能够覆盖这个默认值。",
+          "flow": [
+            {
+              "id": "input-observes",
+              "title": "输入只观察",
+              "explanation": "配置成输入后，GPIO 不应主动把引脚推高或拉低，只判断外部电压落在高区还是低区。"
+            },
+            {
+              "id": "high-impedance",
+              "title": "观察者尽量不扰动",
+              "explanation": "输入端等效阻抗很高，只取很小电流，这样不会明显改变传感器或按钮电路原本的电压。"
+            },
+            {
+              "id": "floating-node",
+              "title": "没有路径就没有默认答案",
+              "explanation": "松开按钮后若引脚既不连 VDD 也不连 GND，残余电荷、人体和噪声都可能影响电压；读数稳定一阵也不代表设计可靠。"
+            },
+            {
+              "id": "weak-default",
+              "title": "电阻提供弱默认路径",
+              "explanation": "上拉用较大电阻连接 VDD，让无人驱动时默认为高；下拉连接 GND，让无人驱动时默认为低。"
+            },
+            {
+              "id": "switch-overrides",
+              "title": "按钮用强路径覆盖默认值",
+              "explanation": "按钮闭合近似低电阻连接到另一条电源轨，远强于上拉/下拉的弱连接；串在拉电阻中的电阻会限制电流，避免直接短路。"
+            },
+            {
+              "id": "sample-level",
+              "title": "硬件只给 raw 高低",
+              "explanation": "输入电路用阈值把引脚电压判为高或低，HAL_GPIO_ReadPin 返回 SET 或 RESET；它并不知道“按钮”这个业务词。"
+            },
+            {
+              "id": "map-meaning",
+              "title": "板级代码再翻译含义",
+              "explanation": "上拉且按下接 GND 时，raw 低表示 pressed=true；下拉且按下接 VDD 时，raw 高才表示 pressed=true。"
+            },
+            {
+              "id": "separate-bounce",
+              "title": "稳定默认值不等于消抖",
+              "explanation": "上下拉解决松开时的浮空；机械触点在按下瞬间仍会快速开合，必须在下一章用时间状态单独消抖。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "输入模式",
+            "plainMeaning": "输入模式让 GPIO 停止主动驱动高低电平，转而观察外部电路给出的电压。它适合按钮和数字传感器，但外部电压必须在芯片允许范围内。",
+            "codeMapping": "GPIO_MODE_INPUT、HAL_GPIO_ReadPin，以及寄存器层的 IDR"
+          },
+          {
+            "term": "高阻输入",
+            "plainMeaning": "“高阻”表示输入端从外部电路取走的电流很小，像电压表一样尽量只观察、不拉动被测点。高阻不等于与世界完全隔离，也不等于自带默认 0。",
+            "codeMapping": "这是输入缓冲器的电气特性；HAL 没有一个叫 HIGH_IMPEDANCE 的布尔变量，配置成输入时由硬件体现"
+          },
+          {
+            "term": "浮空",
+            "plainMeaning": "浮空表示引脚没有可靠的直流路径到 VDD 或 GND，因此电压由残余电荷、寄生电容和环境噪声影响。一次看见它读 0 或读 1，都不能把该状态当成可靠设计。",
+            "codeMapping": "GPIO_MODE_INPUT 配合 GPIO_NOPULL 且外部没有持续驱动时会浮空；Watch 中可能出现不稳定或不可保证的 raw 值"
+          },
+          {
+            "term": "上拉电阻",
+            "plainMeaning": "上拉通过一个较大电阻把输入弱连接到 VDD，使没有其他器件驱动时默认为高电平。它不是把引脚永远锁成 1；按钮或外设的低阻路径仍能把引脚拉低。",
+            "codeMapping": "GPIO_PULLUP 表示启用芯片内部上拉；外部上拉则是原理图上的真实电阻，二者都要与 hardware profile 对应"
+          },
+          {
+            "term": "下拉电阻",
+            "plainMeaning": "下拉通过一个较大电阻把输入弱连接到 GND，使没有其他器件驱动时默认为低电平。按钮若接到 VDD，按下后的强路径会把输入拉高。",
+            "codeMapping": "GPIO_PULLDOWN 表示内部下拉；外部下拉的阻值和接线记录在原理图或 wiring.md"
+          },
+          {
+            "term": "按钮电路",
+            "plainMeaning": "按钮不是向程序“发送点击”的软件控件，而是一个机械开关。释放时开路，按下时把两端导通；它必须和 VDD/GND、上下拉电阻共同形成有确定状态的电路。",
+            "codeMapping": "原理图中的 switch、CubeMX 输入配置，以及断电后用万用表通断档核对的两端"
+          },
+          {
+            "term": "原始电平与业务语义",
+            "plainMeaning": "raw 只表示引脚物理高或低；pressed 表示人是否按下。上拉按钮常见 raw=0 才 pressed=true，下拉按钮则常见 raw=1 才 pressed=true。",
+            "codeMapping": "board_button_raw 返回 SET/RESET；board_button_pressed 根据 BUTTON_ACTIVE_LOW 转成 bool，业务层只读取 pressed"
+          },
+          {
+            "term": "上拉与消抖的边界",
+            "plainMeaning": "上下拉让按钮稳定停在“释放”的默认电平；消抖处理按下或松开瞬间机械触点的多次快速开合。两者解决不同问题，不能互相替代。",
+            "codeMapping": "GPIO_PULLUP/PULLDOWN 属于 GPIO 初始化；button_filter_update(raw, now) 属于下一章的时间状态逻辑"
+          }
+        ],
+        "workedExample": {
+          "title": "逐步推导“上拉 + 按下接地”的按钮",
+          "steps": [
+            "接线是 3.3V → 上拉电阻 → GPIO 引脚 → 按钮 → GND，MCU 与按钮电路共用 GND。",
+            "按钮释放时开路；输入脚几乎不取电流，上拉电阻把引脚带到接近 3.3V。",
+            "输入阈值把该电压判为高，HAL_GPIO_ReadPin 返回 GPIO_PIN_SET，也就是 raw=1。",
+            "按钮按下时，开关闭合，GPIO 通过很低电阻路径连接到 GND。",
+            "上拉电阻仍连着 3.3V，但它限制了电流；低阻接地路径使引脚接近 0V，而不是把电源直接短路。",
+            "输入阈值把该电压判为低，HAL 返回 GPIO_PIN_RESET，也就是 raw=0。",
+            "因为这套接线按下时 raw=0，所以 BUTTON_ACTIVE_LOW=true，board_button_pressed 返回 true。",
+            "下一章再处理按下瞬间 1/0 快速跳动；本章只保证释放和稳定按下时各有确定电平。"
+          ],
+          "takeaway": "上拉是弱默认路径，按钮是强覆盖路径；先沿接线推导 raw，再在板级边界把 raw 翻译成 pressed。"
+        },
+        "misconceptions": [
+          {
+            "claim": "输入脚什么都不接时自然会读 0。",
+            "correction": "没有到 VDD/GND 的可靠路径就是浮空，读数没有保证；看似稳定也可能只是暂时保存了电荷。"
+          },
+          {
+            "claim": "上拉就是软件把引脚写成 1。",
+            "correction": "上拉是通过电阻连接 VDD 的物理路径；输入脚仍是输入，外部低阻路径可以把它拉低。"
+          },
+          {
+            "claim": "启用上拉后按钮按下仍应读 1。",
+            "correction": "若按钮按下接 GND，低阻接地路径会覆盖弱上拉，按下读 0。"
+          },
+          {
+            "claim": "上拉和下拉可以同时随便开。",
+            "correction": "应根据外部接线选择一个合理默认方向；冲突或重复电阻会改变电流与电平，必须对照原理图。"
+          },
+          {
+            "claim": "启用上拉以后就不需要消抖。",
+            "correction": "上拉解决浮空；机械触点抖动发生在状态切换瞬间，需要时间滤波。"
+          },
+          {
+            "claim": "GPIO_NOPULL 一定是错误配置。",
+            "correction": "如果外部器件始终主动驱动高或低，或电路已有合适外部拉电阻，NOPULL 可以正确；关键是任何正常状态都不能无人定义电压。"
+          },
+          {
+            "claim": "上拉按钮断线时系统一定能识别故障。",
+            "correction": "普通上拉接法中，断线常和按钮释放一样读高；要检测断线需要额外电路或诊断机制，不能靠普通 GPIO 猜。"
+          },
+          {
+            "claim": "按下读 0 表示按钮接反了。",
+            "correction": "低电平有效是常见且合理的接法；关键是接线、raw 真值表和业务语义三者一致。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "floating-input-cause",
+            "question": "一个 GPIO 配成输入和 GPIO_NOPULL，外部也没有器件持续驱动。最准确的判断是什么？",
+            "options": [
+              {
+                "id": "floating-input-cause-correct",
+                "text": "它处于浮空状态；当前读到 0 或 1 都不能保证以后稳定"
+              },
+              {
+                "id": "floating-input-cause-wrong-a",
+                "text": "它必然稳定读 0，因为输入脚不会输出电压"
+              },
+              {
+                "id": "floating-input-cause-wrong-b",
+                "text": "它必然稳定读 1，因为 MCU 默认会自动上拉"
+              }
+            ],
+            "correctOptionId": "floating-input-cause-correct",
+            "explanation": "高阻输入只负责观察；没有上下拉或外部驱动时，电压没有可靠直流路径，会受电荷和噪声影响。"
+          },
+          {
+            "id": "pullup-button-truth",
+            "question": "输入启用上拉，按钮按下时把引脚接到 GND。释放与按下时的 raw 值通常分别是什么？",
+            "options": [
+              {
+                "id": "pullup-button-truth-correct",
+                "text": "释放为 1，按下为 0"
+              },
+              {
+                "id": "pullup-button-truth-wrong-a",
+                "text": "释放为 0，按下为 1"
+              },
+              {
+                "id": "pullup-button-truth-wrong-b",
+                "text": "释放与按下都为 1，因为上拉不能被覆盖"
+              }
+            ],
+            "correctOptionId": "pullup-button-truth-correct",
+            "explanation": "释放时弱上拉提供高默认值；按下时低阻接地路径覆盖上拉，电阻同时限制从 VDD 到 GND 的电流。"
+          },
+          {
+            "id": "pulldown-button-truth",
+            "question": "输入启用下拉，按钮按下时把引脚接到 VDD。释放与按下时的 raw 值通常分别是什么？",
+            "options": [
+              {
+                "id": "pulldown-button-truth-correct",
+                "text": "释放为 0，按下为 1"
+              },
+              {
+                "id": "pulldown-button-truth-wrong-a",
+                "text": "释放为 1，按下为 0"
+              },
+              {
+                "id": "pulldown-button-truth-wrong-b",
+                "text": "两种状态都不确定，因为下拉没有默认作用"
+              }
+            ],
+            "correctOptionId": "pulldown-button-truth-correct",
+            "explanation": "释放时下拉把输入带到 GND；按下时按钮提供到 VDD 的低阻路径，把输入拉高。"
+          },
+          {
+            "id": "pull-versus-debounce",
+            "question": "按钮已经正确上拉，但按下瞬间仍快速出现 1、0、1、0、0。应该怎样理解？",
+            "options": [
+              {
+                "id": "pull-versus-debounce-correct",
+                "text": "上拉已经定义稳态；这些快速跳变是机械抖动，下一章还需要时间消抖"
+              },
+              {
+                "id": "pull-versus-debounce-wrong-a",
+                "text": "说明上拉完全没有作用，应删除所有电阻"
+              },
+              {
+                "id": "pull-versus-debounce-wrong-b",
+                "text": "说明 GPIO 自动在输入和输出之间切换"
+              }
+            ],
+            "correctOptionId": "pull-versus-debounce-correct",
+            "explanation": "上下拉与消抖处理不同层次：前者定义无人驱动时的电压，后者过滤触点切换期间的短暂多次变化。"
+          }
+        ],
+        "bridgeToCode": "先为实际按钮画出“释放”和“按下”两幅电路状态，填写电流路径、引脚电压、HAL raw 和 pressed 四列真值表；能够不用代码推导后，再配置上下拉并实现 board_button_pressed。"
+      },
+      "guidedSteps": [
+        {
+          "id": "gpio-input-01",
+          "title": "安全地观察一次浮空，而不是把它当默认值",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/main.c",
+            "docs/wiring.md",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "选择 hardware profile 中确认可安全悬空的 3.3V 容限输入，先配置为 GPIO_NOPULL；只在调试器 Watch 中多次读取 raw，记录它可能稳定也可能变化，并立即结束该实验。不得把 5V、未知模块或输出脚接入。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "记录明确写着“浮空读数不可保证”，没有把某一次 0/1 当作设计结论；实验引脚与安全边界经过核对。",
+          "codeStepId": "gpio-input-01-code"
+        },
+        {
+          "id": "gpio-input-02",
+          "title": "用上拉和按钮建立两种确定状态",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "docs/wiring.md",
+            "Core/Src/main.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "按实际原理图启用内部上拉或记录外部上拉，按钮另一端接 GND；先填写释放/按下的电流路径、电压、raw 真值表，再用 Watch 核对。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "释放稳定为高、按下稳定为低；每个结果都能从电阻与开关路径解释，而不是靠记忆。",
+          "codeStepId": "gpio-input-02-code"
+        },
+        {
+          "id": "gpio-input-03",
+          "title": "把 raw 0/1 翻译成 button_pressed",
+          "targetFiles": [
+            "Core/Inc/board_config.h",
+            "Core/Inc/board_io.h",
+            "Core/Src/board_io.c",
+            "Core/Src/main.c",
+            "tests/test_board_io.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "加入 BUTTON_PORT、BUTTON_PIN、BUTTON_ACTIVE_LOW，实现 board_button_raw 与 board_button_pressed；main 用 pressed 控制上一章的安全状态灯，同时保留 raw 与 pressed 供 Watch 对照。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "释放时 raw=1/pressed=false，按下时 raw=0/pressed=true；main 不出现端口、引脚或取反表达式。",
+          "codeStepId": "gpio-input-03-code"
+        }
+      ],
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning"
+        ],
+        "runActions": [
+          "断电核对按钮端子、VDD/GND 与拉电阻路径",
+          "短暂观察安全浮空输入后启用正确上下拉",
+          "同时观察 raw 与 pressed，分别测试稳定释放和稳定按下"
+        ],
+        "expectedResults": [
+          "浮空实验只得出“不可保证”的结论",
+          "上拉按钮释放为 raw 1、按下为 raw 0",
+          "业务 pressed 语义不泄漏 active-low 细节，且本章不声称普通上拉能检测断线"
+        ]
+      },
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先问“按钮松开时，引脚通过什么路径连接到 VDD 或 GND”；如果答案是没有路径，它就是浮空。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "对照 CubeMX 的 Pull-up/Pull-down、wiring.md 真值表、board_config 的 BUTTON_ACTIVE_LOW 和 board_button_pressed。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "上拉是到 VDD 的弱电阻路径；按钮按下后的接地低阻路径更强，所以按下读 0，而电阻避免 VDD 与 GND 直接短路。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "给出一张“外部下拉 + 按下接 3.3V”的新按钮接线图：独立填写释放/按下的电流路径、raw 和 pressed 真值表，并只改 board_config/board_io 让上层 main 行为保持一致。",
+        "evidence": "新接线图、四列真值表、board_config/board_io 差异、构建日志、raw 与 pressed 的 Watch 记录或主机侧等价测试",
+        "automatedChecks": [],
+        "selfChecks": [
+          "释放时有确定下拉路径而非浮空",
+          "按下接 VDD 且不超过 MCU 允许电压",
+          "上层仍只使用 button_pressed，不出现 raw 极性判断"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "下一章保留相同上拉接线，专门处理机械触点在按下和释放瞬间产生的抖动；不会再用上下拉替代消抖。",
+      "snapshotStateId": "gpio-input-03-ready"
     },
     {
       "id": "debounce-state",
-      "title": "消除按钮抖动",
-      "goal": "用非阻塞状态机识别一次稳定按下。",
+      "title": "把一次按下变成一次事件",
+      "phase": "输入与时间",
+      "estimatedSessions": 5,
+      "milestone": "机械按钮无论抖动或长按都只产生一次 PRESS 事件",
+      "goal": "观察机械抖动，用候选态、稳定态和时间阈值实现非阻塞消抖与单次事件。",
       "concepts": [
-        "消抖",
-        "状态机",
-        "时间差"
+        "机械抖动",
+        "稳定态",
+        "按下事件",
+        "有限状态机"
       ],
-      "guidedBuild": "替换阻塞延时，记录候选电平和稳定时间。",
+      "filesTouched": [
+        "Core/Inc/button.h",
+        "Core/Src/button.c",
+        "Core/Src/main.c",
+        "tests/test_button.c",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "一次手指动作为什么会被读成很多次",
+        "learningGoal": "理解原始采样、候选状态、稳定状态和边沿事件的区别，能用时间推进状态而不阻塞主循环。",
+        "phenomenon": {
+          "title": "按一次，计数器却加了四次",
+          "observation": "在调试器里快速采样按钮，一次物理按下会出现 1、0、1、0、0 的短暂跳变；长按时循环又会持续读到“按下”。",
+          "question": "程序如何只在新状态稳定一段时间后确认变化，并只在稳定态从释放变为按下时产生一个事件？"
+        },
+        "mentalModel": {
+          "summary": "消抖器不是等待按钮安静，而是一个随时间更新的小状态机：原始值变化时重置候选计时；候选值持续超过阈值才替换稳定态；只有稳定态的特定边沿产生事件。",
+          "flow": [
+            {
+              "id": "sample-raw",
+              "title": "采样原始电平",
+              "explanation": "每次循环读一次经过极性转换的 pressed 值。"
+            },
+            {
+              "id": "track-candidate",
+              "title": "记录候选态",
+              "explanation": "原始值一变化就更新 candidate，并记下变化时刻。"
+            },
+            {
+              "id": "confirm-stable",
+              "title": "确认稳定态",
+              "explanation": "candidate 连续保持超过阈值后才更新 stable。"
+            },
+            {
+              "id": "emit-edge",
+              "title": "产生一次事件",
+              "explanation": "stable 从 false 变为 true 时返回 PRESS；保持 true 不重复产生。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "机械抖动",
+            "plainMeaning": "金属触点接触和弹开时出现的快速电平跳变，不代表多次真实按压。",
+            "codeMapping": "button_update 输入的 raw_pressed 波形与 debounce_ms"
+          },
+          {
+            "term": "稳定态",
+            "plainMeaning": "已经连续保持足够时间、可以交给业务使用的按钮状态。",
+            "codeMapping": "Button.stable_pressed"
+          },
+          {
+            "term": "按下事件",
+            "plainMeaning": "稳定状态从释放变到按下的那一个瞬间，消费一次后就消失。",
+            "codeMapping": "BUTTON_EVENT_PRESS 返回值"
+          },
+          {
+            "term": "有限状态机",
+            "plainMeaning": "用有限组状态和明确转换条件描述行为，而不是堆叠互相覆盖的 if。",
+            "codeMapping": "candidate_pressed、stable_pressed、candidate_since_ms 的转换规则"
+          }
+        ],
+        "workedExample": {
+          "title": "10、12、15、48 毫秒的抖动序列",
+          "steps": [
+            "10ms 读到按下，candidate 改为按下并开始计时。",
+            "12ms 又读到释放，candidate 改回释放，计时重置。",
+            "15ms 再次读到按下，重新开始计时。",
+            "48ms 仍为按下，已稳定超过 30ms，更新 stable 并产生一次 PRESS。"
+          ],
+          "takeaway": "阈值从最后一次原始变化开始计算；不是从第一次看到按下开始，也不是简单延时后再读一次。"
+        },
+        "misconceptions": [
+          {
+            "claim": "按下时 HAL_Delay(30) 最简单，所以就是正确消抖。",
+            "correction": "阻塞延时会让其他输入、日志和安全检查停摆；状态机可在等待期间继续处理其他任务。"
+          },
+          {
+            "claim": "只要 stable 为 true，每轮都应该返回 PRESS。",
+            "correction": "stable 是持续状态，PRESS 是一次边沿事件；长按不能重复触发。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "debounce-timer-reset",
+            "question": "候选态在稳定阈值内再次变化时，计时应该怎样处理？",
+            "options": [
+              {
+                "id": "debounce-timer-reset-correct",
+                "text": "更新候选态，并从这次变化重新计时"
+              },
+              {
+                "id": "debounce-timer-reset-wrong-a",
+                "text": "保留第一次按下时间继续累计"
+              },
+              {
+                "id": "debounce-timer-reset-wrong-b",
+                "text": "立即修改稳定态并产生事件"
+              }
+            ],
+            "correctOptionId": "debounce-timer-reset-correct",
+            "explanation": "候选值未持续稳定，之前的等待时间不能算给新候选值。"
+          },
+          {
+            "id": "press-event-edge",
+            "question": "长按 2 秒期间，PRESS 事件应产生几次？",
+            "options": [
+              {
+                "id": "press-event-edge-correct",
+                "text": "稳定态首次变为按下时一次"
+              },
+              {
+                "id": "press-event-edge-wrong-a",
+                "text": "主循环每轮一次"
+              },
+              {
+                "id": "press-event-edge-wrong-b",
+                "text": "每过消抖阈值一次"
+              }
+            ],
+            "correctOptionId": "press-event-edge-correct",
+            "explanation": "事件代表边沿而不是电平；保持按下不会制造新的边沿。"
+          }
+        ],
+        "bridgeToCode": "把按钮逻辑写成纯 C 的 button_update(raw, now_ms)，先用人工时间序列测试，再接到真实 GPIO。"
+      },
+      "guidedBuild": "把原始按钮读取与消抖算法分开，先在主机测试时间序列，再在开发板验证短按、长按和快速连按。",
+      "guidedSteps": [
+        {
+          "id": "debounce-01",
+          "title": "记录原始波形而不猜测",
+          "targetFiles": [
+            "Core/Src/main.c",
+            "tests/test_button.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "用 Watch 计数或采样数组记录一次按下前后的原始布尔序列；把观察到的抖动序列写成第一个主机测试。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "测试固定重放一段含抖动的时间序列，能复现“原始值变化多次”。",
+          "codeStepId": "debounce-01-code"
+        },
+        {
+          "id": "debounce-02",
+          "title": "实现候选态与稳定态",
+          "targetFiles": [
+            "Core/Inc/button.h",
+            "Core/Src/button.c",
+            "tests/test_button.c"
+          ],
+          "instruction": "实现 Button 结构和 button_update；原始值变化时重置 candidate_since_ms，稳定超过阈值才更新 stable。",
+          "verify": "短于阈值的毛刺不改变稳定态；刚好阈值前后都有边界测试。",
+          "codeStepId": "debounce-02-code"
+        },
+        {
+          "id": "debounce-03",
+          "title": "只把边沿交给控制器",
+          "targetFiles": [
+            "Core/Src/button.c",
+            "Core/Src/main.c",
+            "tests/test_button.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "只在 stable 从释放到按下时返回 PRESS，在释放时返回 RELEASE；main 统计事件而不是统计按下电平。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "短按一次、长按两秒、快速连按三组分别得到 1、1、3 次 PRESS。",
+          "codeStepId": "debounce-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察一次按下产生了几次边沿。"
+          "text": "把 raw、candidate、stable 和返回事件四个值分列观察。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查按钮状态与时间戳更新。"
+          "text": "检查 candidate_since_ms 是否在每次候选变化时更新，以及事件是否只在 stable 转换时创建。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "只有电平稳定超过阈值才确认新状态。"
+          "text": "把持续状态当事件会造成长按重复触发；把第一次变化时间沿用会错误吸收抖动时间。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "连续快速按压不会重复启动。",
-        "evidence": "串口时间戳与动作次数",
-        "automatedChecks": [],
+        "task": "独立加入 RELEASE 事件，并证明“按下后抖动、长按、释放后抖动”只产生一次 PRESS 和一次 RELEASE。",
+        "evidence": "主机测试时间序列、断言结果、真机事件计数 Watch 记录",
+        "automatedChecks": [
+          "test_button 覆盖阈值前后、长按和释放抖动"
+        ],
         "selfChecks": [
-          "短抖动不触发",
-          "稳定按下只触发一次"
+          "没有 HAL_Delay",
+          "长按不重复触发",
+          "阈值边界有测试"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "中断章节比较轮询消抖与中断通知。"
+      "laterReencounter": "第 6 章会把中断通知送入同一个消抖器，而不是在中断里完成全部按钮逻辑。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake -S tests -B build/host && cmake --build build/host && ctest --test-dir build/host --output-on-failure"
+        ],
+        "runActions": [
+          "运行主机 button 测试",
+          "下载后分别短按、长按和快速连按",
+          "观察 PRESS/RELEASE 计数"
+        ],
+        "expectedResults": [
+          "所有时间序列断言通过",
+          "一次物理边沿只产生一次事件",
+          "等待消抖期间主循环仍继续运行"
+        ]
+      },
+      "snapshotStateId": "debounce-03-ready"
+    },
+    {
+      "id": "nonblocking-time",
+      "title": "不用等待也能让灯按时变化",
+      "phase": "输入与时间",
+      "estimatedSessions": 5,
+      "milestone": "心跳、按钮和超时检查在同一主循环中并行推进",
+      "goal": "使用无符号时间差和协作式任务移除 HAL_Delay，并在计数回绕附近保持正确。",
+      "concepts": [
+        "系统节拍",
+        "时间差",
+        "非阻塞调度",
+        "计数回绕"
+      ],
+      "filesTouched": [
+        "Core/Inc/app_time.h",
+        "Core/Src/app_time.c",
+        "Core/Src/main.c",
+        "tests/test_time.c",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "程序不睡觉，时间仍然会过去",
+        "learningGoal": "理解节拍计数只是不断增加的无符号数，能用“现在减起点”判断到期，并让多个任务各自按周期推进。",
+        "phenomenon": {
+          "title": "灯在闪，按钮却像失灵",
+          "observation": "心跳代码调用 HAL_Delay(1000) 时，处理器整秒停在等待里；这期间按下并释放按钮，主循环根本没有采样到。",
+          "question": "怎样每轮都快速检查“是否到期”，让心跳、按键和安全监测互不阻塞？计数器从最大值回到 0 又怎样处理？"
+        },
+        "mentalModel": {
+          "summary": "主循环像巡检员，每轮快速访问所有任务。每个任务记住自己的上次时刻，用无符号 now - since 判断经过多久；只在到期时做少量工作。无符号减法的模运算让一次正常回绕仍可比较。",
+          "flow": [
+            {
+              "id": "read-now",
+              "title": "读取同一时刻",
+              "explanation": "每轮开始读取一次 now_ms，后续任务共享它。"
+            },
+            {
+              "id": "compute-elapsed",
+              "title": "计算经过时间",
+              "explanation": "用无符号 now_ms - since_ms 得到 elapsed。"
+            },
+            {
+              "id": "run-due-work",
+              "title": "只执行到期工作",
+              "explanation": "elapsed 达到周期时切换灯或触发超时，未到期立即返回。"
+            },
+            {
+              "id": "continue-loop",
+              "title": "继续巡检",
+              "explanation": "主循环不等待，马上处理按钮、传感器和故障。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "系统节拍",
+            "plainMeaning": "由 SysTick 或其他时基累加的毫秒计数，用来描述相对时间。",
+            "codeMapping": "HAL_GetTick 或 app_now_ms"
+          },
+          {
+            "term": "时间差",
+            "plainMeaning": "用当前节拍减去起点，得到经过时长；比较时长而不是比较绝对截止值。",
+            "codeMapping": "app_elapsed(now, since) 与 now - since"
+          },
+          {
+            "term": "非阻塞调度",
+            "plainMeaning": "任务未到期就立即返回，让主循环继续处理其他事情。",
+            "codeMapping": "main while 循环依次调用 button_update、heartbeat_update、controller_update"
+          },
+          {
+            "term": "计数回绕",
+            "plainMeaning": "固定宽度无符号计数达到最大值后回到 0，是正常模运算而非程序故障。",
+            "codeMapping": "uint32_t 节拍与跨 UINT32_MAX 的测试"
+          }
+        ],
+        "workedExample": {
+          "title": "起点在 0xFFFFFFF0，当前时间已经回到 0x00000018",
+          "steps": [
+            "节拍是 uint32_t，超过最大值后按模 2^32 回到 0。",
+            "计算 0x00000018 - 0xFFFFFFF0，结果是 40。",
+            "若超时阈值为 30ms，则 40 >= 30，正确判定到期。",
+            "若直接判断 now >= deadline，回绕附近会得到错误答案。"
+          ],
+          "takeaway": "在一次回绕间隔远小于半个计数范围的前提下，无符号时间差能自然跨过回绕。"
+        },
+        "misconceptions": [
+          {
+            "claim": "非阻塞就是使用很短的 HAL_Delay。",
+            "correction": "只要调用 delay，期间就无法运行其他协作任务；非阻塞检查未到期时必须立即返回。"
+          },
+          {
+            "claim": "回绕后 now 变小，只能重启系统。",
+            "correction": "无符号时间差就是为模计数设计的；需要测试而不是重启。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "elapsed-check",
+            "question": "判断 500ms 是否到期，哪种写法能处理一次 uint32_t 回绕？",
+            "options": [
+              {
+                "id": "elapsed-check-correct",
+                "text": "使用 (uint32_t)(now - since) >= 500"
+              },
+              {
+                "id": "elapsed-check-wrong-a",
+                "text": "使用 now >= since + 500 且忽略溢出"
+              },
+              {
+                "id": "elapsed-check-wrong-b",
+                "text": "每到最大值就把所有时间变量清零"
+              }
+            ],
+            "correctOptionId": "elapsed-check-correct",
+            "explanation": "比较经过时间会保留模运算语义，直接比较绝对截止值更容易在回绕处失败。"
+          },
+          {
+            "id": "cooperative-loop",
+            "question": "心跳周期未到时，heartbeat_update 应做什么？",
+            "options": [
+              {
+                "id": "cooperative-loop-correct",
+                "text": "立即返回，让主循环继续处理其他任务"
+              },
+              {
+                "id": "cooperative-loop-wrong-a",
+                "text": "等待到周期到达再返回"
+              },
+              {
+                "id": "cooperative-loop-wrong-b",
+                "text": "重置所有任务的计时起点"
+              }
+            ],
+            "correctOptionId": "cooperative-loop-correct",
+            "explanation": "协作式任务必须短小，未到期不占用处理器等待。"
+          }
+        ],
+        "bridgeToCode": "先把时间判断写成可注入 now_ms 的纯函数，用接近 UINT32_MAX 的测试验证，再替换第一章的 HAL_Delay 心跳。"
+      },
+      "guidedBuild": "提取时间辅助函数，移除阻塞心跳，再把按钮、心跳和启动超时组织成每轮快速执行的协作任务。",
+      "guidedSteps": [
+        {
+          "id": "time-01",
+          "title": "先验证会回绕的时间差",
+          "targetFiles": [
+            "Core/Inc/app_time.h",
+            "Core/Src/app_time.c",
+            "tests/test_time.c"
+          ],
+          "instruction": "实现 app_elapsed 与 app_due，参数全部显式传入 uint32_t now/since；写普通、刚好阈值、阈值前一毫秒和跨回绕测试。",
+          "verify": "四类时间边界测试通过，函数不读取全局时钟。",
+          "codeStepId": "time-01-code"
+        },
+        {
+          "id": "time-02",
+          "title": "移除最后一个 HAL_Delay",
+          "targetFiles": [
+            "Core/Src/app_time.c",
+            "Core/Src/main.c",
+            "tests/test_time.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "实现 heartbeat_update，在到期时切换一次输出并更新起点；未到期立即返回。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "代码搜索没有 HAL_Delay；心跳运行时短按仍能被 button_update 捕获。",
+          "codeStepId": "time-02-code"
+        },
+        {
+          "id": "time-03",
+          "title": "组织协作式主循环",
+          "targetFiles": [
+            "Core/Src/main.c",
+            "Core/Src/app_time.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "每轮只读取一次 now_ms，依次更新按钮、心跳、启动超时和控制器；记录每个任务最大允许工作量。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "三个周期不同的任务持续运行，任何任务未到期都不会阻止其他任务。",
+          "codeStepId": "time-03-code"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "先确认问题发生在“等待期间没采样”还是“时间条件算错”。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查是否每轮共享 now_ms，以及比较的是 elapsed 还是容易溢出的绝对 deadline。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "阻塞和错误的绝对时间比较是两个独立根因；先用纯函数测试时间，再看调度。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立加入 250ms 警示灯任务；心跳、警示灯和按钮同时工作，并通过一个跨 UINT32_MAX 的到期测试。",
+        "evidence": "test_time 边界输出、无 HAL_Delay 搜索结果、同时操作视频或时间戳记录",
+        "automatedChecks": [
+          "test_time 覆盖正常与回绕边界"
+        ],
+        "selfChecks": [
+          "每轮只读取一次 now_ms",
+          "未到期立即返回",
+          "按键不会被闪灯任务漏掉"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "第 5 章的 PWM 斜坡、第 7 章的日志限速和第 10 章的故障超时都复用相同时间模型。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R time --output-on-failure"
+        ],
+        "runActions": [
+          "运行主机时间边界测试",
+          "下载后同时观察两种灯光节拍",
+          "闪灯过程中进行短按与长按"
+        ],
+        "expectedResults": [
+          "跨回绕测试通过",
+          "多个任务按各自周期推进",
+          "按钮事件不因灯光节拍丢失"
+        ]
+      },
+      "snapshotStateId": "time-03-ready"
+    },
+    {
+      "id": "timer-pwm",
+      "title": "让硬件定时器接管运行节拍",
+      "phase": "定时与中断",
+      "estimatedSessions": 5,
+      "milestone": "PWM 输出可按命令平滑改变占空比，并保持主循环响应",
+      "goal": "理解定时器时钟、预分频、自动重装与比较值的关系，用 PWM 表示摩天轮运行命令。",
+      "concepts": [
+        "定时器计数器",
+        "预分频与周期",
+        "PWM",
+        "占空比"
+      ],
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/drive_output.h",
+        "Core/Src/drive_output.c",
+        "Core/Src/main.c",
+        "docs/timing.md",
+        "tests/test_drive_output.c",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "同一个计数器怎样产生稳定的运行脉冲",
+        "learningGoal": "能从定时器输入时钟推导 PWM 频率和占空比，区分“更新比较值”与“软件忙等翻转引脚”。",
+        "phenomenon": {
+          "title": "主循环很忙，PWM 仍然保持稳定",
+          "observation": "开启定时器 PWM 后，即使调试器单步经过其他业务代码，示波器或逻辑分析仪看到的脉冲周期仍由外设硬件持续产生。",
+          "question": "预分频器、计数周期和比较值分别决定什么？软件何时只需更新一个值？"
+        },
+        "mentalModel": {
+          "summary": "定时器把外设时钟先分频，再让计数器从 0 数到 ARR；一次计数循环形成 PWM 周期，CCR 决定高电平持续到哪个计数点。CPU 只配置和更新参数，不必逐个脉冲翻转引脚。",
+          "flow": [
+            {
+              "id": "timer-clock",
+              "title": "取得定时器时钟",
+              "explanation": "根据时钟树确认实际输入频率，注意部分总线分频会影响定时器时钟。"
+            },
+            {
+              "id": "divide-clock",
+              "title": "预分频",
+              "explanation": "PSC 把高速时钟降为易计算的计数频率。"
+            },
+            {
+              "id": "count-period",
+              "title": "形成周期",
+              "explanation": "计数器在 ARR 范围内循环，决定 PWM 基础频率。"
+            },
+            {
+              "id": "compare-duty",
+              "title": "比较输出",
+              "explanation": "CCR 与 ARR 的比例决定占空比和平均驱动命令。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "定时器计数器",
+            "plainMeaning": "由外设时钟驱动、无需主循环逐次加一的硬件计数单元。",
+            "codeMapping": "TIMx、CNT、HAL_TIM_PWM_Start"
+          },
+          {
+            "term": "预分频与周期",
+            "plainMeaning": "PSC 决定每个计数有多慢，ARR 决定一次循环包含多少个计数。",
+            "codeMapping": "FerrisControl.ioc 中 Prescaler/Counter Period 与 docs/timing.md 公式"
+          },
+          {
+            "term": "PWM",
+            "plainMeaning": "在固定周期内改变高电平所占比例的脉冲输出，课程用它表达速度或亮度命令。",
+            "codeMapping": "定时器 PWM Channel 与 drive_output_set_permille"
+          },
+          {
+            "term": "占空比",
+            "plainMeaning": "高电平时间占整个周期的比例；本项目用 0–1000 千分比避免浮点。",
+            "codeMapping": "CCR = (ARR + 1) * permille / 1000"
+          }
+        ],
+        "workedExample": {
+          "title": "72MHz 定时器产生 1kHz PWM",
+          "steps": [
+            "把 72MHz 用 PSC=71 分成 1MHz 计数时钟。",
+            "令 ARR=999，一千个计数形成 1ms 周期，即 1kHz。",
+            "令 CCR=250，高电平约占四分之一周期，即 25%。",
+            "业务传入 250 千分比，由驱动层换算并限制到合法范围。"
+          ],
+          "takeaway": "频率由时钟、PSC 和 ARR 共同决定；占空比由 CCR 相对周期决定，二者不能混为一个“速度数”。"
+        },
+        "misconceptions": [
+          {
+            "claim": "把 CCR 加倍一定会让 PWM 频率加倍。",
+            "correction": "CCR 主要改变占空比；频率由定时器时钟、PSC 和 ARR 决定。"
+          },
+          {
+            "claim": "PWM 引脚可以直接给大功率电机供电。",
+            "correction": "PWM 是控制信号；真实电机仍必须由额定驱动级和独立电源承担功率。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "pwm-frequency-owner",
+            "question": "保持时钟、PSC、ARR 不变，只修改 CCR，首先改变什么？",
+            "options": [
+              {
+                "id": "pwm-frequency-owner-correct",
+                "text": "占空比"
+              },
+              {
+                "id": "pwm-frequency-owner-wrong-a",
+                "text": "PWM 基础频率"
+              },
+              {
+                "id": "pwm-frequency-owner-wrong-b",
+                "text": "处理器主频"
+              }
+            ],
+            "correctOptionId": "pwm-frequency-owner-correct",
+            "explanation": "CCR 是比较阈值，决定一个周期内高电平持续比例。"
+          },
+          {
+            "id": "pwm-safe-output",
+            "question": "业务要求 1200 千分比时，驱动层应怎样处理？",
+            "options": [
+              {
+                "id": "pwm-safe-output-correct",
+                "text": "钳位到 1000 或返回范围错误，绝不写出周期范围"
+              },
+              {
+                "id": "pwm-safe-output-wrong-a",
+                "text": "原样写进 CCR，让硬件自行决定"
+              },
+              {
+                "id": "pwm-safe-output-wrong-b",
+                "text": "把 ARR 也随机改大"
+              }
+            ],
+            "correctOptionId": "pwm-safe-output-correct",
+            "explanation": "驱动边界必须验证命令范围，避免溢出或不可预测输出。"
+          }
+        ],
+        "bridgeToCode": "先在 timing.md 手算一组频率，再用 board/drive_output 封装 PWM；业务只传 0–1000 命令，不直接写 CCR。"
+      },
+      "guidedBuild": "从时钟树推导 PWM 参数，封装安全的千分比命令，再实现非阻塞的加速和减速斜坡。",
+      "guidedSteps": [
+        {
+          "id": "pwm-01",
+          "title": "算清定时器而不是试出来",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "docs/timing.md"
+          ],
+          "instruction": "记录系统时钟、总线分频和定时器输入时钟，手算 PSC/ARR 与目标 PWM 频率；用 CubeIDE 外设视图或测量结果复核。",
+          "verify": "文档公式、CubeMX 配置和实测周期在允许误差内一致。",
+          "codeStepId": "pwm-01-code"
+        },
+        {
+          "id": "pwm-02",
+          "title": "封装范围受控的 PWM 输出",
+          "targetFiles": [
+            "Core/Inc/drive_output.h",
+            "Core/Src/drive_output.c",
+            "tests/test_drive_output.c"
+          ],
+          "instruction": "实现 0–1000 千分比接口、范围钳位和安全停机；硬件写 CCR 的细节只留在 drive_output。",
+          "verify": "0、1、500、999、1000 和越界命令测试通过；0 命令进入安全输出。",
+          "codeStepId": "pwm-02-code"
+        },
+        {
+          "id": "pwm-03",
+          "title": "做出可响应的加减速斜坡",
+          "targetFiles": [
+            "Core/Src/drive_output.c",
+            "Core/Src/main.c",
+            "tests/test_drive_output.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "每个调度周期只把当前命令向目标移动固定步长；按钮或故障命令能在下一轮改变目标，不使用循环忙等。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "启动逐步升高、停靠逐步降低；斜坡期间按钮和安全检查仍有响应。",
+          "codeStepId": "pwm-03-code"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "把“频率错误”“占空比错误”“业务目标错误”分开测量。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查时钟树、PSC/ARR/CCR 计算和 0–1000 到 CCR 的换算边界。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "用试数字掩盖时钟推导会在换板或改时钟后失效；先写公式再看波形。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立增加 SLOW 与 FAST 两档目标命令，并证明切档只改变占空比，不改变 PWM 基础频率。",
+        "evidence": "timing.md 计算、主机边界测试、逻辑分析仪/示波器或 LED 等效测量说明",
+        "automatedChecks": [
+          "test_drive_output 覆盖 0/1000 与越界钳位"
+        ],
+        "selfChecks": [
+          "业务层不写 CCR",
+          "PWM 只连接安全负载或驱动控制端",
+          "切档期间按钮仍响应"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "第 10 章的故障监督器会绕过普通斜坡，调用唯一的安全停机入口。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R drive_output --output-on-failure"
+        ],
+        "runActions": [
+          "运行 PWM 换算边界测试",
+          "下载后测量固定频率下的三种占空比",
+          "斜坡期间触发按钮输入"
+        ],
+        "expectedResults": [
+          "实测频率与文档一致",
+          "占空比命令边界安全",
+          "斜坡期间主循环持续响应"
+        ]
+      },
+      "snapshotStateId": "pwm-03-ready"
     },
     {
       "id": "timer-interrupt",
-      "title": "用定时器驱动运行节拍",
-      "goal": "配置周期中断并保持中断处理短小。",
+      "title": "让中断只负责敲门",
+      "phase": "定时与中断",
+      "estimatedSessions": 5,
+      "milestone": "定时器中断稳定产生事件，主循环完成全部业务处理",
+      "goal": "理解中断入口、优先级和共享状态，只在 ISR 中记录最小事件并在主循环消费。",
       "concepts": [
-        "定时器",
-        "中断",
+        "中断与 ISR",
+        "优先级",
         "volatile",
-        "共享状态"
+        "共享事件"
       ],
-      "guidedBuild": "中断只增加节拍并设置标志，主循环处理动画和状态转换。",
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/app_events.h",
+        "Core/Src/app_events.c",
+        "Core/Src/ferris_interrupts.c",
+        "Core/Src/main.c",
+        "tests/test_app_events.c",
+        "Core/Inc/ferris_interrupts.h",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "中断不是另一条完整业务线程",
+        "learningGoal": "能描述外设事件如何暂停主循环进入 ISR，理解 volatile 的作用与局限，并设计不会悄悄丢事件的共享方式。",
+        "phenomenon": {
+          "title": "在中断里打印，整个系统反而漏节拍",
+          "observation": "把 UART 打印、等待和状态切换都塞进定时器回调后，其他中断延迟增加，主循环更新时间变慢，日志越多问题越严重。",
+          "question": "ISR 应保留哪些最小工作？一个 bool 标志在两次中断到来前没被消费时会发生什么？"
+        },
+        "mentalModel": {
+          "summary": "中断像高优先级门铃：硬件记录事件并跳到短小 ISR。ISR 只清来源、递增计数或置位事件，然后退出；主循环再取走快照并执行业务。volatile 让编译器每次真实访问共享对象，却不保证多步操作原子或不丢事件。",
+          "flow": [
+            {
+              "id": "irq-source",
+              "title": "外设提出 IRQ",
+              "explanation": "定时器更新或外部边沿置位中断源。"
+            },
+            {
+              "id": "nvic-dispatch",
+              "title": "NVIC 按优先级分派",
+              "explanation": "处理器保存现场并跳到对应 ISR。"
+            },
+            {
+              "id": "record-event",
+              "title": "ISR 记录最小事件",
+              "explanation": "清中断来源，递增计数或设置位图，不打印、不等待。"
+            },
+            {
+              "id": "consume-main",
+              "title": "主循环消费快照",
+              "explanation": "短暂保护下取得并清除共享事件，随后在普通上下文处理。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "中断与 ISR",
+            "plainMeaning": "硬件事件让处理器暂时离开当前代码，进入专门的中断服务函数，完成后再返回。",
+            "codeMapping": "TIMx_IRQHandler、HAL_TIM_PeriodElapsedCallback 与 app_events_isr_tick"
+          },
+          {
+            "term": "优先级",
+            "plainMeaning": "多个中断同时等待时决定先服务谁；优先级设计影响最坏响应时间。",
+            "codeMapping": "NVIC priority 配置与 docs/interrupts.md"
+          },
+          {
+            "term": "volatile",
+            "plainMeaning": "告诉编译器这个对象可能在当前代码看不到的地方变化，每次访问都要真的读写。",
+            "codeMapping": "volatile uint32_t tick_events；不把它解释成锁"
+          },
+          {
+            "term": "共享事件",
+            "plainMeaning": "ISR 写入、主循环读取的最小通信载体，可用计数或位图保留尚未处理的事件。",
+            "codeMapping": "app_events_take_snapshot 与临界区"
+          }
+        ],
+        "workedExample": {
+          "title": "为什么计数器比 bool 更适合累计节拍",
+          "steps": [
+            "第一次中断把 bool 设为 true。",
+            "主循环尚未读取时第二次中断再次写 true，信息没有增加。",
+            "若改为计数器，两次中断得到 2，主循环知道积压了两个节拍。",
+            "取走并清零是一个共享操作，需要短临界区避免读改写交错。"
+          ],
+          "takeaway": "事件的表示必须匹配语义：只关心“发生过”可用位，关心次数就用计数；volatile 不能代替原子设计。"
+        },
+        "misconceptions": [
+          {
+            "claim": "volatile 会让共享变量自动线程安全。",
+            "correction": "它只约束编译优化；复合读改写、竞争和事件丢失仍需专门设计。"
+          },
+          {
+            "claim": "ISR 优先级越高、做得越多，系统越实时。",
+            "correction": "长 ISR 会推迟其他事件；实时性来自有界、短小、可分析的中断路径。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "isr-work",
+            "question": "下列哪项最适合放在 1ms 定时器 ISR 中？",
+            "options": [
+              {
+                "id": "isr-work-correct",
+                "text": "递增有上限的事件计数并立即返回"
+              },
+              {
+                "id": "isr-work-wrong-a",
+                "text": "格式化并发送完整 UART 日志"
+              },
+              {
+                "id": "isr-work-wrong-b",
+                "text": "运行整个摩天轮状态机并等待输出完成"
+              }
+            ],
+            "correctOptionId": "isr-work-correct",
+            "explanation": "ISR 应只记录必要事实，把耗时业务留给主循环。"
+          },
+          {
+            "id": "volatile-limit",
+            "question": "把共享计数器声明为 volatile 后，还需要考虑什么？",
+            "options": [
+              {
+                "id": "volatile-limit-correct",
+                "text": "读清零是否原子以及计数是否会溢出或丢失"
+              },
+              {
+                "id": "volatile-limit-wrong-a",
+                "text": "不再需要任何边界或同步设计"
+              },
+              {
+                "id": "volatile-limit-wrong-b",
+                "text": "可以在任意上下文调用阻塞函数"
+              }
+            ],
+            "correctOptionId": "volatile-limit-correct",
+            "explanation": "volatile 不能解决复合操作的竞争，也不能定义队列容量。"
+          }
+        ],
+        "bridgeToCode": "把 ISR 连接到 app_events_isr_*，主循环只通过 take_snapshot 取得事件；先用主机测试两次到达再消费的情况。"
+      },
+      "guidedBuild": "配置一个周期中断，建立 ISR 到主循环的计数/位图通道，再对积压和溢出给出可观察诊断。",
+      "guidedSteps": [
+        {
+          "id": "irq-01",
+          "title": "画出中断路径与时间预算",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/ferris_interrupts.c",
+            "Core/Inc/ferris_interrupts.h",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "配置周期中断和 NVIC 优先级；标出 IRQHandler、HAL 回调和项目回调的调用链，限定 ISR 不调用日志、等待或业务状态机。",
+          "verify": "断点能沿唯一调用链进入 app_events_isr_tick；ISR 源码保持常数时间。",
+          "codeStepId": "irq-01-code"
+        },
+        {
+          "id": "irq-02",
+          "title": "用计数和位图保存事件",
+          "targetFiles": [
+            "Core/Inc/app_events.h",
+            "Core/Src/app_events.c",
+            "tests/test_app_events.c"
+          ],
+          "instruction": "实现饱和节拍计数、故障位图与 dropped_events 诊断；区分“累计次数”和“只需知道发生过”。",
+          "verify": "两次中断先到、一次消费能得到计数 2；计数饱和时 dropped_events 增加。",
+          "codeStepId": "irq-02-code"
+        },
+        {
+          "id": "irq-03",
+          "title": "在主循环安全取得快照",
+          "targetFiles": [
+            "Core/Src/app_events.c",
+            "Core/Src/main.c",
+            "tests/test_app_events.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "用短临界区复制并清空共享事件，退出临界区后再更新 PWM、状态和诊断；记录临界区边界。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "业务处理不在关中断区域；高频事件下计数、丢弃数和处理数可以对账。",
+          "codeStepId": "irq-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察中断内是否包含打印或等待。"
+          "text": "先测 ISR 执行内容和事件到达/消费数量，不要先改优先级。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查 ISR 和主循环之间共享的标志。"
+          "text": "检查 bool 是否覆盖了重复事件、共享读清零是否被中断打断、ISR 是否调用了阻塞函数。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "中断耗时会阻塞其他实时事件。"
+          "text": "事件丢失通常来自表示容量或非原子取走，不是把 volatile 加到更多变量就会消失。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "独立实现每 100 个节拍更新一次轿厢位置。",
-        "evidence": "节拍日志与中断代码",
-        "automatedChecks": [],
+        "task": "独立实现“每累计 100 个定时事件才更新一次轿厢位置”，并能报告积压或饱和，而 ISR 内不做位置计算。",
+        "evidence": "中断调用链、主机事件测试、长时间计数对账和 ISR 源码检查",
+        "automatedChecks": [
+          "test_app_events 覆盖重复事件、饱和与快照清空"
+        ],
         "selfChecks": [
-          "中断无阻塞调用",
-          "长时间运行节拍稳定"
+          "ISR 不打印不等待",
+          "业务在主循环执行",
+          "volatile 没被当作同步万能药"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 注入计数回绕，验证无符号时间差。"
+      "laterReencounter": "第 7 章的 UART 接收和第 10 章的紧急故障也沿用“中断记录、主循环处理”。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R app_events --output-on-failure"
+        ],
+        "runActions": [
+          "运行共享事件主机测试",
+          "下载后让定时中断持续运行至少十分钟",
+          "制造主循环短暂繁忙并核对积压诊断"
+        ],
+        "expectedResults": [
+          "两次事件不会被 bool 覆盖",
+          "ISR 时间保持短小",
+          "处理数、积压数和丢弃数可以解释"
+        ]
+      },
+      "snapshotStateId": "irq-03-ready"
     },
     {
       "id": "uart-diagnostics",
-      "title": "让中控站会报告自己",
-      "goal": "设计可读且不会淹没串口的状态日志。",
+      "title": "让中控站能说明发生了什么",
+      "phase": "诊断与通信",
+      "estimatedSessions": 5,
+      "milestone": "串口按事件输出结构化日志，并能非阻塞接收受限控制命令",
+      "goal": "理解 UART 帧与波特率，建立不会刷屏或阻塞安全逻辑的诊断和命令通道。",
       "concepts": [
-        "UART",
-        "诊断日志",
+        "UART 帧",
+        "波特率",
+        "收发缓冲",
+        "事件日志",
         "错误码"
       ],
-      "guidedBuild": "只在状态变化时打印时间、旧状态、新状态和原因。",
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/diagnostics.h",
+        "Core/Src/diagnostics.c",
+        "Core/Inc/uart_rx.h",
+        "Core/Src/uart_rx.c",
+        "Core/Src/main.c",
+        "tests/test_uart_rx.c",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "串口线上没有“printf”，只有按时间发送的位",
+        "learningGoal": "能解释 UART 一帧的起始位、数据位和停止位，理解两端波特率必须一致，并用缓冲与事件日志隔离实时控制。",
+        "phenomenon": {
+          "title": "日志全是乱码，或者一打印系统就变慢",
+          "observation": "两端波特率不一致时终端显示乱码；在主循环每轮阻塞 printf 时，按钮和定时事件处理出现明显延迟。",
+          "question": "字符怎样变成线上位序列？发送速度有限时，系统怎样保留重要日志而不让诊断通道拖住控制？"
+        },
+        "mentalModel": {
+          "summary": "UART 把每个字节包在起始位、数据位、可选校验位和停止位中按约定速率发送。诊断层只在事件发生时生成短记录，发送层通过有界缓冲异步排队；接收层逐字节组帧，主循环解析白名单命令。",
+          "flow": [
+            {
+              "id": "encode-frame",
+              "title": "字节编码成帧",
+              "explanation": "发送器按数据位、校验和停止位配置输出位序列。"
+            },
+            {
+              "id": "sample-baud",
+              "title": "接收器按波特率采样",
+              "explanation": "两端参数一致才能在正确时刻还原字节。"
+            },
+            {
+              "id": "buffer-bytes",
+              "title": "缓冲吸收速率差",
+              "explanation": "ISR 或 DMA 只搬运字节，有界缓冲记录溢出。"
+            },
+            {
+              "id": "parse-event",
+              "title": "主循环解释消息",
+              "explanation": "诊断层按状态变化发送，命令层只接受定义好的行或单字节命令。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "UART 帧",
+            "plainMeaning": "一个字节在线路上的封装，通常包括起始位、数据位、可选校验位和停止位。",
+            "codeMapping": "CubeMX Word Length/Parity/Stop Bits 与串口终端配置"
+          },
+          {
+            "term": "波特率",
+            "plainMeaning": "线路每秒传输的符号数量；普通 UART 中通常近似为每秒位数，两端必须一致。",
+            "codeMapping": "huart 初始化的 BaudRate 与主机串口设置"
+          },
+          {
+            "term": "收发缓冲",
+            "plainMeaning": "在生产字节和消费字节速度不同的时候暂存有限数据，并必须定义满时策略。",
+            "codeMapping": "UartRx ring、diagnostics TX queue、overflow_count"
+          },
+          {
+            "term": "事件日志",
+            "plainMeaning": "只在状态变化或错误发生时记录时间、前后状态和原因，而不是每轮重复输出。",
+            "codeMapping": "diag_transition、diag_fault 与 last_reported_state"
+          },
+          {
+            "term": "错误码",
+            "plainMeaning": "稳定、可检索的故障标识，文字可以变但代码语义保持一致。",
+            "codeMapping": "FaultCode 枚举与 FAULT_SENSOR_TIMEOUT 等日志字段"
+          }
+        ],
+        "workedExample": {
+          "title": "115200 8N1 发送一条状态变化",
+          "steps": [
+            "8N1 的一个数据字节通常需要 1 起始位、8 数据位、1 停止位，共约 10 位。",
+            "115200 波特下每字节约需 87 微秒，长日志会累计占用带宽。",
+            "READY 变 RUNNING 时生成一条带时间、旧状态、新状态和原因的短记录。",
+            "稳定保持 RUNNING 时不重复生成；发送队列满时计数并保留更高优先级故障记录。"
+          ],
+          "takeaway": "日志既是调试证据也是有限资源；事件触发、有界长度和溢出可见性比无节制 printf 更可靠。"
+        },
+        "misconceptions": [
+          {
+            "claim": "UART 是消息协议，调用一次发送就一定对应接收端一条完整消息。",
+            "correction": "UART 只提供字节流；行、长度和命令边界必须由应用协议定义。"
+          },
+          {
+            "claim": "日志越多越容易调试。",
+            "correction": "重复、阻塞、无时间和无原因的日志会改变系统时序并淹没关键信息。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "uart-garble",
+            "question": "串口终端持续显示乱码，首先应核对什么？",
+            "options": [
+              {
+                "id": "uart-garble-correct",
+                "text": "两端波特率、数据位、校验位、停止位和电平/地线"
+              },
+              {
+                "id": "uart-garble-wrong-a",
+                "text": "摩天轮状态机的枚举顺序"
+              },
+              {
+                "id": "uart-garble-wrong-b",
+                "text": "PWM 的占空比"
+              }
+            ],
+            "correctOptionId": "uart-garble-correct",
+            "explanation": "UART 还原字节依赖两端帧参数和物理连接一致。"
+          },
+          {
+            "id": "event-log-policy",
+            "question": "系统稳定保持 RUNNING 时，日志策略应怎样？",
+            "options": [
+              {
+                "id": "event-log-policy-correct",
+                "text": "不重复刷屏，只在变化、限速快照或错误时记录"
+              },
+              {
+                "id": "event-log-policy-wrong-a",
+                "text": "主循环每轮打印 RUNNING"
+              },
+              {
+                "id": "event-log-policy-wrong-b",
+                "text": "在定时 ISR 里格式化完整日志"
+              }
+            ],
+            "correctOptionId": "event-log-policy-correct",
+            "explanation": "诊断要可用且不改变实时行为，稳定状态无需重复记录。"
+          }
+        ],
+        "bridgeToCode": "先让启动横幅验证物理链路，再建立事件日志；最后把接收 ISR 限定为收字节，命令解析留在主循环。"
+      },
+      "guidedBuild": "配置 UART，构建结构化事件日志和有界接收缓冲，再加入 status/stop/reset 三个受限命令。",
+      "guidedSteps": [
+        {
+          "id": "uart-01",
+          "title": "验证帧参数和启动横幅",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Inc/diagnostics.h",
+            "Core/Src/diagnostics.c"
+          ],
+          "instruction": "固定 UART 参数并在启动时输出固件版本、复位原因和板卡配置摘要；记录主机终端设置。",
+          "verify": "连续复位十次都得到完整、可读、只出现一次的启动横幅。",
+          "codeStepId": "uart-01-code"
+        },
+        {
+          "id": "uart-02",
+          "title": "只在状态变化时写日志",
+          "targetFiles": [
+            "Core/Src/diagnostics.c",
+            "Core/Src/main.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "实现带毫秒时间、旧状态、新状态、原因和错误码的事件记录；稳定状态不输出，队列满记录 overflow。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "一次 READY→RUNNING→FAULT 只产生对应事件；主循环频率不决定日志数量。",
+          "codeStepId": "uart-02-code"
+        },
+        {
+          "id": "uart-03",
+          "title": "非阻塞接收受限命令",
+          "targetFiles": [
+            "Core/Inc/uart_rx.h",
+            "Core/Src/uart_rx.c",
+            "Core/Src/main.c",
+            "tests/test_uart_rx.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "接收回调只把字节放进固定环形缓冲；主循环组装有长度上限的行，只识别 status、stop、reset，溢出或未知命令返回错误码。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "分段到达、连续两行、超长行和缓冲满测试通过；接收 ISR 不解析命令。",
+          "codeStepId": "uart-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "观察主循环每轮打印是否造成大量重复。"
+          "text": "先区分物理/帧参数乱码、发送阻塞、协议组帧和日志策略四类问题。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查日志触发条件。"
+          "text": "检查 UART 配置、TX/RX 缓冲边界、事件触发条件和 ISR 是否只搬字节。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "状态变化事件比循环频率更适合日志。"
+          "text": "把字节流误当消息或在 ISR 解析命令都会制造偶发边界错误和时序拖延。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "加入传感器错误码和一次性故障报告。",
-        "evidence": "正常与故障串口日志",
-        "automatedChecks": [],
+        "task": "独立加入一次性的 SENSOR_INVALID 错误码日志；同一故障持续存在时不刷屏，恢复后再次故障才重新报告。",
+        "evidence": "正常/故障串口日志、缓冲边界测试、ISR 与主循环职责说明",
+        "automatedChecks": [
+          "test_uart_rx 覆盖分段、连包、超长行和缓冲满"
+        ],
         "selfChecks": [
-          "日志含时间和原因",
-          "稳定状态不刷屏"
+          "日志含时间、状态与原因",
+          "稳定故障不刷屏",
+          "超长命令不会越界"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "ADC 章节通过同一日志报告越界值。"
+      "laterReencounter": "第 8、9 章会使用同一错误码与事件日志报告模拟量异常和总线超时。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R uart_rx --output-on-failure"
+        ],
+        "runActions": [
+          "用记录的参数打开串口终端",
+          "依次发送 status、未知命令、超长行和 stop",
+          "触发并恢复同一故障两次"
+        ],
+        "expectedResults": [
+          "横幅与状态日志可读且不刷屏",
+          "合法命令有确定回应",
+          "非法输入有界失败且不影响控制循环"
+        ]
+      },
+      "snapshotStateId": "uart-03-ready"
+    },
+    {
+      "id": "adc-sensing",
+      "title": "把模拟电压变成可信的载荷值",
+      "phase": "诊断与传感",
+      "estimatedSessions": 5,
+      "milestone": "ADC 原始值经过标定、滤波和滞回后形成稳定的 0–1000 载荷值",
+      "goal": "理解 ADC 量化与参考电压，用整数标定、滑动平均和滞回把模拟输入变成可用于控制的有效数据。",
+      "concepts": [
+        "ADC",
+        "量化",
+        "标定",
+        "滤波与滞回"
+      ],
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/analog_sensor.h",
+        "Core/Src/analog_sensor.c",
+        "Core/Src/main.c",
+        "tests/test_analog_sensor.c",
+        "docs/calibration.md",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "ADC 读数不是电压，更不是已经可信的载荷",
+        "learningGoal": "能区分原始码、工程量和有效性，理解分辨率、参考电压、标定、平均滤波与滞回各自解决的问题。",
+        "phenomenon": {
+          "title": "旋钮没动，阈值附近仍来回报警",
+          "observation": "固定电位器位置时 ADC 原始值仍会抖动几个计数；直接在单一阈值比较，状态就在正常与过载之间快速切换。",
+          "question": "怎样把离散、有噪声且依赖参考电压的原始码变成稳定、可解释并带有效性的数据？"
+        },
+        "mentalModel": {
+          "summary": "ADC 把参考范围内的连续电压分成有限个码。驱动层先检查范围和硬件状态，再按实测最小/最大值做整数标定，滤波降低随机波动，滞回用不同进入/退出阈值避免边界抖动。",
+          "flow": [
+            {
+              "id": "sample-code",
+              "title": "取得原始码",
+              "explanation": "ADC 对输入相对参考电压采样并输出离散整数。"
+            },
+            {
+              "id": "validate-range",
+              "title": "判断是否可信",
+              "explanation": "硬件超时、贴近电源轨或断线特征先标为无效。"
+            },
+            {
+              "id": "calibrate-scale",
+              "title": "标定成工程量",
+              "explanation": "用实测 min/max 映射到 0–1000 载荷，不使用浮点。"
+            },
+            {
+              "id": "filter-hysteresis",
+              "title": "稳定控制判定",
+              "explanation": "滑动平均抑制噪声，滞回区分进入过载与退出过载。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "ADC",
+            "plainMeaning": "把一定电压范围内的模拟输入转换为有限位数整数码的外设。",
+            "codeMapping": "HAL_ADC_Start/Poll/GetValue 或 DMA 缓冲"
+          },
+          {
+            "term": "量化",
+            "plainMeaning": "连续电压只能落入有限个离散码，因此存在最小步进和量化误差。",
+            "codeMapping": "12 位 ADC 的 0–4095 原始范围"
+          },
+          {
+            "term": "标定",
+            "plainMeaning": "用实际测得的零点和满量程把原始码映射到有业务含义的范围。",
+            "codeMapping": "analog_calibrate(raw, raw_min, raw_max) → 0..1000"
+          },
+          {
+            "term": "滤波与滞回",
+            "plainMeaning": "滤波平滑测量噪声；滞回用不同的进入和退出阈值稳定离散状态。",
+            "codeMapping": "moving_average_update 与 overload_update(enter, exit)"
+          }
+        ],
+        "workedExample": {
+          "title": "过载阈值附近的 799、802、798、803",
+          "steps": [
+            "直接用 value >= 800 判断会在四次采样间反复切换。",
+            "四点平均得到更平滑的值，但仍可能长期靠近 800。",
+            "规定 >=820 才进入 OVERLOAD，<=780 才退出。",
+            "进入后在 781–819 区间保持原状态，避免灯和日志抖动。"
+          ],
+          "takeaway": "平均滤波处理短期噪声，滞回处理离散状态的边界稳定；两者作用不同，不能互相替代。"
+        },
+        "misconceptions": [
+          {
+            "claim": "12 位 ADC 读到 2048 就一定是 1.650V。",
+            "correction": "电压换算还依赖实际参考电压、采样电路和标定误差。"
+          },
+          {
+            "claim": "滤波窗口越大越好。",
+            "correction": "更大窗口更平滑但响应更慢；窗口必须服从安全响应时间。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "adc-raw-meaning",
+            "question": "12 位 ADC 原始值 2048 最准确的描述是什么？",
+            "options": [
+              {
+                "id": "adc-raw-meaning-correct",
+                "text": "它约在量化范围中点，真实电压仍依赖参考和电路"
+              },
+              {
+                "id": "adc-raw-meaning-wrong-a",
+                "text": "它永远精确等于 2.048V"
+              },
+              {
+                "id": "adc-raw-meaning-wrong-b",
+                "text": "它已经是载荷百分比"
+              }
+            ],
+            "correctOptionId": "adc-raw-meaning-correct",
+            "explanation": "原始码只是相对于 ADC 范围的离散结果，不能跳过参考与标定。"
+          },
+          {
+            "id": "hysteresis-role",
+            "question": "已经进入 OVERLOAD 后，数值从 825 降到 800，应怎样？",
+            "options": [
+              {
+                "id": "hysteresis-role-correct",
+                "text": "保持 OVERLOAD，直到低于退出阈值"
+              },
+              {
+                "id": "hysteresis-role-wrong-a",
+                "text": "立即退出，因为低于进入阈值"
+              },
+              {
+                "id": "hysteresis-role-wrong-b",
+                "text": "清空 ADC 并重启"
+              }
+            ],
+            "correctOptionId": "hysteresis-role-correct",
+            "explanation": "滞回的核心是进入和退出使用不同阈值，区间内保持已有状态。"
+          }
+        ],
+        "bridgeToCode": "先保存原始码和有效性，再写纯整数标定、平均和滞回函数；主循环只接收 SensorReading，而不是裸 uint16_t。"
+      },
+      "guidedBuild": "接入一个电位器或模拟传感器，分离采集、标定与控制判定，并为边界和断线特征建立测试。",
+      "guidedSteps": [
+        {
+          "id": "adc-01",
+          "title": "采集并记录真实范围",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Inc/analog_sensor.h",
+            "Core/Src/analog_sensor.c",
+            "docs/calibration.md",
+            "Core/Src/main.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "配置采样时间和通道，记录最小、中点、最大与悬空/断线特征；SensorReading 同时保存 raw、valid 和错误原因。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "文档包含多次采样范围；超时和明显无效状态不会伪装成正常 0。",
+          "codeStepId": "adc-01-code"
+        },
+        {
+          "id": "adc-02",
+          "title": "用整数做标定和平均",
+          "targetFiles": [
+            "Core/Src/analog_sensor.c",
+            "tests/test_analog_sensor.c"
+          ],
+          "instruction": "将 raw_min..raw_max 饱和映射到 0..1000，使用固定窗口累加器计算平均；处理中间乘法宽度和空窗口。",
+          "verify": "最小、最大、中点、越界和累加器上界测试通过。",
+          "codeStepId": "adc-02-code"
+        },
+        {
+          "id": "adc-03",
+          "title": "用滞回稳定过载判定",
+          "targetFiles": [
+            "Core/Src/analog_sensor.c",
+            "Core/Src/main.c",
+            "tests/test_analog_sensor.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "实现进入阈值高于退出阈值的 overload_update；只在状态改变时写事件日志。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "围绕单阈值抖动的序列不会反复切换，真正跨越两个阈值时各产生一次事件。",
+          "codeStepId": "adc-03-code"
+        }
+      ],
+      "hintLadder": [
+        {
+          "tier": 1,
+          "kind": "observation-focus",
+          "text": "同时观察 raw、filtered、scaled、valid 和 overload，确认是哪一层开始错误。"
+        },
+        {
+          "tier": 2,
+          "kind": "code-region",
+          "text": "检查标定除数、乘法位宽、窗口计数与进入/退出阈值顺序。"
+        },
+        {
+          "tier": 3,
+          "kind": "cause-and-direction",
+          "text": "原始码、工程量和状态被混成一个整数时无法区分断线、噪声和真实过载。"
+        }
+      ],
+      "checkpoint": {
+        "kind": "independent-change",
+        "task": "独立加入载荷 WARN 滞回区，并证明阈值附近噪声不会反复产生 WARN/OK 日志。",
+        "evidence": "calibration.md、原始与滤波序列、主机边界测试、真机阈值操作日志",
+        "automatedChecks": [
+          "test_analog_sensor 覆盖标定边界、溢出、平均和滞回"
+        ],
+        "selfChecks": [
+          "无效读数不会当作 0",
+          "滤波延迟符合安全要求",
+          "日志只在状态改变时出现"
+        ],
+        "awardsStar": true
+      },
+      "laterReencounter": "第 10 章会把 INVALID、WARN 和 OVERLOAD 作为不同优先级输入送入故障监督器。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R analog_sensor --output-on-failure"
+        ],
+        "runActions": [
+          "运行模拟传感器测试",
+          "慢慢转动电位器跨越 WARN/OVERLOAD 阈值",
+          "断开模拟输入并观察有效性"
+        ],
+        "expectedResults": [
+          "标定输出限制在 0–1000",
+          "阈值附近状态稳定",
+          "异常输入带原因进入无效状态"
+        ]
+      },
+      "snapshotStateId": "adc-03-ready"
     },
     {
       "id": "sensor-bus",
-      "title": "接入高度与门锁传感器",
-      "goal": "读取 ADC，并通过 I²C 或 SPI 获取一个外设状态。",
+      "title": "读懂 I²C 传感器的应答与超时",
+      "phase": "诊断与传感",
+      "estimatedSessions": 5,
+      "milestone": "门锁传感器驱动能验证设备身份、读取状态并把断线变成明确故障",
+      "goal": "理解 I²C 地址、寄存器、ACK 和超时，建立可替换驱动适配层；能说明 SPI 的片选差异。",
       "concepts": [
-        "ADC",
-        "采样",
-        "I²C/SPI",
-        "超时"
+        "I²C 总线",
+        "设备地址与寄存器",
+        "ACK 与超时",
+        "SPI 对照",
+        "驱动适配层"
       ],
-      "guidedBuild": "将原始值转换为可判断的高度和门锁状态。",
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/door_sensor.h",
+        "Core/Src/door_sensor_i2c.c",
+        "Core/Src/main.c",
+        "tests/fake_door_bus.c",
+        "tests/test_door_sensor.c",
+        "docs/sensor-profile.md",
+        "docs/cubemx-integration.md"
+      ],
+      "conceptModule": {
+        "title": "函数返回 0，不代表传感器真的说“门已关”",
+        "learningGoal": "能把通信是否成功、数据是否有效和业务状态分开，理解 I²C 的寻址/应答流程与 SPI 的片选差异。",
+        "phenomenon": {
+          "title": "拔掉传感器后，状态竟然一直是“门已锁”",
+          "observation": "驱动把接收缓冲区初始化为 0，忽略 HAL 返回值；传感器断线后缓冲仍是 0，业务把它误判成安全状态。",
+          "question": "一次总线读取需要哪些证据才能成为可信的 door_locked？超时、NACK、错误设备 ID 和越界数据应如何传播？"
+        },
+        "mentalModel": {
+          "summary": "I²C 用共享的时钟/数据线和设备地址选中从设备，再按寄存器协议收发字节；每个阶段可能 NACK 或超时。驱动结果必须同时携带状态、数据和时间。SPI 没有地址与 ACK，依靠独立片选，错误检测要由设备协议补充。",
+          "flow": [
+            {
+              "id": "select-device",
+              "title": "选择设备",
+              "explanation": "I²C 发送地址等待 ACK；SPI 拉低对应 CS。"
+            },
+            {
+              "id": "select-register",
+              "title": "指定寄存器",
+              "explanation": "按数据手册写入寄存器地址或命令。"
+            },
+            {
+              "id": "transfer-bytes",
+              "title": "收发数据",
+              "explanation": "在超时内取得固定长度，并检查底层返回值。"
+            },
+            {
+              "id": "validate-payload",
+              "title": "验证身份和范围",
+              "explanation": "先读设备 ID，再检查状态位、保留位和数据范围。"
+            },
+            {
+              "id": "publish-reading",
+              "title": "发布带有效性的结果",
+              "explanation": "返回 value、valid/error、sampled_at，失败不复用成安全值。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "I²C 总线",
+            "plainMeaning": "多设备共享 SCL/SDA、用地址选设备的同步串行总线，线路通常需要上拉。",
+            "codeMapping": "hi2c、HAL_I2C_Mem_Read 与 sensor-profile 接线"
+          },
+          {
+            "term": "设备地址与寄存器",
+            "plainMeaning": "地址选择哪颗芯片，寄存器地址选择芯片内部哪项状态或配置；二者不是一个数。",
+            "codeMapping": "DOOR_SENSOR_ADDR、REG_WHO_AM_I、REG_STATUS"
+          },
+          {
+            "term": "ACK 与超时",
+            "plainMeaning": "ACK 表示接收方对当前字节应答；NACK 或超时说明本次通信未成功，不能把旧缓冲当新数据。",
+            "codeMapping": "HAL_StatusTypeDef、timeout_ms 与 DoorSensorError"
+          },
+          {
+            "term": "SPI 对照",
+            "plainMeaning": "SPI 常用 SCK/MOSI/MISO 加独立 CS 选设备，通常没有总线级地址和 ACK。",
+            "codeMapping": "sensor-profile.md 的 I²C/SPI 对照表；课程主线实现 I²C"
+          },
+          {
+            "term": "驱动适配层",
+            "plainMeaning": "把具体 HAL 总线调用封装成项目所需的 init/read 接口，便于主机假总线测试和未来更换器件。",
+            "codeMapping": "DoorBus 函数指针与 door_sensor_read"
+          }
+        ],
+        "workedExample": {
+          "title": "读取门锁状态的五层判断",
+          "steps": [
+            "先读 WHO_AM_I，确认地址上的确是预期器件。",
+            "读取 STATUS 前把返回缓冲设为无意义值，但绝不依赖初始值判断成功。",
+            "检查 HAL 返回 OK 和收到的长度，再验证保留位与允许范围。",
+            "成功才更新 door_locked 与 sampled_at；失败返回具体 error。",
+            "控制器看到 error 或数据过期时进入故障，而不是沿用“已锁”。"
+          ],
+          "takeaway": "通信成功、载荷有效、业务为真是三个独立判断；任何一层失败都不能伪装成安全值。"
+        },
+        "misconceptions": [
+          {
+            "claim": "I²C 地址和寄存器地址都是地址，可以互换。",
+            "correction": "设备地址选芯片，寄存器地址选芯片内部位置，处在不同协议层。"
+          },
+          {
+            "claim": "SPI 比 I²C 快，所以读取一定更可靠。",
+            "correction": "速度不自动带来应答和校验；SPI 的错误检测常需由上层协议提供。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "i2c-failure-value",
+            "question": "I²C 读取超时，而接收缓冲恰好是 0，驱动应返回什么？",
+            "options": [
+              {
+                "id": "i2c-failure-value-correct",
+                "text": "带 TIMEOUT 的无效结果，不把 0 解释为门已锁"
+              },
+              {
+                "id": "i2c-failure-value-wrong-a",
+                "text": "有效的 door_locked=false"
+              },
+              {
+                "id": "i2c-failure-value-wrong-b",
+                "text": "继续无限阻塞直到设备回来"
+              }
+            ],
+            "correctOptionId": "i2c-failure-value-correct",
+            "explanation": "底层失败时缓冲内容没有新数据含义，必须把失败显式传播。"
+          },
+          {
+            "id": "i2c-spi-select",
+            "question": "I²C 与常见 SPI 选择设备的主要差异是什么？",
+            "options": [
+              {
+                "id": "i2c-spi-select-correct",
+                "text": "I²C 在总线上发送设备地址，SPI 常用独立片选线"
+              },
+              {
+                "id": "i2c-spi-select-wrong-a",
+                "text": "I²C 每个设备必须独占两根线，SPI 只需地址"
+              },
+              {
+                "id": "i2c-spi-select-wrong-b",
+                "text": "两者都由 UART 波特率选择设备"
+              }
+            ],
+            "correctOptionId": "i2c-spi-select-correct",
+            "explanation": "两种总线的选设备方式不同，决定接线和驱动协议。"
+          }
+        ],
+        "bridgeToCode": "管理者先在 sensor-profile.md 固定一颗可用的 I²C 模块和寄存器；代码通过 DoorBus 适配层教学，测试用假总线覆盖 NACK、超时和错误 ID。"
+      },
+      "guidedBuild": "先确认器件身份，再通过可替换 I²C 适配层读取门锁状态；所有通信错误和陈旧数据都进入显式故障路径。",
+      "guidedSteps": [
+        {
+          "id": "bus-01",
+          "title": "固定传感器资料与设备身份",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "docs/sensor-profile.md",
+            "Core/Inc/door_sensor.h"
+          ],
+          "instruction": "记录模块电压、上拉、7 位地址、设备 ID 和状态寄存器；启动时只做有上限的探测并核对 WHO_AM_I。",
+          "verify": "正确设备通过；错误地址、错误 ID 和未连接分别有不同诊断。",
+          "codeStepId": "bus-01-code"
+        },
+        {
+          "id": "bus-02",
+          "title": "用适配层隔离 HAL I²C",
+          "targetFiles": [
+            "Core/Inc/door_sensor.h",
+            "Core/Src/door_sensor_i2c.c",
+            "tests/fake_door_bus.c",
+            "tests/test_door_sensor.c"
+          ],
+          "instruction": "定义 DoorBus 读写接口与 DoorReading；真实实现调用 HAL，测试实现脚本化返回 OK/NACK/TIMEOUT/短数据。",
+          "verify": "业务驱动测试不需要开发板，四类底层结果都能确定复现。",
+          "codeStepId": "bus-02-code"
+        },
+        {
+          "id": "bus-03",
+          "title": "拒绝错误与过期数据",
+          "targetFiles": [
+            "Core/Src/door_sensor_i2c.c",
+            "Core/Src/main.c",
+            "tests/test_door_sensor.c",
+            "docs/cubemx-integration.md"
+          ],
+          "instruction": "验证返回码、长度、设备 ID、状态位和 sampled_at；失败或数据过期时发布明确错误并触发一次事件日志。 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。",
+          "verify": "拔线、NACK、超时、错误 ID、非法状态和陈旧数据都不被解释为门已锁。",
+          "codeStepId": "bus-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "先区分原始采样值、转换值和有效性。"
+          "text": "同时记录设备地址、寄存器地址、HAL 返回值、长度与原始字节。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查读取返回值和超时分支。"
+          "text": "检查 7 位/8 位地址约定、WHO_AM_I、timeout 分支和旧缓冲是否被继续使用。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "通信成功与数据范围都要验证。"
+          "text": "“读到 0”只有在本次通信成功且载荷验证通过后才有业务意义。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "断开传感器时中控进入故障态而非继续运行。",
-        "evidence": "正常值、边界值、断线结果",
-        "automatedChecks": [],
+        "task": "独立实现传感器断开演练：运行中拔掉模块后，中控在限定时间内进入 SENSOR_FAULT，旧的“门已锁”值不得继续放行。",
+        "evidence": "sensor-profile、假总线故障测试、正常/断线串口轨迹和进入故障的时限记录",
+        "automatedChecks": [
+          "test_door_sensor 覆盖 NACK、超时、错误 ID、短数据与陈旧数据"
+        ],
         "selfChecks": [
-          "ADC 上下界",
-          "总线超时",
-          "无效值拒绝"
+          "使用明确超时",
+          "旧数据不会伪装新数据",
+          "恢复连接不会自动清除锁存故障"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 同时注入门锁断线和按钮输入。"
+      "laterReencounter": "Boss 会同时注入总线断线、按钮输入和日志拥塞，验证安全事件优先级。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host -R door_sensor --output-on-failure"
+        ],
+        "runActions": [
+          "运行假总线故障测试",
+          "下载后读取设备 ID 与正常状态",
+          "运行中断开并重新连接 I²C 模块"
+        ],
+        "expectedResults": [
+          "设备身份可验证",
+          "通信失败有具体错误码",
+          "断线后在时限内进入锁存故障"
+        ]
+      },
+      "snapshotStateId": "bus-03-ready"
     },
     {
       "id": "safe-recovery",
-      "title": "完成安全恢复状态机",
-      "goal": "把启动条件、运行、停靠、故障和复位组合起来。",
+      "title": "把所有输入收束成安全状态机",
+      "phase": "安全联调",
+      "estimatedSessions": 5,
+      "milestone": "完整中控能运行、停靠、锁存故障、受控复位并由看门狗监督",
+      "goal": "整合状态转换、故障优先级、看门狗和复位原因，确保任何异常都先进入安全输出再谈恢复。",
       "concepts": [
         "分层状态机",
-        "超时",
+        "故障锁存",
+        "看门狗",
+        "复位原因",
         "安全默认值"
       ],
-      "guidedBuild": "实现 READY、RUNNING、PARKING、FAULT、RESETTING。",
+      "filesTouched": [
+        "FerrisControl.ioc",
+        "Core/Inc/ferris_controller.h",
+        "Core/Src/ferris_controller.c",
+        "Core/Inc/fault_supervisor.h",
+        "Core/Src/fault_supervisor.c",
+        "Core/Src/diagnostics.c",
+        "Core/Src/main.c",
+        "tests/test_ferris_controller.c",
+        "docs/fault-matrix.md",
+        "Core/Inc/ferris_app.h",
+        "Core/Src/ferris_app.c",
+        "Core/Src/ferris_interrupts.c",
+        "tests/test_ferris_app.c",
+        "docs/cubemx-integration.md",
+        "Core/Inc/ferris_interrupts.h"
+      ],
+      "conceptModule": {
+        "title": "复位不是恢复，清故障也不是继续运行",
+        "learningGoal": "能为每个状态列出进入/离开条件，理解故障锁存与看门狗用途，并设计上电、软件复位和异常复位后的安全路径。",
+        "phenomenon": {
+          "title": "故障刚消失，设备却自己重新启动",
+          "observation": "门锁传感器短暂断线后恢复，如果代码只看当前输入，FAULT 会立刻消失并重新给出运行命令；看门狗复位后若默认值不安全，也可能在初始化期间短暂输出。",
+          "question": "哪些故障必须被记住？谁有权清除？看门狗应该在什么条件下刷新，复位后第一件事是什么？"
+        },
+        "mentalModel": {
+          "summary": "控制器负责 READY、RUNNING、PARKING 等业务状态；故障监督器以更高优先级汇总输入并锁存严重故障。任何严重故障先调用统一安全输出，再进入 FAULT；恢复输入只说明原因消失，仍需明确 reset 动作和完整自检。看门狗只在关键任务都健康时刷新。",
+          "flow": [
+            {
+              "id": "collect-health",
+              "title": "采集健康快照",
+              "explanation": "汇总按钮事件、门锁、载荷、通信年龄、事件积压与时间。"
+            },
+            {
+              "id": "prioritize-fault",
+              "title": "故障优先判定",
+              "explanation": "严重故障先于普通运行请求，并记录首个原因与时间。"
+            },
+            {
+              "id": "apply-safe",
+              "title": "立即施加安全输出",
+              "explanation": "PWM 停止、状态灯转故障，随后再记录和转换状态。"
+            },
+            {
+              "id": "latch-fault",
+              "title": "锁存故障",
+              "explanation": "输入恢复不自动离开 FAULT，避免间歇故障导致自行重启。"
+            },
+            {
+              "id": "reset-selftest",
+              "title": "受控复位与自检",
+              "explanation": "明确 reset 后重新检查所有前置条件，满足才回 READY；看门狗复位同样从安全默认值开始。"
+            }
+          ]
+        },
+        "terms": [
+          {
+            "term": "分层状态机",
+            "plainMeaning": "把业务运行状态与更高优先级的安全监督分开，避免每个状态重复且遗漏故障分支。",
+            "codeMapping": "FerrisController 与 FaultSupervisor 两层 update"
+          },
+          {
+            "term": "故障锁存",
+            "plainMeaning": "严重故障一旦发生就被记住，原因消失也不自动恢复，必须经过明确复位和自检。",
+            "codeMapping": "latched_fault、fault_first_seen_ms 与 controller_request_reset"
+          },
+          {
+            "term": "看门狗",
+            "plainMeaning": "独立计时外设，软件长时间未证明关键任务健康时触发复位。",
+            "codeMapping": "IWDG 配置、health_all_ok 与 watchdog_refresh_if_healthy"
+          },
+          {
+            "term": "复位原因",
+            "plainMeaning": "芯片记录本次启动由上电、软件、看门狗或其他来源触发，应用应读取、记录并清除标志。",
+            "codeMapping": "reset_reason_read、RCC reset flags 与启动横幅"
+          },
+          {
+            "term": "安全默认值",
+            "plainMeaning": "在代码尚未知道系统健康前就采用的最保守输出，并在任何故障路径复用。",
+            "codeMapping": "board_outputs_safe 在启动第一阶段和 FAULT 入口"
+          }
+        ],
+        "workedExample": {
+          "title": "RUNNING 中门锁断线，然后传感器恢复",
+          "steps": [
+            "监督器发现 DoorReading 无效，先锁存 SENSOR_TIMEOUT。",
+            "同一轮调用安全停机入口，把运行命令置 0，再把业务状态切为 FAULT。",
+            "传感器恢复后错误条件变为 false，但 latched_fault 仍保留。",
+            "用户发出 reset，系统进入 RESETTING，重新检查门锁、载荷、通信与按钮。",
+            "所有检查连续通过后才回 READY，仍不自动进入 RUNNING。"
+          ],
+          "takeaway": "恢复输入只是允许开始自检，不等于允许继续动作；故障、复位、自检和重新启动是四个不同事件。"
+        },
+        "misconceptions": [
+          {
+            "claim": "有看门狗就不需要处理软件错误。",
+            "correction": "看门狗只能在失去健康刷新时复位，无法替代边界检查、错误码和安全状态。"
+          },
+          {
+            "claim": "传感器恢复正常后自动清除故障体验更顺。",
+            "correction": "对安全状态而言，自动恢复可能造成无人确认的重新运动；必须明确复位并重新自检。"
+          }
+        ],
+        "checks": [
+          {
+            "id": "fault-recovery-order",
+            "question": "运行中严重传感器故障消失后，系统正确顺序是什么？",
+            "options": [
+              {
+                "id": "fault-recovery-order-correct",
+                "text": "保持 FAULT → 明确 reset → 完整自检 → READY"
+              },
+              {
+                "id": "fault-recovery-order-wrong-a",
+                "text": "立即回 RUNNING"
+              },
+              {
+                "id": "fault-recovery-order-wrong-b",
+                "text": "清除日志后继续之前的 PWM"
+              }
+            ],
+            "correctOptionId": "fault-recovery-order-correct",
+            "explanation": "锁存故障要求显式复位和自检，且 READY 不等于自动运行。"
+          },
+          {
+            "id": "watchdog-refresh",
+            "question": "什么时候适合刷新看门狗？",
+            "options": [
+              {
+                "id": "watchdog-refresh-correct",
+                "text": "关键任务在本周期都按期完成且健康快照有效时"
+              },
+              {
+                "id": "watchdog-refresh-wrong-a",
+                "text": "每次进入中断时无条件刷新"
+              },
+              {
+                "id": "watchdog-refresh-wrong-b",
+                "text": "启动后只刷新一次"
+              }
+            ],
+            "correctOptionId": "watchdog-refresh-correct",
+            "explanation": "无条件刷新会掩盖主循环卡死；刷新应证明关键路径仍健康。"
+          }
+        ],
+        "bridgeToCode": "先写状态/事件/故障矩阵和纯控制器测试，再接真实输出；唯一安全停机函数必须可从启动、故障和复位路径调用。"
+      },
+      "guidedBuild": "把已学外设输入收敛为健康快照，构建分层控制器和故障矩阵，最后加入看门狗与复位原因闭环。",
+      "guidedSteps": [
+        {
+          "id": "safe-01",
+          "title": "先写状态与故障矩阵",
+          "targetFiles": [
+            "Core/Inc/ferris_controller.h",
+            "Core/Src/ferris_controller.c",
+            "docs/fault-matrix.md",
+            "tests/test_ferris_controller.c"
+          ],
+          "instruction": "定义 BOOT、SELF_TEST、READY、RUNNING、PARKING、FAULT、RESETTING；逐格写出事件、守卫、动作和目标状态，覆盖每个运行状态的严重故障。",
+          "verify": "表中没有“其他情况继续猜测”；测试遍历所有状态的 emergency_fault，并全部落到安全 FAULT。",
+          "codeStepId": "safe-01-code"
+        },
+        {
+          "id": "safe-02",
+          "title": "集中故障优先级和锁存",
+          "targetFiles": [
+            "Core/Inc/fault_supervisor.h",
+            "Core/Src/fault_supervisor.c",
+            "Core/Src/ferris_controller.c",
+            "tests/test_ferris_controller.c"
+          ],
+          "instruction": "监督器按门锁、过载、通信陈旧、事件溢出等优先级产生单一 FaultSnapshot；首次原因锁存，业务转换在故障检查之后执行。",
+          "verify": "同轮既有 START 又有门锁失效时只进入 FAULT；恢复输入不自动清除。",
+          "codeStepId": "safe-02-code"
+        },
+        {
+          "id": "safe-03",
+          "title": "接通完整目标端循环与看门狗健康链",
+          "targetFiles": [
+            "FerrisControl.ioc",
+            "Core/Src/main.c",
+            "Core/Src/fault_supervisor.c",
+            "Core/Src/diagnostics.c",
+            "Core/Inc/ferris_app.h",
+            "Core/Src/ferris_app.c",
+            "Core/Src/ferris_interrupts.c",
+            "tests/test_ferris_app.c",
+            "docs/cubemx-integration.md",
+            "Core/Inc/ferris_interrupts.h"
+          ],
+          "instruction": "复制 ferris_app、ferris_interrupts、适配层、CubeMX 接入清单和测试的完整版本。初始化先应用安全输出；事件快照用保存/恢复 PRIMASK 的短临界区，CubeMX 保留唯一一组生成的 IRQHandler；只有按钮、事件、ADC 和控制器本周期都完成时刷新 IWDG。主机先用 HAL stub 注入门未锁验证 PWM 归零，再到真机故意停止一个健康环节观察复位。",
+          "verify": "test_ferris_app 证明外设启动、事件快照恢复原中断状态、READY→RUNNING→FAULT、PWM 安全归零、UART 诊断与 IWDG 健康刷新；manifest 检查目标构建不含主机 main 或重复 IRQHandler；真机证据仍需实际板卡。",
+          "codeStepId": "safe-03-code"
+        }
+      ],
       "hintLadder": [
         {
           "tier": 1,
           "kind": "observation-focus",
-          "text": "逐个状态列出允许进入和离开的条件。"
+          "text": "按“输入快照→故障优先→业务转换→输出→健康刷新”顺序追踪一轮。"
         },
         {
           "tier": 2,
           "kind": "code-region",
-          "text": "检查故障能否从每个运行状态进入。"
+          "text": "检查故障判断是否早于 START、锁存是否被当前输入覆盖、看门狗是否在 ISR 无条件刷新。"
         },
         {
           "tier": 3,
           "kind": "cause-and-direction",
-          "text": "安全事件的优先级必须高于普通控制事件。"
+          "text": "安全问题通常来自职责和优先级混乱；继续加 if 之前先回到状态/故障矩阵。"
         }
       ],
       "checkpoint": {
         "kind": "independent-change",
-        "task": "任何状态检测到门锁失效都立即停止并锁定故障。",
-        "evidence": "状态图、串口轨迹、真机自检",
-        "automatedChecks": [],
+        "task": "独立证明“任何状态检测到门锁失效都立即安全停机并锁存；连接恢复后必须 reset + 自检才能回 READY，且不会自动 RUNNING”。",
+        "evidence": "完整状态/故障矩阵、控制器测试、串口轨迹、看门狗复位与安全输出真机记录",
+        "automatedChecks": [
+          "test_ferris_controller 遍历所有状态的故障优先级、锁存和受控复位"
+        ],
         "selfChecks": [
-          "故障优先",
-          "复位需明确动作",
-          "重启默认安全"
+          "安全输出早于日志和状态展示",
+          "恢复不自动重新运行",
+          "看门狗只在完整健康后刷新"
         ],
         "awardsStar": true
       },
-      "laterReencounter": "Boss 不再提示当前状态，只给传感器和日志。"
+      "laterReencounter": "Boss 不再提示故障所在模块，只提供真机现象、串口轨迹和可重复注入步骤。",
+      "runbook": {
+        "buildCommands": [
+          "STM32CubeIDE：Project > Build All，保持 0 error、0 new warning",
+          "主机：cmake --build build/host && ctest --test-dir build/host --output-on-failure"
+        ],
+        "runActions": [
+          "运行全部主机逻辑测试",
+          "依次完成正常启动、运行、停靠、reset",
+          "在 READY/RUNNING/PARKING 分别断开门锁",
+          "冻结关键任务触发看门狗"
+        ],
+        "expectedResults": [
+          "正常循环有完整可追踪状态",
+          "任何严重故障都优先进入安全输出",
+          "故障恢复必须经过明确复位和自检",
+          "看门狗复位后能说明原因且不误启动"
+        ]
+      },
+      "snapshotStateId": "safe-03-ready"
     }
   ],
   "boss": {
     "id": "ostrich-ferris-wheel-boss",
-    "title": "摩天轮雨夜安全演练",
-    "story": "按钮发生抖动、计时器接近回绕、门锁传感器中途断开，系统还会被突然复位。",
+    "title": "摩天轮闭园前安全演练",
+    "story": "闭园前，中控会依次遭遇按钮抖动、事件积压、模拟量越界、门锁传感器断线、串口命令洪水和看门狗复位。学习者不增加新功能，只用已经完成的日志、测试与状态机独立定位、修复并证明设备能安全恢复。",
     "phases": [
       {
-        "id": "instrument",
-        "title": "建立可观察日志",
+        "id": "bench-preflight",
+        "title": "接线与基线检查",
         "successCriteria": [
-          "每次状态变化可追踪",
-          "中断不打印"
+          "接线、电压、有效电平和功率边界与 hardware profile 一致",
+          "Clean Build、下载、全部主机测试和启动自检通过",
+          "正常 READY→RUNNING→PARKING→READY 轨迹完整"
         ]
       },
       {
-        "id": "fault-injection",
-        "title": "逐项注入故障",
+        "id": "timing-input-drill",
+        "title": "输入与时序压力",
         "successCriteria": [
-          "抖动不重复启动",
-          "计时回绕不破坏超时",
-          "传感器断线进入 FAULT"
+          "按钮抖动和长按不重复启动",
+          "跨 uint32_t 回绕的超时仍正确",
+          "中断积压可见且 ISR 不打印不等待"
         ]
       },
       {
-        "id": "power-recovery",
-        "title": "独立完成断电恢复",
+        "id": "sensor-comms-drill",
+        "title": "传感与通信故障",
         "successCriteria": [
-          "复位后输出安全",
-          "需要明确操作才能重新启动"
+          "ADC 噪声不造成状态抖动",
+          "I²C NACK/超时/陈旧数据都进入明确故障",
+          "串口超长或洪水输入有界失败且不拖住安全循环"
+        ]
+      },
+      {
+        "id": "reset-release",
+        "title": "复位与发布验收",
+        "successCriteria": [
+          "看门狗复位后先施加安全输出并报告原因",
+          "故障恢复必须经过 reset 与完整自检，不自动运行",
+          "提交固件、接线表、测试、串口轨迹和可复现故障记录"
         ]
       }
     ],
     "faultScenarios": [
-      "button-bounce",
-      "timer-wraparound",
-      "sensor-disconnect",
-      "unexpected-reset"
+      "button-bounce-and-hold",
+      "tick-wraparound",
+      "event-backlog-and-saturation",
+      "adc-noise-and-invalid-range",
+      "i2c-nack-timeout-and-stale-data",
+      "uart-overlong-command-and-buffer-full",
+      "simultaneous-start-and-door-fault",
+      "watchdog-reset-during-running"
     ],
     "resumableByPhase": true,
     "managerApprovalRequired": false
@@ -350,7 +2988,7 @@
   "rewards": {
     "chapterXp": 35,
     "independentCheckpointStar": 1,
-    "bossXp": 150,
+    "bossXp": 220,
     "trophy": {
       "id": "trophy-ferris-control-console",
       "title": "摩天轮中控模型",
@@ -362,17 +3000,62 @@
     "copyFields": [
       "rankId",
       "title",
+      "hardwareProfile",
       "chapter",
+      "conceptModule",
+      "guidedStep",
       "goal",
-      "coreContract",
+      "filesTouched",
+      "wiring",
       "codeOrCommand",
-      "input",
       "expectedBehavior",
       "actualResult",
+      "buildOutput",
+      "uartLog",
+      "watchValues",
       "viewedHintTiers",
       "recentAttempts"
     ],
-    "tutorInstruction": "先帮助学习者复现和定位，再给局部方向；不要直接给 Boss 完整实现。完整解法出现后，应让学习者完成新的等价故障场景。"
+    "tutorInstruction": "先确认实际板卡/模块、当前章节和引导步骤，再从学习者已经理解的物理现象开始解释。GPIO 初学章节必须先说清引脚、VDD、GND、电压和电流路径，不能用“上拉、浮空、有效电平”等未解释术语循环定义。随后再区分构建、下载、接线、电平、时序与业务状态。优先让学习者提供最小可复现现象、构建日志、UART 轨迹和 Watch 值。引导步骤可解释课程已给完整代码；独立检查不直接给完整答案，查看后改派等价变式；Boss 不新增外设或功能。"
   },
-  "file": "levels/ostrich-ferris-wheel-project.json"
+  "file": "levels/ostrich-ferris-wheel-project.json",
+  "environment": {
+    "platform": "STM32F103C8T6（LQFP48）+ ST-LINK/SWD + 3.3V USB-UART + 课程参考外设；主机可运行完整仿真与 HAL stub",
+    "languageStandard": "C17（仅使用适合 MCU 的可移植子集）",
+    "toolchain": "STM32CubeIDE + STM32CubeMX/STM32CubeF1 HAL + Arm GNU Toolchain；主机验证使用 C17 编译器与 Make",
+    "buildSystem": "CubeIDE managed target build + Make 主机侧纯逻辑测试、仿真与 HAL-stub 集成测试",
+    "outputBackend": "PC13 安全状态灯 + PA6/TIM3_CH1 PWM + PB13 安全使能 + PA9/USART1 诊断",
+    "inputBackend": "PB12 上拉按钮 + TIM2 事件 + PA1/ADC1_IN1 + PB6/PB7 I2C1 门锁协议",
+    "requirements": [
+      "固定 MCU：STM32F103C8T6；参考时钟使用片内 HSI 8MHz，具体引脚以 FerrisControl.ioc 与 docs/wiring.md 为准",
+      "ST-LINK/SWD 与 3.3V USB-UART；所有模块共地，接线修改前断电",
+      "PC13 小电流状态灯、PB12 按钮、PA6 PWM、PB13 安全使能、PA1 安全模拟输入",
+      "PB6/PB7 I2C1 使用 3.3V 上拉；真实门锁模块尚未指定，地址与寄存器必须在上板前按数据手册替换",
+      "真实电机只能连接额定且隔离的驱动模块控制端，并保留独立急停链路",
+      "代码包的 Core/Src/main.c 与 board_sim.c 只用于主机演示；CubeMX 生成的目标 main.c 与 stm32f1xx_it.c 必须保留，并按 docs/cubemx-integration.md 接入 15 个课程源文件",
+      "主机阶段先执行 ./scripts/verify.sh；CubeMX 生成、ARM 构建、下载与实物测量必须在具备硬件和 ST 工具的环境另行验收"
+    ],
+    "supportedHosts": [
+      "可运行 STM32CubeIDE 的 Windows 10/11 主机",
+      "可运行 STM32CubeIDE 的 macOS 主机"
+    ]
+  },
+  "guidancePolicy": {
+    "mode": "guided-complete-build",
+    "conceptLessonsPerChapter": 1,
+    "guidedLessonsPerChapter": 3,
+    "independentCheckpointPerChapter": true,
+    "cumulativeArtifact": true,
+    "chapterSnapshotRequired": true,
+    "fullSolutionScope": "第一步先提供可构建、可运行的完整工程树；之后每个引导步骤提供本步全部完整文件、一个可观察小改动、构建/测试命令和硬件验证边界，章末保留完整 snapshot。",
+    "learnerFreedomBoundary": "11 个章节都基于固定 STM32F103C8T6 参考工程做课程已解释的有界变式；实验后可恢复完整参考文件。真实 I2C 模块 profile 需由管理者按数据手册固定，最终自主发挥只属于无敌凤凰蛋。",
+    "codeDeliveryContractVersion": 1
+  },
+  "codeDelivery": {
+    "schemaVersion": 1,
+    "packageFile": "project-code/ostrich-ferris-wheel-project.json",
+    "packageSha256": "a15e0eef1184a1b24a65ea55c9b9fb32f9e90019f0118b63cd6ddf708ce28102",
+    "baselineStateId": "ostrich-f103-complete-scaffold",
+    "finalStateId": "safe-03-ready"
+  }
 }

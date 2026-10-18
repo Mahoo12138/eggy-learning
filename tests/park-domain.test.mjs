@@ -230,7 +230,7 @@ function completeProjectRank(run, rankId, performancePoints = 0, course = COURSE
 
 test('the checked-in schema-v2 documents publish the V3 early curriculum and hydrate every indexed online level', () => {
   const indexOnly = sanitizeCourse(RAW_COURSE);
-  assert.equal(indexOnly.publishedRevision, 5);
+  assert.equal(indexOnly.publishedRevision, 6);
   assert.equal(indexOnly.ranks.length, 9);
   assert.equal(indexOnly.levels.length, 12);
   assert.equal(indexOnly.levels.some(level => 'content' in level), false);
@@ -455,6 +455,82 @@ test('蛋仔食堂的 15 章都先解释概念，再进入三个代码步骤和�
   }
 });
 
+test('鸵鸟蛋把 STM32 摩天轮拆成十一章且从实体引脚开始解释 GPIO', () => {
+  const project = COURSE.projects.find(item => item.id === 'ostrich-ferris-wheel-project');
+  const rank = COURSE.ranks.find(item => item.id === 'ostrich');
+
+  assert.equal(project.version, 4);
+  assert.equal(project.guidancePolicy.mode, 'guided-complete-build');
+  assert.deepEqual(project.estimatedSessions, { minimum: 55, typical: 59 });
+  assert.equal(project.chapters.length, 11);
+  assert.equal(rank.promotion.requiredStars, project.chapters.length);
+  assert.match(project.environment.toolchain, /STM32CubeIDE/);
+  assert.match(project.environment.buildSystem, /主机侧纯逻辑测试/);
+  assert.match(project.artifact.hardwareProfile.strategy, /board_config/);
+
+  const expectedChapterIds = [
+    'board-bringup',
+    'gpio-start',
+    'gpio-input-pulls',
+    'debounce-state',
+    'nonblocking-time',
+    'timer-pwm',
+    'timer-interrupt',
+    'uart-diagnostics',
+    'adc-sensing',
+    'sensor-bus',
+    'safe-recovery'
+  ];
+  assert.deepEqual(project.chapters.map(chapter => chapter.id), expectedChapterIds);
+
+  for (const chapter of project.chapters) {
+    assert.equal(chapter.estimatedSessions, 5, `${chapter.id} 应由概念、三步代码和独立检查组成`);
+    assert.equal(chapter.guidedSteps.length, 3, `${chapter.id} 应恰有三个累积代码步骤`);
+    assert.ok(chapter.conceptModule.checks.length >= 2, `${chapter.id} 至少应有两道服务端理解题`);
+    assert.ok(chapter.runbook.buildCommands.length >= 1, `${chapter.id} 应给出真实构建动作`);
+    assert.ok(chapter.runbook.runActions.length >= 1, `${chapter.id} 应给出真机操作`);
+    assert.ok(chapter.runbook.expectedResults.length >= 1, `${chapter.id} 应给出可观察结果`);
+    const explained = new Set(chapter.conceptModule.terms.map(item => item.term));
+    assert.equal(chapter.concepts.every(concept => explained.has(concept)), true, `${chapter.id} 的每个概念都应有白话解释和代码映射`);
+  }
+
+  const requiredConcepts = new Set(project.chapters.flatMap(chapter => chapter.concepts));
+  for (const concept of [
+    '复位到 main', 'Flash 与 SRAM', 'GPIO', 'VDD、GND 与电压', '输入模式', '高阻输入', '浮空', '上拉电阻', '下拉电阻', '机械抖动', '计数回绕', 'PWM',
+    'volatile', 'UART 帧', 'ADC', 'I²C 总线', '看门狗', '安全默认值'
+  ]) {
+    assert.ok(requiredConcepts.has(concept), `STM32 课程缺少关键概念：${concept}`);
+  }
+
+  const bringup = project.chapters.find(chapter => chapter.id === 'board-bringup');
+  const bringupFiles = bringup.guidedSteps.flatMap(step => step.targetFiles);
+  const bringupActions = bringup.guidedSteps.map(step => step.instruction).join('\n');
+  assert.equal(bringupFiles.some(file => /board_config|board_io/.test(file)), false, '启动章不得提前创建 GPIO 板级文件');
+  assert.doesNotMatch(bringupActions, /HAL_GPIO|GPIO_PIN_|board_status_led_set|board_button/, '启动章不得调用尚未教授的 GPIO 接口');
+
+  const output = project.chapters.find(chapter => chapter.id === 'gpio-start');
+  const input = project.chapters.find(chapter => chapter.id === 'gpio-input-pulls');
+  const outputText = JSON.stringify(output.conceptModule);
+  const inputText = JSON.stringify(input.conceptModule);
+  assert.equal(output.conceptModule.checks.length, 4);
+  assert.equal(input.conceptModule.checks.length, 4);
+  assert.match(outputText, /实体引脚/);
+  assert.match(outputText, /3\.3V.*GND/);
+  assert.match(outputText, /限流电阻/);
+  assert.match(outputText, /低电平有效/);
+  assert.match(inputText, /高阻/);
+  assert.match(inputText, /浮空/);
+  assert.match(inputText, /弱.*路径|弱连接/);
+  assert.match(inputText, /释放为 1，按下为 0/);
+  assert.match(inputText, /释放为 0，按下为 1/);
+  assert.match(inputText, /不能.*检测断线|断线.*无法区分|断线.*不能识别/);
+  assert.match(inputText, /上拉.*消抖|上下拉.*消抖/);
+
+  const legacyChapterIds = ['gpio-start', 'debounce-state', 'timer-interrupt', 'uart-diagnostics', 'sensor-bus', 'safe-recovery'];
+  assert.equal(legacyChapterIds.every(id => expectedChapterIds.includes(id)), true, '已发布章节身份应保持稳定');
+  assert.match(project.coreContract.join('\n'), /GPIO.*直接驱动/);
+  assert.ok(project.boss.faultScenarios.includes('watchdog-reset-during-running'));
+});
 
 
 test('完整引导课程拒绝缺失、未覆盖或不可判定的概念模块', () => {
