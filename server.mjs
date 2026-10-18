@@ -3,14 +3,14 @@ import { readFile, stat, realpath } from 'node:fs/promises';
 import { join, resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { Store, acquireLock, httpError, fingerprint, etag, requireMatch, safeId } from './lib/store.mjs';
 import { getGitHistory } from './lib/git-history.mjs';
 import { cIdentifiers, runC } from './lib/c-runner.mjs';
 import { runLinuxShell } from './lib/linux-shell-sim.mjs';
 import { withMasteryChallenges, supportsMasteryChallenges } from './lib/mastery-challenges.mjs';
 import { evaluateCoursePreview } from './lib/course-preview.mjs';
-import { PROJECT_CODE_MAX_PACKAGE_BYTES, sanitizeProjectCodePackage } from './lib/project-code-delivery.mjs';
+import { createProjectCodeReader } from './lib/project-code-reader.mjs';
 import {
   sanitizeCourse, sanitizeProgress, sanitizeWeekCard,
   submitAttempt, submitProjectCheckpoint, submitProjectConceptCheck, summary as progressSummary
@@ -72,13 +72,6 @@ function validateHost(req, server, allowed) {
 function safeDetailPath(file, id) {
   if (typeof file !== 'string' || !/^levels\/[a-z0-9][a-z0-9_-]{0,159}\.json$/.test(file) || file !== `levels/${id}.json`) {
     throw httpError(400, `活动 ${id} 的详情文件路径无效。`, 'invalid_course_path');
-  }
-  return `data/${file}`;
-}
-
-function safeProjectCodePath(file, projectId, status = 500) {
-  if (typeof file !== 'string' || file !== `project-code/${projectId}.json` || !/^project-code\/[a-z0-9][a-z0-9_-]{0,159}\.json$/.test(file)) {
-    throw httpError(status, `作品 ${projectId} 的代码包路径无效。`, 'invalid_code_package');
   }
   return `data/${file}`;
 }
@@ -370,52 +363,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
   const store = new Store(root, storeOptions);
   const release = lock ? await acquireLock(root) : async () => {};
   const hosts = allowedHosts(host, allowedHostnames);
-  const codePackageCache = new Map();
-
-  async function readProjectCodePackage(project, { useCache = true, populateCache = true, errorStatus = 500 } = {}) {
-    if (!project.codeDelivery) throw httpError(errorStatus === 500 ? 404 : errorStatus, '这个作品还没有发布完整代码包。', 'code_package_not_found');
-    const relative = safeProjectCodePath(project.codeDelivery.packageFile, project.id, errorStatus);
-    const absolute = join(root, relative);
-    const contractFingerprint = fingerprint({
-      id: project.id,
-      codeDelivery: project.codeDelivery,
-      chapters: project.chapters.map(chapter => ({
-        id: chapter.id,
-        snapshotStateId: chapter.snapshotStateId,
-        guidedSteps: chapter.guidedSteps?.map(step => ({ id: step.id, codeStepId: step.codeStepId, targetFiles: step.targetFiles })) || []
-      }))
-    });
-    let metadata;
-    try { metadata = await stat(absolute); }
-    catch (error) {
-      if (error.code === 'ENOENT') throw httpError(errorStatus, `作品 ${project.id} 的代码包文件缺失。`, 'invalid_code_package');
-      throw httpError(errorStatus, `无法读取作品 ${project.id} 的代码包：${error.code || error.message}`, 'invalid_code_package');
-    }
-    if (metadata.size > PROJECT_CODE_MAX_PACKAGE_BYTES) throw httpError(errorStatus, `作品 ${project.id} 的代码包超过 16 MB 上限。`, 'invalid_code_package');
-    const cached = useCache ? codePackageCache.get(project.id) : null;
-    if (cached
-      && cached.sha256 === project.codeDelivery.packageSha256
-      && cached.contractFingerprint === contractFingerprint
-      && cached.size === metadata.size
-      && cached.mtimeMs === metadata.mtimeMs) return cached.value;
-    let raw;
-    try { raw = await readFile(absolute); }
-    catch (error) {
-      if (error.code === 'ENOENT') throw httpError(errorStatus, `作品 ${project.id} 的代码包文件缺失。`, 'invalid_code_package');
-      throw httpError(errorStatus, `无法读取作品 ${project.id} 的代码包：${error.code || error.message}`, 'invalid_code_package');
-    }
-    const digest = createHash('sha256').update(raw).digest('hex');
-    if (digest !== project.codeDelivery.packageSha256) throw httpError(errorStatus, `作品 ${project.id} 的代码包摘要不匹配，课程引用与源码包不是同一版本。`, 'invalid_code_package');
-    let parsed;
-    try { parsed = JSON.parse(raw.toString('utf8')); }
-    catch { throw httpError(errorStatus, `作品 ${project.id} 的代码包不是有效 JSON。`, 'invalid_code_package'); }
-    try {
-      const value = sanitizeProjectCodePackage(parsed, project);
-      if (populateCache) codePackageCache.set(project.id, { sha256: digest, contractFingerprint, size: metadata.size, mtimeMs: metadata.mtimeMs, value });
-      return value;
-    }
-    catch (error) { throw httpError(errorStatus, `作品 ${project.id} 的代码包校验失败：${error.message}`, 'invalid_code_package'); }
-  }
+  const codeReader = createProjectCodeReader(root);
 
   async function readState() {
     const rawCourse = await store.read('data/course.json');
@@ -424,7 +372,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
     let course, progress, weekCard;
     try { course = sanitizeCourse(rawCourse, details); }
     catch (error) { throw httpError(500, `data/course.json 或 data/levels 校验失败：${error.message}`, 'corrupt_data'); }
-    for (const project of course.projects) if (project.codeDelivery) await readProjectCodePackage(project);
+    for (const project of course.projects) if (project.codeDelivery) await codeReader.readPublished(project);
     try { progress = sanitizeProgress(course, await store.read('data/progress.json')); }
     catch (error) { throw httpError(500, `data/progress.json 校验失败：${error.message}`, 'corrupt_data'); }
     try { weekCard = sanitizeWeekCard(course, await store.read('data/week-card.json')); }
@@ -490,7 +438,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
       if (!known.has(attempt.payload.projectId)) throw httpError(400, `已有概念理解记录引用 ${attempt.payload.projectId}，不能直接删除；请保留稳定编号。`, 'referenced_activity');
     }
     for (const project of hydrated.projects) {
-      if (project.codeDelivery) await readProjectCodePackage(project, { useCache: false, populateCache: false, errorStatus: 400 });
+      if (project.codeDelivery) await codeReader.validateCandidate(project);
     }
     await store.writeDataBatch([
       ...details.map(detail => ({
@@ -554,7 +502,7 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
         const state = await store.run(readState);
         const project = state.course.projects.find(item => item.id === projectCodeRoute[1]);
         if (!project) throw httpError(404, '没有找到这个作品。', 'activity_not_found');
-        const codePackage = await readProjectCodePackage(project);
+        const codePackage = await codeReader.readPublished(project);
         return json(res, 200, { codePackage, packageSha256: project.codeDelivery.packageSha256 }, project.codeDelivery.packageSha256);
       }
 
