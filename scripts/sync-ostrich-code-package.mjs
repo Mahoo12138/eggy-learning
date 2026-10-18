@@ -2,22 +2,18 @@
 // starter scaffold plus 33 bounded, observable experiments. Every milestone
 // remains a full runnable tree; target hardware claims stay explicitly separate
 // from the host and HAL-stub evidence available in this repository.
-import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { sanitizeProjectCodePackage } from '../lib/project-code-delivery.mjs';
-import { sanitizeProject } from '../shared/park-domain.mjs';
+import { publishProjectCode } from '../lib/project-code-publisher.mjs';
 
+const args = process.argv.slice(2);
+if (args.some(arg => arg !== '--check')) throw new Error('仅支持 --check');
 const root = fileURLToPath(new URL('..', import.meta.url));
 const projectId = 'ostrich-ferris-wheel-project';
 const sourceRoot = join(root, 'courseware/ostrich-ferris-wheel/final');
 const excludedDirectories = new Set(['build']);
-
-async function readJson(path) {
-  return JSON.parse(await readFile(join(root, path), 'utf8'));
-}
 
 async function readTree(directory, prefix = '') {
   const result = {};
@@ -321,7 +317,8 @@ function repairProject(project) {
   for (const step of steps.values()) {
     if (step.targetFiles.includes('Core/Src/main.c')) {
       addTarget(step, 'docs/cubemx-integration.md');
-      step.instruction += ' 代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。';
+      const entryGuidance = '代码包中的 Core/Src/main.c 是可直接运行的主机演示入口；目标板只修改 CubeMX 生成的 main.c，并完整照 docs/cubemx-integration.md 的 USER CODE 片段接入，不能用两个 main.c 互相覆盖。';
+      if (!step.instruction.includes(entryGuidance)) step.instruction += ` ${entryGuidance}`;
     }
   }
   addTarget(steps.get('irq-01'),
@@ -362,101 +359,81 @@ function changesFor(step, files) {
   });
 }
 
-const detailPath = 'data/levels/ostrich-ferris-wheel-project.json';
-const project = await readJson(detailPath);
-const course = await readJson('data/course.json');
-repairProject(project);
-const files = await readTree(sourceRoot);
-if (!Object.keys(files).length) throw new Error(`参考工程为空：${relative(root, sourceRoot)}`);
-if (Object.keys(files).some(path => path === 'build' || path.startsWith('build/') || path.includes('.dSYM/'))) {
-  throw new Error('代码包不能包含构建产物');
-}
-
-const states = [{ id: 'ostrich-f103-complete-scaffold', files }];
-const steps = [];
-let previousStateId = states[0].id;
-for (const chapter of project.chapters) {
-  for (const step of chapter.guidedSteps) {
-    for (const path of step.targetFiles) {
-      if (typeof files[path] !== 'string') throw new Error(`${step.id} 的完整参考工程缺少 ${path}`);
+const result = await publishProjectCode({
+  root, projectId, check: args.includes('--check'),
+  build: async ({ project }) => {
+    repairProject(project);
+    const files = await readTree(sourceRoot);
+    if (!Object.keys(files).length) throw new Error(`参考工程为空：${relative(root, sourceRoot)}`);
+    if (Object.keys(files).some(path => path === 'build' || path.startsWith('build/') || path.includes('.dSYM/'))) {
+      throw new Error('代码包不能包含构建产物');
     }
-    step.codeStepId = `${step.id}-code`;
-    const toStateId = `${step.id}-ready`;
-    states.push({ id: toStateId, files });
-    steps.push({
-      id: step.codeStepId,
-      chapterId: chapter.id,
-      guidedStepId: step.id,
-      fromStateId: previousStateId,
-      toStateId,
-      copyFiles: [...step.targetFiles],
-      learnerChanges: changesFor(step, files),
-      intentionalGaps: [],
-      verification: {
-        commands: [
-          'make clean all',
+
+    const states = [{ id: 'ostrich-f103-complete-scaffold', files }];
+    const steps = [];
+    let previousStateId = states[0].id;
+    for (const chapter of project.chapters) {
+      for (const step of chapter.guidedSteps) {
+        for (const path of step.targetFiles) {
+          if (typeof files[path] !== 'string') throw new Error(`${step.id} 的完整参考工程缺少 ${path}`);
+        }
+        step.codeStepId = `${step.id}-code`;
+        const toStateId = `${step.id}-ready`;
+        states.push({ id: toStateId, files });
+        steps.push({
+          id: step.codeStepId,
+          chapterId: chapter.id,
+          guidedStepId: step.id,
+          fromStateId: previousStateId,
+          toStateId,
+          copyFiles: [...step.targetFiles],
+          learnerChanges: changesFor(step, files),
+          intentionalGaps: [],
+          verification: {
+            commands: [
+              'make clean all',
+              'make test',
+              'make demo'
+            ],
+            expected: [
+              '严格 C17 编译无警告，12 个主机/HAL-stub 测试全部通过。',
+              '集成 demo 经过 RUNNING、PARKING、FAULT，最终 PWM=0 并输出 DEMO PASS。',
+              step.verify,
+              '涉及 .ioc、下载、SWD、串口或电气现象的结论必须在装有 STM32CubeF1/STM32CubeIDE 且连接实物后单独取证；主机通过不冒充真机通过。'
+            ]
+          }
+        });
+        previousStateId = toStateId;
+      }
+      chapter.snapshotStateId = previousStateId;
+    }
+
+    const codePackage = {
+      schemaVersion: 1,
+      projectId,
+      states,
+      steps,
+      finalSource: {
+        stateId: previousStateId,
+        buildCommands: [
+          './scripts/verify.sh',
+          'make clean all'
+        ],
+        runCommands: [
           'make test',
           'make demo'
         ],
         expected: [
-          '严格 C17 编译无警告，12 个主机/HAL-stub 测试全部通过。',
-          '集成 demo 经过 RUNNING、PARKING、FAULT，最终 PWM=0 并输出 DEMO PASS。',
-          step.verify,
-          '涉及 .ioc、下载、SWD、串口或电气现象的结论必须在装有 STM32CubeF1/STM32CubeIDE 且连接实物后单独取证；主机通过不冒充真机通过。'
+          '12 个主机/HAL-stub 测试全部通过，包含完整 ferris_app 目标循环的外设启动、状态转换、诊断、安全输出与看门狗刷新验证。',
+          '主机 demo 经过 BOOT→SELF_TEST→READY→RUNNING→PARKING→READY→RUNNING→FAULT，最终 PWM=0 且输出 DEMO PASS。',
+          '完整工程不含待补实现、伪代码、空业务函数、构建二进制或需要学习者猜测的运行胶水。',
+          'CubeMX 生成、Arm 交叉构建、ST-LINK 下载和实物外设验收未在当前主机完成，必须按 README 在真实环境补充证据。'
         ]
       }
-    });
-    previousStateId = toStateId;
+    };
+
+    return { project, codePackage };
   }
-  chapter.snapshotStateId = previousStateId;
-}
-
-const codePackage = {
-  schemaVersion: 1,
-  projectId,
-  states,
-  steps,
-  finalSource: {
-    stateId: previousStateId,
-    buildCommands: [
-      './scripts/verify.sh',
-      'make clean all'
-    ],
-    runCommands: [
-      'make test',
-      'make demo'
-    ],
-    expected: [
-      '12 个主机/HAL-stub 测试全部通过，包含完整 ferris_app 目标循环的外设启动、状态转换、诊断、安全输出与看门狗刷新验证。',
-      '主机 demo 经过 BOOT→SELF_TEST→READY→RUNNING→PARKING→READY→RUNNING→FAULT，最终 PWM=0 且输出 DEMO PASS。',
-      '完整工程不含待补实现、伪代码、空业务函数、构建二进制或需要学习者猜测的运行胶水。',
-      'CubeMX 生成、Arm 交叉构建、ST-LINK 下载和实物外设验收未在当前主机完成，必须按 README 在真实环境补充证据。'
-    ]
-  }
-};
-
-const packageText = `${JSON.stringify(codePackage, null, 2)}\n`;
-project.codeDelivery = {
-  schemaVersion: 1,
-  packageFile: `project-code/${projectId}.json`,
-  packageSha256: createHash('sha256').update(packageText).digest('hex'),
-  baselineStateId: states[0].id,
-  finalStateId: previousStateId
-};
-
-sanitizeProject(project);
-sanitizeProjectCodePackage(codePackage, project);
-
-const courseIndex = course.projects.findIndex(item => item.id === projectId);
-if (courseIndex < 0) throw new Error(`data/course.json 缺少 ${projectId}`);
-course.projects[courseIndex] = structuredClone(project);
-
-const packagePath = join(root, 'data', project.codeDelivery.packageFile);
-await mkdir(dirname(packagePath), { recursive: true });
-await writeFile(packagePath, packageText);
-await writeFile(join(root, detailPath), `${JSON.stringify(project, null, 2)}\n`);
-await writeFile(join(root, 'data/course.json'), `${JSON.stringify(course, null, 2)}\n`);
-
-console.log(`已发布 ${project.chapters.length} 章、${steps.length} 步、${states.length} 个完整快照。`);
-console.log(`起始脚手架 ${Object.keys(files).length} 个文本文件；代码包 ${Buffer.byteLength(packageText)} bytes。`);
-console.log(`SHA-256 ${project.codeDelivery.packageSha256}`);
+});
+console.log(`${result.check ? '校验通过，未写入' : result.written ? '已发布' : '内容未变，未写入'}：${result.chapters} 章、${result.steps} 步、${result.states} 个完整快照，课程版本 ${result.publishedRevision}。`);
+console.log(`代码包 ${result.packageBytes} bytes，SHA-256 ${result.packageSha256}`);

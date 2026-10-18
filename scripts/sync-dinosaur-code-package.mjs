@@ -1,14 +1,14 @@
 // Publish the Linux night-patrol reference project as a sequence of complete,
 // runnable course snapshots. The complete reference tree is supplied as the
 // baseline scaffold; each lesson card only exposes that lesson's target files.
-import { createHash } from 'node:crypto';
-import { readdir, readFile, mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { sanitizeProjectCodePackage } from '../lib/project-code-delivery.mjs';
-import { sanitizeProject } from '../shared/park-domain.mjs';
+import { publishProjectCode } from '../lib/project-code-publisher.mjs';
 
+const args = process.argv.slice(2);
+if (args.some(arg => arg !== '--check')) throw new Error('仅支持 --check');
 const root = fileURLToPath(new URL('..', import.meta.url));
 const projectId = 'dinosaur-night-patrol-project';
 const sourceRoot = join(root, 'courseware/dinosaur-night-patrol/final');
@@ -27,10 +27,6 @@ const chapterTests = new Map([
   ['resource-isolation', 'test_isolation'],
   ['supervisor', 'test_supervisor']
 ]);
-
-async function readJson(path) {
-  return JSON.parse(await readFile(join(root, path), 'utf8'));
-}
 
 async function readTree(directory, prefix = '') {
   const result = {};
@@ -258,100 +254,81 @@ function repairOpeningChapter(project) {
   });
 }
 
-const detailPath = 'data/levels/dinosaur-night-patrol-project.json';
-const project = await readJson(detailPath);
-const course = await readJson('data/course.json');
-const files = await readTree(sourceRoot);
-if (!Object.keys(files).length) throw new Error(`参考工程为空：${relative(root, sourceRoot)}`);
+const result = await publishProjectCode({
+  root, projectId, check: args.includes('--check'),
+  build: async ({ project }) => {
+    const files = await readTree(sourceRoot);
+    if (!Object.keys(files).length) throw new Error(`参考工程为空：${relative(root, sourceRoot)}`);
 
-repairOpeningChapter(project);
-project.version = 3;
-project.guidancePolicy.codeDeliveryContractVersion = 1;
+    repairOpeningChapter(project);
+    project.version = 3;
+    project.guidancePolicy.codeDeliveryContractVersion = 1;
 
-const states = [{ id: 'dinosaur-reference-scaffold', files }];
-const steps = [];
-let previousStateId = states[0].id;
-for (const chapter of project.chapters) {
-  const testName = chapterTests.get(chapter.id);
-  if (!testName) throw new Error(`章节 ${chapter.id} 没有对应的独立测试`);
-  for (const step of chapter.guidedSteps) {
-    for (const path of step.targetFiles) {
-      if (typeof files[path] !== 'string') throw new Error(`${step.id} 的完整参考工程缺少 ${path}`);
+    const states = [{ id: 'dinosaur-reference-scaffold', files }];
+    const steps = [];
+    let previousStateId = states[0].id;
+    for (const chapter of project.chapters) {
+      const testName = chapterTests.get(chapter.id);
+      if (!testName) throw new Error(`章节 ${chapter.id} 没有对应的独立测试`);
+      for (const step of chapter.guidedSteps) {
+        for (const path of step.targetFiles) {
+          if (typeof files[path] !== 'string') throw new Error(`${step.id} 的完整参考工程缺少 ${path}`);
+        }
+        step.codeStepId = `${step.id}-code`;
+        const toStateId = `${step.id}-ready`;
+        states.push({ id: toStateId, files });
+        steps.push({
+          id: step.codeStepId,
+          chapterId: chapter.id,
+          guidedStepId: step.id,
+          fromStateId: previousStateId,
+          toStateId,
+          copyFiles: [...step.targetFiles],
+          learnerChanges: [learnerChange(step, files)],
+          intentionalGaps: [],
+          verification: {
+            commands: [
+              'cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON',
+              'cmake --build build --parallel',
+              `ctest --test-dir build -R '^${testName}$' --output-on-failure`
+            ],
+            expected: [
+              '配置与编译成功，编译器没有警告或缺失符号。',
+              `${testName} 通过；失败时先停在本步，不带着红灯进入下一步。`,
+              step.verify
+            ]
+          }
+        });
+        previousStateId = toStateId;
+      }
+      chapter.snapshotStateId = previousStateId;
     }
-    step.codeStepId = `${step.id}-code`;
-    const toStateId = `${step.id}-ready`;
-    states.push({ id: toStateId, files });
-    steps.push({
-      id: step.codeStepId,
-      chapterId: chapter.id,
-      guidedStepId: step.id,
-      fromStateId: previousStateId,
-      toStateId,
-      copyFiles: [...step.targetFiles],
-      learnerChanges: [learnerChange(step, files)],
-      intentionalGaps: [],
-      verification: {
-        commands: [
+
+    const codePackage = {
+      schemaVersion: 1,
+      projectId,
+      states,
+      steps,
+      finalSource: {
+        stateId: previousStateId,
+        buildCommands: [
           'cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON',
-          'cmake --build build --parallel',
-          `ctest --test-dir build -R '^${testName}$' --output-on-failure`
+          'cmake --build build --parallel'
+        ],
+        runCommands: [
+          'ctest --test-dir build --output-on-failure',
+          'runtime=$(mktemp -d); ./build/patrold --runtime "$runtime" --worker ./build/patrol-worker --timeout-ms 500 --once --spawn demo:ok; grep -q \'"reportReceived":true\' "$runtime/state.json"; rm -rf "$runtime"'
         ],
         expected: [
-          '配置与编译成功，编译器没有警告或缺失符号。',
-          `${testName} 通过；失败时先停在本步，不带着红灯进入下一步。`,
-          step.verify
+          '12 项单元测试和 3 项端到端测试全部通过。',
+          '一次性巡检正常退出，state.json 记录完整报告，运行目录可安全删除。',
+          '最终工程没有 TODO、伪代码、空函数或需要学习者猜测的省略段。'
         ]
       }
-    });
-    previousStateId = toStateId;
+    };
+
+    return { project, codePackage };
   }
-  chapter.snapshotStateId = previousStateId;
-}
-
-const codePackage = {
-  schemaVersion: 1,
-  projectId,
-  states,
-  steps,
-  finalSource: {
-    stateId: previousStateId,
-    buildCommands: [
-      'cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON',
-      'cmake --build build --parallel'
-    ],
-    runCommands: [
-      'ctest --test-dir build --output-on-failure',
-      'runtime=$(mktemp -d); ./build/patrold --runtime "$runtime" --worker ./build/patrol-worker --timeout-ms 500 --once --spawn demo:ok; grep -q \'"reportReceived":true\' "$runtime/state.json"; rm -rf "$runtime"'
-    ],
-    expected: [
-      '12 项单元测试和 3 项端到端测试全部通过。',
-      '一次性巡检正常退出，state.json 记录完整报告，运行目录可安全删除。',
-      '最终工程没有 TODO、伪代码、空函数或需要学习者猜测的省略段。'
-    ]
-  }
-};
-
-const packageText = `${JSON.stringify(codePackage, null, 2)}\n`;
-project.codeDelivery = {
-  schemaVersion: 1,
-  packageFile: `project-code/${projectId}.json`,
-  packageSha256: createHash('sha256').update(packageText).digest('hex'),
-  baselineStateId: states[0].id,
-  finalStateId: previousStateId
-};
-
-sanitizeProject(project);
-sanitizeProjectCodePackage(codePackage, project);
-
-const courseIndex = course.projects.findIndex(item => item.id === projectId);
-if (courseIndex < 0) throw new Error(`data/course.json 缺少 ${projectId}`);
-course.projects[courseIndex] = structuredClone(project);
-
-const packagePath = join(root, 'data', project.codeDelivery.packageFile);
-await mkdir(dirname(packagePath), { recursive: true });
-await writeFile(packagePath, packageText);
-await writeFile(join(root, detailPath), `${JSON.stringify(project, null, 2)}\n`);
-await writeFile(join(root, 'data/course.json'), `${JSON.stringify(course, null, 2)}\n`);
-
-console.log(`已发布 ${project.chapters.length} 章、${steps.length} 步、${states.length} 个完整快照。`);
-console.log(`代码包 ${Buffer.byteLength(packageText)} bytes，SHA-256 ${project.codeDelivery.packageSha256}`);
+});
+console.log(`${result.check ? '校验通过，未写入' : result.written ? '已发布' : '内容未变，未写入'}：${result.chapters} 章、${result.steps} 步、${result.states} 个完整快照，课程版本 ${result.publishedRevision}。`);
+console.log(`代码包 ${result.packageBytes} bytes，SHA-256 ${result.packageSha256}`);
