@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sanitizeCourse } from '../shared/park-domain.mjs';
 
@@ -9,6 +9,7 @@ const details = await Promise.all([...raw.levels, ...raw.projects].map(item => r
 const course = sanitizeCourse(raw, details);
 const locations = new Map(course.locations.map(item => [item.id, item.title]));
 const rewards = new Map(course.rewardCatalog.map(item => [item.sourceRankId, item.title]));
+const markdownCell = value => String(value || '').replaceAll('|', '\\|').replaceAll('\n', '<br>');
 
 const lines = [
   `# ${course.title}`,
@@ -24,7 +25,7 @@ const lines = [
   '- 查看完整解法不会扣除已有奖励，但当前变式不再授星，会改派等价新变式。',
   '- 允许休息周，不形成欠课；段位、星星、信物和作品永久保留。',
   '',
-  '## 九阶乐园地图',
+  '## 九阶段位地图',
   ''
 ];
 
@@ -46,11 +47,24 @@ for (const rank of course.ranks) {
     const fullyGuided = project.guidancePolicy || project.chapters.some(chapter => chapter.guidedSteps?.length);
     if (fullyGuided) {
       if (project.guidancePolicy) {
+        const conceptLessons = project.guidancePolicy.conceptLessonsPerChapter || 0;
+        const chapterParts = [
+          ...(conceptLessons ? [`${conceptLessons} 个概念理解课`] : []),
+          `${project.guidancePolicy.guidedLessonsPerChapter} 个完整引导步骤`,
+          ...(project.guidancePolicy.independentCheckpointPerChapter ? ['1 个独立检查'] : [])
+        ];
         lines.push(
           `- 课程模式：${project.guidancePolicy.mode}`,
-          `- 每章结构：${project.guidancePolicy.guidedLessonsPerChapter} 个完整引导步骤 + 1 个独立检查`,
+          `- 每章结构：${chapterParts.join(' + ')}`,
+          `- 每章概念课：${conceptLessons} 个`,
           `- 完整解法：${project.guidancePolicy.fullSolutionScope}`,
           `- 自主边界：${project.guidancePolicy.learnerFreedomBoundary}`,
+          ''
+        );
+      }
+      if (project.estimatedSessions) {
+        lines.push(
+          `- 预计场次：章节最低 ${project.estimatedSessions.minimum} 场，含 Boss 典型共 ${project.estimatedSessions.typical} 场`,
           ''
         );
       }
@@ -63,11 +77,44 @@ for (const rank of course.ranks) {
         );
       }
       lines.push('| 章节 | 阶段 | 场次 | 可运行里程碑 | 独立检查 |', '|---|---|---:|---|---|');
-      for (const chapter of project.chapters) lines.push(`| ${chapter.title} | ${chapter.phase || '累积构建'} | ${chapter.estimatedSessions || '—'} | ${chapter.milestone || chapter.goal} | ${chapter.checkpoint.task} |`);
+      for (const chapter of project.chapters) lines.push(`| ${[chapter.title, chapter.phase || '累积构建', chapter.estimatedSessions || '—', chapter.milestone || chapter.goal, chapter.checkpoint.task].map(markdownCell).join(' | ')} |`);
       lines.push('');
       for (const [chapterIndex, chapter] of project.chapters.entries()) {
         if (!chapter.guidedSteps?.length) continue;
         lines.push(`#### ${chapterIndex + 1}. ${chapter.title}`, '', chapter.guidedBuild, '', `涉及文件：${(chapter.filesTouched || []).map(file => `\`${file}\``).join('、')}`, '');
+        if (chapter.conceptModule) {
+          const concept = chapter.conceptModule;
+          lines.push(
+            `##### 概念理解课：${concept.title}`,
+            '',
+            `- 学习目标：${concept.learningGoal}`,
+            `- 先观察：**${concept.phenomenon.title}** — ${concept.phenomenon.observation}`,
+            `- 带着问题：${concept.phenomenon.question}`,
+            `- 心智模型：${concept.mentalModel.summary}`,
+            ''
+          );
+          concept.mentalModel.flow.forEach((node, nodeIndex) => {
+            lines.push(`${nodeIndex + 1}. **${node.title}**：${node.explanation}`);
+          });
+          lines.push('', '| 术语 | 白话解释 | 代码映射 |', '|---|---|---|');
+          concept.terms.forEach(term => {
+            lines.push(`| ${markdownCell(term.term)} | ${markdownCell(term.plainMeaning)} | ${markdownCell(term.codeMapping)} |`);
+          });
+          lines.push('', `- 推演示例：**${concept.workedExample.title}**`);
+          concept.workedExample.steps.forEach((step, stepIndex) => {
+            lines.push(`  ${stepIndex + 1}. ${step}`);
+          });
+          lines.push(`- 推演结论：${concept.workedExample.takeaway}`, '', '**理解题（课程后台审阅版）**', '');
+          concept.checks.forEach((check, checkIndex) => {
+            const correct = check.options.find(option => option.id === check.correctOptionId);
+            lines.push(`${checkIndex + 1}. ${check.question}`);
+            check.options.forEach(option => {
+              lines.push(`   - ${option.id === check.correctOptionId ? '✓ ' : ''}${option.text}`);
+            });
+            lines.push(`   - 正确答案：${correct?.text || check.correctOptionId}`, `   - 解释：${check.explanation}`);
+          });
+          lines.push('', `- 进入代码：${concept.bridgeToCode}`, '');
+        }
         chapter.guidedSteps.forEach((step, stepIndex) => {
           lines.push(`${stepIndex + 1}. **${step.title}**：${step.instruction}`, `   - 文件：${step.targetFiles.map(file => `\`${file}\``).join('、')}`, `   - 验证：${step.verify}`);
         });
@@ -94,6 +141,8 @@ lines.push('', '| 可选素材 | 可作为作品的程序机制 |', '|---|---|')
 for (const prop of course.props) lines.push(`| ${prop.title} | ${prop.semanticRole} |`);
 lines.push('', `> ${course.legalNotice}`, '');
 
-const destination = join(root, 'docs/当前学习训练计划.md');
+const destination = process.env.EGGY_PLAN_EXPORT_DESTINATION
+  ? resolve(process.env.EGGY_PLAN_EXPORT_DESTINATION)
+  : join(root, 'docs/当前学习训练计划.md');
 await writeFile(destination, `${lines.join('\n')}\n`, 'utf8');
 console.log(`已导出 ${destination}`);

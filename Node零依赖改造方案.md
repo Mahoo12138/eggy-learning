@@ -1,12 +1,12 @@
 # 蛋仔编程乐园：Node 零依赖实现
 
-日期：2026-10-13。本文描述当前 v2 实现。运行方法见 [README.md](README.md)，已执行的验证与边界见 [docs/实施验证.md](docs/实施验证.md)。这里的“零依赖”指应用服务、页面脚本和自动化测试不安装 npm 包；前三段的真实 C 执行仍依赖 macOS 自带的 Clang 与 `sandbox-exec`。
+日期：2026-10-13。本文描述当前 v2 实现。运行方法见 [README.md](README.md)，已执行的验证与边界见 [docs/实施验证.md](docs/实施验证.md)。这里的“零依赖”指应用启动、页面与基础自动化测试无需安装 npm 包；代码高亮采用随项目同源提供的 highlight.js 浏览器 ESM，不增加安装或打包步骤。前三段的真实 C 执行仍依赖 macOS 自带的 Clang 与 `sandbox-exec`。
 
 ## 1. 产品与领域边界
 
 系统供一位学习者和一位管理者在本机或可信局域网中使用，不提供公开注册、登录或角色权限。学习者页、关卡页和管理页只是不同操作入口，访问服务的人可以打开全部入口。
 
-旧的三项目课程已经被九阶课程完整替代。当前课程只有一条全局段位线，每个段位绑定一组技术：
+旧的三项目课程已经被九阶段位课程完整替代。九阶指九个全局段位，当前课程沿这条段位线推进，每个段位绑定一组技术：
 
 1. 鹌鹑蛋：C 的运行、输入输出与错误观察；
 2. 鸽子蛋：C 的数据、类型、表达式与状态；
@@ -27,7 +27,7 @@ flowchart LR
   L[学习者大厅 learner.html] --> H[Node HTTP 服务]
   P[单步关卡 play.html] --> H
   A[岛务管理处 admin.html] --> H
-  M[九阶地图 plan.html] --> H
+  M[九阶段位地图 plan.html] --> H
   H --> C[data/course.json]
   H --> D[data/levels/*.json]
   H --> R[data/progress.json]
@@ -50,10 +50,10 @@ data/course.json               课程索引与公共定义
 data/levels/*.json             关卡、Boss 与作品详情
 data/progress.json             一位学习者的实际进度与不可变奖励账本
 data/week-card.json            本周游玩卡与保存回执
-public/learner.html            大厅、地图、荣誉墙、本周游玩卡
+public/learner.html            大厅、段位地图、荣誉墙、本周游玩卡
 public/play.html               一次只呈现一个学习步骤
 public/admin.html              进度、自检、作答、作品和课程管理
-public/plan.html               九阶课程总览
+public/plan.html               九阶段位课程总览
 public/report.html             2026-10-12 历史招聘调研快照
 scripts/export-plan.mjs        生成当前课程 Markdown
 ```
