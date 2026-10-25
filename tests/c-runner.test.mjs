@@ -8,6 +8,10 @@ import { performance } from 'node:perf_hooks';
 
 import { C_RUNNER_LIMITS, runC } from '../lib/c-runner.mjs';
 
+// 本文件验证的是本机沙箱语义（文件逃逸、内存上限、进程限制），
+// 必须固定走 local，否则默认的 auto 会把这些代码送到在线服务执行。
+process.env.C_RUNNER_PROVIDER = 'local';
+
 const CLANG = '/usr/bin/clang';
 const SANDBOX = '/usr/bin/sandbox-exec';
 

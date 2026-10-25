@@ -6,7 +6,7 @@ import { networkInterfaces } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { Store, acquireLock, httpError, fingerprint, etag, requireMatch, safeId } from './lib/store.mjs';
 import { getGitHistory } from './lib/git-history.mjs';
-import { cIdentifiers, runC } from './lib/c-runner.mjs';
+import { cIdentifiers, describeRunner, runC } from './lib/c-runner.mjs';
 import { runLinuxShell } from './lib/linux-shell-sim.mjs';
 import { withMasteryChallenges, supportsMasteryChallenges } from './lib/mastery-challenges.mjs';
 import { evaluateCoursePreview } from './lib/course-preview.mjs';
@@ -249,22 +249,45 @@ function programRequirementFailures(source, runtimeId, execution, requirements =
 }
 
 async function gradeProgram(source, rule, stdin = '', runtimeId = 'c17-console') {
+  if (runtimeId !== 'c17-console' && runtimeId !== 'linux-shell-sim') throw httpError(400, `当前在线关卡不支持运行环境 ${runtimeId}。`, 'unsupported_runtime');
   const cases = rule.kind === 'stdin-stdout-cases' ? rule.cases : [{ stdin, stdout: rule.expected }];
   const caseResults = [];
-  for (const testCase of cases) {
-    let execution;
-    if (runtimeId === 'linux-shell-sim') execution = runLinuxShell(source, testCase.stdin || '');
-    else if (runtimeId === 'c17-console') execution = await runC(source, testCase.stdin || '');
-    else throw httpError(400, `当前在线关卡不支持运行环境 ${runtimeId}。`, 'unsupported_runtime');
+
+  const execute = async testCase => {
+    const execution = runtimeId === 'linux-shell-sim' ? runLinuxShell(source, testCase.stdin || '') : await runC(source, testCase.stdin || '');
     const expected = normalizedOutput(testCase.stdout);
     const actual = normalizedOutput(execution.stdout);
     const expectedExitCode = Number.isInteger(testCase.exitCode) ? testCase.exitCode : 0;
     const requirements = { ...(rule.requirements || {}), ...(testCase.requirements || {}) };
     const requirementFailures = execution.phase === 'run' ? programRequirementFailures(source, runtimeId, execution, requirements) : [];
     const passed = execution.phase === 'run' && !execution.timedOut && execution.exitCode === expectedExitCode && actual === expected && requirementFailures.length === 0;
-    caseResults.push({ stdin: testCase.stdin || '', expected, actual, stderr: execution.stderr, phase: execution.phase, exitCode: execution.exitCode, expectedExitCode, timedOut: execution.timedOut === true, requirementFailures, passed });
-    if (execution.phase === 'compile' || execution.timedOut || execution.outputLimited) break;
+    const stopped = execution.phase === 'compile' || execution.timedOut === true || execution.outputLimited === true;
+    return { stopped, runner: execution.runner || 'local', result: { stdin: testCase.stdin || '', expected, actual, stderr: execution.stderr, phase: execution.phase, exitCode: execution.exitCode, expectedExitCode, timedOut: execution.timedOut === true, requirementFailures, passed } };
+  };
+
+  if (cases.length) {
+    // 第一组单独跑：编译失败对所有输入都一样，先执行一次就能避免多余的往返。
+    const first = await execute(cases[0]);
+    caseResults.push(first.result);
+    const rest = cases.slice(1);
+    if (!first.stopped && rest.length) {
+      // 本机执行彼此不争抢，可以并行。在线执行共用同一份远端配额，并发会把彼此推过超时线，
+      // 让正确的程序被判成"没有在限定时间内返回"，因此按顺序执行。
+      if (first.runner === 'remote') {
+        for (const testCase of rest) {
+          const item = await execute(testCase);
+          caseResults.push(item.result);
+          if (item.stopped) break;
+        }
+      } else {
+        for (const item of await Promise.all(rest.map(execute))) {
+          caseResults.push(item.result);
+          if (item.stopped) break;
+        }
+      }
+    }
   }
+
   const passed = caseResults.length === cases.length && caseResults.every(item => item.passed);
   const firstFailure = caseResults.find(item => !item.passed);
   return {
@@ -479,6 +502,10 @@ export async function startServer({ root = ROOT, assetRoot = ROOT, host = '127.0
 
       if (pathname === '/api/admin/history' && method === 'GET') {
         return json(res, 200, await getGitHistory({ root, learnerEmail, kind: url.searchParams.get('kind') || 'all', offset: Number(url.searchParams.get('offset') || 0), limit: Number(url.searchParams.get('limit') || 20) }));
+      }
+
+      if (pathname === '/api/runner/status' && method === 'GET') {
+        return json(res, 200, describeRunner());
       }
 
       if (pathname === '/api/play/home' && method === 'GET') {
