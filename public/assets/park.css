@@ -1263,6 +1263,7 @@ button, .park-button { touch-action: manipulation; }
   .step-actions > .park-button { width: 100%; }
   .help-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .help-actions .park-button { min-height: 38px; padding: 8px; font-size: 10px; }
+  #reset-step ~ #copy-ai-context { grid-column: 1 / -1; }
   .project-confirmations { grid-template-columns: 1fr; }
   .project-chapter-meta, .project-environment-grid, .project-runbook-grid { grid-template-columns: 1fr; }
   .project-concept-heading { grid-template-columns: 1fr; gap: 8px; }

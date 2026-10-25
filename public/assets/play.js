@@ -21,6 +21,7 @@ import {
 } from './os-concept-lab.mjs';
 import { chapterCodeReady, codeDeliveryMode, codeState, finalSourceModel, guidedCodeModel, snapshotCodeModel, starterProjectModel, matchingCodePackage } from './project-code-delivery.mjs';
 import { createProjectStateZip, downloadProjectStateZip } from './project-code-zip.mjs';
+import { answerKindOf, canResetAnswer, conceptResetTarget, resetActionLabel, resetNoticeText, RESET_BUTTON_HINT } from './step-answer.mjs';
 import {
   $, $$, buildAIContext, copyText, esc, makeRequestId,
   playTone, rankBlueprint, requestJSON
@@ -1028,19 +1029,21 @@ function renderProjectInteraction(step) {
     </div>` : ''}
   </div>`;
   $('#check-step').disabled = !guide.complete;
+  updateResetControl(step);
 }
 
 function renderInteraction(step) {
-  if (state.mode === 'project') { renderProjectInteraction(step); return; }
-  const interaction = step.interaction?.kind || step.interaction?.type;
-  const evaluator = step.evaluator?.kind;
-  if (interaction === 'reorder' || evaluator === 'exact-order') renderReorder(step);
-  else if (interaction === 'choice' || interaction === 'single-choice' || evaluator === 'choice') renderChoice(step);
-  else if (interaction === 'number' || evaluator === 'number-exact') renderNumber(step);
-  else if (['object-exact', 'mapping-exact'].includes(evaluator)) renderStructured(step);
-  else if (isCodeStep(step)) renderCode(step);
-  else if (['explanation', 'explain', 'text', 'reflection'].includes(stepType(step)) || step.answerPolicy) renderText(step);
-  else renderExperience(step);
+  switch (answerKindOf(step, state.mode)) {
+    case 'project': renderProjectInteraction(step); break;
+    case 'reorder': renderReorder(step); break;
+    case 'choice': renderChoice(step); break;
+    case 'number': renderNumber(step); break;
+    case 'structured': renderStructured(step); break;
+    case 'code':
+    case 'observe': renderCode(step); break;
+    case 'text': renderText(step); break;
+    default: renderExperience(step);
+  }
 }
 
 function actionLabel(step) {
@@ -1095,12 +1098,69 @@ function renderStepContent() {
   $('#step-error').textContent = '';
   $('#step-form').querySelectorAll('input,textarea,button').forEach(control => { control.disabled = false; });
   renderInteraction(step);
+  updateResetControl(step);
   const conceptPending = state.mode === 'project' && !isProjectBoss(step) && step.conceptModule && !projectGuidedProgress(step).conceptCompleted;
   if (conceptPending) {
     $('#check-step').hidden = true;
     $('#show-hint').hidden = true;
+    $('#reset-step').hidden = true;
   }
   requestAnimationFrame(() => $('#step-title').focus?.({ preventScroll: true }));
+}
+
+function conceptResetItem(step = currentStep()) {
+  if (state.mode !== 'project') return null;
+  return conceptResetTarget(step?.conceptModule, projectGuidedProgress(step));
+}
+
+function updateResetControl(step = currentStep()) {
+  const button = $('#reset-step');
+  if (!button) return;
+  const concept = conceptResetItem(step);
+  const label = concept ? 'concept-choice' : answerKindOf(step, state.mode);
+  button.hidden = concept ? !concept.answered : !canResetAnswer(label);
+  if (button.hidden) return;
+  button.textContent = resetActionLabel(label);
+  button.title = RESET_BUTTON_HINT;
+  button.disabled = state.submitting;
+}
+
+// 重置只清掉本地作答：服务端已写入的尝试记录无法撤销，也不应被抹掉。
+function resetStepAnswer() {
+  const step = currentStep();
+  if (!step || state.submitting) return;
+  const concept = conceptResetItem(step);
+  if (concept) {
+    if (!concept.answered) return;
+    const progress = projectGuidedProgress(step);
+    const conceptAnswers = { ...(progress.conceptAnswers || {}) };
+    delete conceptAnswers[concept.checkId];
+    saveGuidedProgress(step, {
+      ...progress,
+      conceptAnswers,
+      conceptFeedback: '',
+      conceptFeedbackKind: '',
+      conceptFeedbackCheckId: '',
+      conceptAwaitingAdvance: false
+    });
+    state.lastResult = null;
+    $('#scene-output p').textContent = projectScenePrompt(step);
+    renderProjectInteraction(step);
+    reportPreviewState();
+    showNotice(resetNoticeText('concept-choice'), 'success');
+    requestAnimationFrame(() => $('input[name="concept-choice"]', $('#interaction-root'))?.focus({ preventScroll: true }));
+    return;
+  }
+  const kind = answerKindOf(step, state.mode);
+  if (!canResetAnswer(kind)) return;
+  state.answers.delete(step.id);
+  state.orders.delete(step.id);
+  state.pendingRequests.delete(pendingRequestKey(false, step));
+  state.lastResult = null;
+  state.feedback = null;
+  renderStep();
+  showNotice(resetNoticeText(kind), 'success');
+  requestAnimationFrame(() => ($('#code-answer') || $('#text-answer') || $('#number-answer') || $('[data-answer-key]') || $('input[name="step-choice"]'))?.focus({ preventScroll: true }));
 }
 
 function readAnswer(step = currentStep()) {
@@ -1251,7 +1311,7 @@ function renderFeedback(result) {
     $('#next-step').textContent = result.passed ? state.index < steps().length - 1 ? '查看下一题' : '重新查看本题' : '修改后再试';
   }
   if (result.passed) $('#check-step').textContent = '本步已通过';
-  if (result.passed) $('#step-form').querySelectorAll('input,textarea,button').forEach(control => { control.disabled = true; });
+  if (result.passed) $('#step-form').querySelectorAll('input,textarea,button').forEach(control => { if (control.id !== 'reset-step') control.disabled = true; });
   $('#next-step').disabled = false;
   if (result.passed) playTone('success');
   panel.scrollIntoView({ behavior: document.documentElement.dataset.motion === 'reduced' ? 'auto' : 'smooth', block: 'nearest' });
@@ -1271,6 +1331,7 @@ async function submitStep(event) {
   state.lastResult = null;
   $('#step-error').textContent = '';
   $('#check-step').disabled = true;
+  $('#reset-step').disabled = true;
   $('#check-step').textContent = state.mode === 'project' ? previewSession ? '正在模拟自检…' : '正在保存…' : isCodeStep(step) ? '正在运行…' : '正在检查…';
   try {
     const projectMode = state.mode === 'project';
@@ -1326,6 +1387,7 @@ async function submitStep(event) {
     if (!previewRequested || revision === previewRevision) {
       state.submitting = false;
       reportPreviewState();
+      $('#reset-step').disabled = false;
       if (!state.lastResult) {
         $('#check-step').disabled = false;
         $('#check-step').textContent = actionLabel(step);
@@ -1625,6 +1687,7 @@ async function loadLevel() {
 
 $('#retry-level').addEventListener('click', loadLevel);
 $('#step-form').addEventListener('submit', submitStep);
+$('#reset-step').addEventListener('click', resetStepAnswer);
 $('#next-step').addEventListener('click', advanceStep);
 $('#show-hint').addEventListener('click', openHints);
 $('#next-hint').addEventListener('click', nextHint);
